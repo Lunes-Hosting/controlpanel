@@ -1,8 +1,11 @@
 from flask import Flask
 from flask_session import Session
 from Routes.AuthenticationHandler import *
+from Routes.Servers import *
 app = Flask(__name__, "/static")
+
 app.register_blueprint(user)
+app.register_blueprint(servers, url_prefix="/servers")
 
 
 app.config["SESSION_PERMANENT"] = True
