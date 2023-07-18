@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Page</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+    <style>
+        .grid-container {
+        display: grid;
+        grid-template-columns: 2fr 2fr;
+        grid-gap: 10px;
+        justify-items: center;
+        align-items: center;
+          height: 10vh; /* Adjust as needed */
+        }
+    </style>
+{% include 'taskbar.html' %}
+{% for server in servers %}
+
+
+<div class="grid-container">
+    <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}">
+        <div class="center-div">
+        <h3>{{ server['attributes']['name'] }}</h3>
+        </div>
+    </a>
+
+</div>
+
+{% endfor %}
+</body>
+</html>
