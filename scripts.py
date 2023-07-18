@@ -4,6 +4,21 @@ import bcrypt
 import mysql.connector
 from config import *
 import requests
+
+from retrying import retry
+import requests
+
+# Define the retry decorator
+def retry_on_gateway_error():
+    print("SAVED ERROR FROM HAPPENING")
+    return retry(stop_max_attempt_number=3, wait_fixed=2000, retry_on_exception=is_gateway_error)
+
+# Define a function to check if the exception is a 502 Gateway error
+def is_gateway_error(exception):
+    if isinstance(exception, requests.exceptions.HTTPError):
+        return exception.response.status_code == 502
+    return False
+
 HEADERS = {"Authorization": f"Bearer {PTERODACTYL_ADMIN_KEY}",
         'Accept': 'application/json',
         'Content-Type': 'application/json'}
@@ -43,18 +58,19 @@ def get_all_users() ->list:
     cursor.close()
     cnx.close()
     return res
-
+@retry_on_gateway_error()
 def list_servers(pterodactyl_id:int):
     response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS)
-    print(response.text)
     users_server = []
     data = response.json()
     for server in data['data']:
-        print(server['attributes']['user'], pterodactyl_id)
         if server['attributes']['user'] ==pterodactyl_id:
             users_server.append(server)
     return users_server
-
+@retry_on_gateway_error()
+def get_server_information(server_id:int):
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS)
+    return response.json()
 def get_ptero_id(email:str):
     
     cnx = mysql.connector.connect(
@@ -113,7 +129,7 @@ def login(email: str, password: str):
             cursor.close()
         if cnx:
             cnx.close()
-            
+@retry_on_gateway_error()          
 def register(email: str, password: str, name: str):
     salt = bcrypt.gensalt(rounds=10)
     password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
@@ -143,7 +159,7 @@ def register(email: str, password: str, name: str):
         cursor = cnx.cursor()
         
         query = "INSERT INTO users (name, email, password, id, pterodactyl_id) VALUES (%s, %s, %s, %s, %s)"
-        print(response.text)
+
         values = (name, email, password_hash, data['attributes']['id'] + 500, data['attributes']['id'])
         cursor.execute(query, values)
         cnx.commit()
@@ -152,7 +168,7 @@ def register(email: str, password: str, name: str):
 
         return response.json()
 
-
+@retry_on_gateway_error()
 def delete_user(user_id: int):
     cnx = mysql.connector.connect(
         host=HOST,
