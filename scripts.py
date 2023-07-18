@@ -7,6 +7,9 @@ import requests
 HEADERS = {"Authorization": f"Bearer {PTERODACTYL_ADMIN_KEY}",
         'Accept': 'application/json',
         'Content-Type': 'application/json'}
+CLIENT_HEADERS =  {"Authorization": f"Bearer {PTERODACTYL_ADMIN_USER_KEY}",
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'}
 
 def describe_users():
     cnx = mysql.connector.connect(
@@ -35,6 +38,34 @@ def get_all_users() ->list:
 
     cursor = cnx.cursor()
     query = "SELECT * FROM users WHERE email = 'dwattynip123@gmail.com'"
+    cursor.execute(query)
+    res = cursor.fetchall()
+    cursor.close()
+    cnx.close()
+    return res
+
+def list_servers(pterodactyl_id:int):
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS)
+    print(response.text)
+    users_server = []
+    data = response.json()
+    for server in data['data']:
+        print(server['attributes']['user'], pterodactyl_id)
+        if server['attributes']['user'] ==pterodactyl_id:
+            users_server.append(server)
+    return users_server
+
+def get_ptero_id(email:str):
+    
+    cnx = mysql.connector.connect(
+    host=HOST,
+    user=USER,
+    password=PASSWORD,
+    database=DATABASE
+    )
+
+    cursor = cnx.cursor()
+    query = f"SELECT pterodactyl_id FROM users WHERE email = '{email}'"
     cursor.execute(query)
     res = cursor.fetchall()
     cursor.close()

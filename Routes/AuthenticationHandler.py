@@ -24,6 +24,7 @@ def register_user():
                 return response
             except Exception:
                 session['email'] = email
+                
                 return redirect(url_for('index'))
         except Exception as e:
             pass
