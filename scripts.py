@@ -11,7 +11,7 @@ import requests
 # Define the retry decorator
 def retry_on_gateway_error():
     print("SAVED ERROR FROM HAPPENING")
-    return retry(stop_max_attempt_number=3, wait_fixed=2000, retry_on_exception=is_gateway_error)
+    return retry(stop_max_attempt_number=10, wait_fixed=2000, retry_on_exception=is_gateway_error)
 
 # Define a function to check if the exception is a 502 Gateway error
 def is_gateway_error(exception):
@@ -58,9 +58,11 @@ def get_all_users() ->list:
     cursor.close()
     cnx.close()
     return res
+
 @retry_on_gateway_error()
 def list_servers(pterodactyl_id:int):
     response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS)
+    print(response.text)
     users_server = []
     data = response.json()
     for server in data['data']:
