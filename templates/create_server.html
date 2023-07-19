@@ -5,6 +5,11 @@
     <title>Form Example</title>
 </head>
 <body>
+    <style>
+        .options {
+            height: 80px;
+        }
+    </style>
     <h1>Create a server</h1>
     <form action="{{ url_for('servers.create_server_submit') }}" method="post">
         <label for="name">Name</label>
@@ -22,6 +27,15 @@
         <select id="egg_id" name="egg_id" required>
             {% for egg in eggs %}
             <option value="{{egg['egg_id']}}">{{egg['name']}}</option>
+            {% endfor %}
+            <!-- Add more options as needed -->
+        </select>
+        <br>
+        <label for="plan">Plan:</label>
+        <select id="plan" name="plan" class="plan" size="3" required>
+            {% for product in products %}
+                <option class="options" value="{{product['id']}}">{{product['name']}} Memory {{product['limits']['memory']}}, Storage {{product['limits']['disk']}}, CPU%(0=Unlimited) {{product['limits']['cpu']}}</option>
+            <br>
             {% endfor %}
             <!-- Add more options as needed -->
         </select>
