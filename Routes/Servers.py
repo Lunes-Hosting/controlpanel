@@ -2,6 +2,7 @@ from flask import Blueprint, request, render_template, redirect, url_for, sessio
 import sys
 sys.path.append("..") 
 from scripts import *
+from products import products
 import json
 servers = Blueprint('servers', __name__)
 
@@ -46,7 +47,7 @@ def create_server():
     cursor.close()
     cnx.close()
     print(rows[0])
-    return render_template('create_server.html', eggs=eggs, nodes=nodes)
+    return render_template('create_server.html', eggs=eggs, nodes=nodes, products=products)
 
 @servers.route("/delete/<server_id>")
 def delete_server(server_id):
@@ -91,6 +92,9 @@ def create_server_submit():
     for allocation in resp['data']:
         if allocation['attributes']['assigned'] == False:
             alloac_id = allocation['attributes']['id']
+    for product in products:
+        if product['id'] == int(request.form.get('plan')):
+            main_product = product
     body = {
     "name": request.form['name'],
     "user": session['pterodactyl_id'][0][0],
@@ -98,13 +102,8 @@ def create_server_submit():
     "docker_image": docker_image,
     "startup": startup,
 
-    "limits": {
-    "memory": 128,
-    "swap": 0,
-    "disk": 512,
-    "io": 500,
-    "cpu": 15
-    },
+    "limits": main_product['limits'],
+    
     "feature_limits": {
     "databases": 0,
     "backups": 0
