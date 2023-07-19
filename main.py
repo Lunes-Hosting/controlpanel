@@ -17,11 +17,9 @@ Session(app)
 
 @app.route('/')
 def index():
-    try:
-        if session['email']:
+        if 'email' in session:
             return render_template('index.html')
         else:
-            return "No email for u"
-    except KeyError:
-        return redirect(url_for('user.login_user'))
+            return redirect(url_for('user.login_user'))
+
 app.run(debug=True, host="0.0.0.0", port=8080)

@@ -10,7 +10,6 @@ import requests
 
 # Define the retry decorator
 def retry_on_gateway_error():
-    print("SAVED ERROR FROM HAPPENING")
     return retry(stop_max_attempt_number=10, wait_fixed=2000, retry_on_exception=is_gateway_error)
 
 # Define a function to check if the exception is a 502 Gateway error
@@ -26,6 +25,27 @@ CLIENT_HEADERS =  {"Authorization": f"Bearer {PTERODACTYL_ADMIN_USER_KEY}",
         'Accept': 'application/json',
         'Content-Type': 'application/json'}
 
+def get_nodes():
+    available_nodes = []
+    nodes = requests.get(f"{PTERODACTYL_URL}api/application/nodes", headers=HEADERS).json()
+    for node in nodes['data']:
+        available_nodes.append({"node_id": node['attributes']['id'], "name": node['attributes']['name']})
+    return available_nodes
+
+def get_eggs():
+    available_eggs = []
+    nests = requests.get(f"{PTERODACTYL_URL}api/application/nests", headers=HEADERS)
+
+    nests_data = nests.json()
+    for nest in nests_data['data']:
+        resp = requests.get(f"{PTERODACTYL_URL}api/application/nests/{nest['attributes']['id']}/eggs", headers=HEADERS)
+        data = resp.json()
+        for egg in data['data']:
+            attributes = egg['attributes']
+            available_eggs.append(
+                {"egg_id": attributes['id'], "name": attributes['name'], "docker_image": attributes['docker_image'], "startup": attributes['startup']}
+            )
+    return available_eggs
 def describe_users():
     cnx = mysql.connector.connect(
     host=HOST,
@@ -62,7 +82,6 @@ def get_all_users() ->list:
 @retry_on_gateway_error()
 def list_servers(pterodactyl_id:int):
     response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS)
-    print(response.text)
     users_server = []
     data = response.json()
     for server in data['data']:
