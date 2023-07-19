@@ -42,6 +42,8 @@ def login_user():
         password = data.get('password')
         try:
             response = login(email, password)
+            if response is None:
+                return redirect(url_for('user.login_user'))
             print(8)
             try:
                 _ = json.load(response)
@@ -54,6 +56,12 @@ def login_user():
     else:
         print(2)
         return render_template("login.html")
+    
+@user.route('/')
+def index():
+    if not 'email' in session:
+        return redirect(url_for('user.login_user'))
+    return render_template("account.html", )
 
 @user.route('/logout', methods=['GET'])
 def logout():
