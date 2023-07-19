@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<html>
 <head>
     <title>Login Page</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/login.css') }}">
@@ -14,8 +13,12 @@
         align-items: center;
           height: 10vh; /* Adjust as needed */
         }
+        .delete {
+            width: 100px;
+        }
     </style>
 {% include 'taskbar.html' %}
 <h1>{{info['attributes']['name']}}</h1>
+<a href="{{url_for('servers.delete_server', server_id=info['attributes']['id'])}}"><button class="delete">Delete</button></a>
 </body>
 </html>
