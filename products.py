@@ -101,4 +101,38 @@ products = [
             "backups": 3
         }
     },
+    {
+        "price_link": "price_1NWRpNGc0pLG1vqRCtS4p0tW",
+        "id": 6,
+        "name": "Ls 5",
+        "price": 500,
+        "limits": {
+            "memory": 5120,
+            "swap": 0,
+            "disk": 35840,
+            "io": 500,
+            "cpu": 0
+        },
+        "product_limits": {
+            "databases": 2,
+            "backups": 3
+        }
+    },
+        {
+        "price_link": "price_1NWRpNGc0pLG1vqRCtS4p0tW",
+        "id": 7,
+        "name": "Ls 6",
+        "price": 600,
+        "limits": {
+            "memory": 6144,
+            "swap": 0,
+            "disk": 43008,
+            "io": 500,
+            "cpu": 0
+        },
+        "product_limits": {
+            "databases": 2,
+            "backups": 3
+        }
+    },
 ]
