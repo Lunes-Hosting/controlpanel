@@ -215,3 +215,54 @@ def delete_user(user_id: int):
     cnx.close()
 
     return response.status_code()
+
+def add_credits(email: str, amount: int):
+    cnx = mysql.connector.connect(
+    host=HOST,
+    user=USER,
+    password=PASSWORD,
+    database=DATABASE
+    )
+
+    cursor = cnx.cursor()
+    
+    # Delete the user from the database
+    query = f"SELECT credits FROM users WHERE email='{email}'"
+    
+
+    cursor.execute(query)
+    credits = cursor.fetchone()
+    print(credits, email)
+    query = f"UPDATE users SET credits = {int(credits[0]) + amount} WHERE email='{email}'"
+    
+
+    cursor.execute(query)
+    cnx.commit()
+    cursor.close()
+    cnx.close()
+
+
+def remove_credits(email: str, amount: float):
+    cnx = mysql.connector.connect(
+    host=HOST,
+    user=USER,
+    password=PASSWORD,
+    database=DATABASE
+    )
+
+    cursor = cnx.cursor()
+    
+    # Delete the user from the database
+    query = f"SELECT credits FROM users WHERE email='{email}'"
+    
+
+    cursor.execute(query)
+    credits = cursor.fetchone()
+    print(credits, email)
+    query = f"UPDATE users SET credits = {float(credits[0]) - amount} WHERE email='{email}'"
+    
+
+    cursor.execute(query)
+    cnx.commit()
+    cursor.close()
+    cnx.close()
