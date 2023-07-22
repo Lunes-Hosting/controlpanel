@@ -4,7 +4,7 @@ import bcrypt
 import mysql.connector
 from config import *
 import requests
-
+from products import products
 from retrying import retry
 import requests
 
@@ -264,5 +264,43 @@ def remove_credits(email: str, amount: float):
 
     cursor.execute(query)
     cnx.commit()
+    cursor.close()
+    cnx.close()
+    
+def convert_to_product(data):
+    returned = None
+    for product in products:
+        if product['limits']['memory'] == data['attributes']['limits']['memory']:
+            returned = product
+            break
+        
+    return returned
+    
+def use_credits():
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS).json()
+    cnx = mysql.connector.connect(
+            host=HOST,
+            user=USER,
+            password=PASSWORD,
+            database=DATABASE
+            )
+
+    cursor = cnx.cursor()
+    for server in response['data']:
+
+        product = convert_to_product(server)
+        if product is not None:
+
+            query = f"SELECT email FROM users WHERE pterodactyl_id='{server['attributes']['user']}'"
+            
+
+            cursor.execute(query)
+            email = cursor.fetchone()
+            cnx.commit()
+
+                
+            # remove_credits(email, product['price'] / 30 /24)
+        else:
+            print(server['attributes']['name'])
     cursor.close()
     cnx.close()
