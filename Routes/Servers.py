@@ -44,12 +44,13 @@ def create_server():
     eggs = get_eggs()
     products_local = products
     for server in servers:
+        if server['attributes']['user'] == id[0][0]:
 
-        if server['attributes']['user'] == id:
             print("mhm", 1, server['attributes']['name'], 2, server['attributes']['limits'],333333)
             if server['attributes']['limits']['memory'] == 128:
                 print("yes")
-                products_local.remove(products_local[0])
+                
+                products_local.remove(products[0])
                 break
     return render_template('create_server.html', eggs=eggs, nodes=nodes, products=products_local)
 
