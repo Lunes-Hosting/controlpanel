@@ -299,7 +299,7 @@ def use_credits():
             cnx.commit()
 
                 
-            # remove_credits(email, product['price'] / 30 /24)
+            remove_credits(email, product['price'] / 30 /24)
         else:
             print(server['attributes']['name'])
     cursor.close()
