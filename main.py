@@ -43,5 +43,5 @@ def index():
         else:
             return redirect(url_for('user.login_user'))
 
-job1()
+# job1()
 app.run(debug=False, host="0.0.0.0", port=8080)
