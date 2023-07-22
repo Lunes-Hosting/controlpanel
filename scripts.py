@@ -259,13 +259,17 @@ def remove_credits(email: str, amount: float):
     cursor.execute(query)
     credits = cursor.fetchone()
     print(credits, email)
-    query = f"UPDATE users SET credits = {float(credits[0]) - amount} WHERE email='{email}'"
+    new_credits = float(credits[0]) - amount
+    if new_credits <=0:
+        return "SUSPEND"
+    query = f"UPDATE users SET credits = {new_credits} WHERE email='{email}'"
     
 
     cursor.execute(query)
     cnx.commit()
     cursor.close()
     cnx.close()
+    return None
     
 def convert_to_product(data):
     returned = None
@@ -275,6 +279,9 @@ def convert_to_product(data):
             break
         
     return returned
+    
+def suspend_server(id:int):
+    requests.post(f"{PTERODACTYL_URL}api/application/servers/{id}/suspend", headers=HEADERS)
     
 def use_credits():
     response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS).json()
@@ -299,7 +306,9 @@ def use_credits():
             cnx.commit()
             if email is not None:
                 
-                remove_credits(email[0], product['price'] / 30 /24)
+                result = remove_credits(email[0], product['price'] / 30 /24)
+                if result == "SUSPEND":
+                    suspend_server(server['attributes']['id'])
             else:
                 print(email, product['price'])
         else:
