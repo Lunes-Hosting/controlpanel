@@ -251,7 +251,7 @@ def remove_credits(email: str, amount: float):
     )
 
     cursor = cnx.cursor()
-    
+    print(email)
     # Delete the user from the database
     query = f"SELECT credits FROM users WHERE email='{email}'"
     
@@ -291,15 +291,17 @@ def use_credits():
         product = convert_to_product(server)
         if product is not None:
 
-            query = f"SELECT email FROM users WHERE pterodactyl_id='{server['attributes']['user']}'"
+            query = f"SELECT email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
             
 
             cursor.execute(query)
             email = cursor.fetchone()
             cnx.commit()
-
+            if email is not None:
                 
-            remove_credits(email, product['price'] / 30 /24)
+                remove_credits(email[0], product['price'] / 30 /24)
+            else:
+                print(email, product['price'])
         else:
             print(server['attributes']['name'])
     cursor.close()
