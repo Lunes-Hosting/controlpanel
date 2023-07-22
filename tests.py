@@ -13,3 +13,5 @@ print(res)
 #     print(re)
 
 # delete_user(None)
+
+# add_credits("harelmoreno@gmail.com", 100)
