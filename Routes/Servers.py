@@ -31,23 +31,27 @@ def server(server_id):
 def create_server():
     if not 'email' in session:
         return redirect(url_for('user.login_user'))
+    
+
+    if 'pterodactyl_id' in session:
+        id = session['pterodactyl_id']
+    else:
+        id = get_ptero_id(session['email'])
+        session['pterodactyl_id'] = id
+        
+    servers = list_servers(id[0][0])
     nodes = get_nodes()
     eggs = get_eggs()
-    cnx = mysql.connector.connect(
-    host=HOST,
-    user=USER,
-    password=PASSWORD,
-    database=DATABASE
-    )
+    products_local = products
+    for server in servers:
 
-    cursor = cnx.cursor()
-    query = f"SELECT server_limit FROM users where email = '{session['email']}'"
-    cursor.execute(query)
-    rows = cursor.fetchone()
-    cursor.close()
-    cnx.close()
-    print(rows[0])
-    return render_template('create_server.html', eggs=eggs, nodes=nodes, products=products)
+        if server['attributes']['user'] == rows[0]:
+            print("mhm", 1, server['attributes']['name'], 2, server['attributes']['limits'],333333)
+            if server['attributes']['limits']['memory'] == 128:
+                print("yes")
+                products_local.remove(products_local[0])
+                break
+    return render_template('create_server.html', eggs=eggs, nodes=nodes, products=products_local)
 
 @servers.route("/delete/<server_id>")
 def delete_server(server_id):
@@ -104,7 +108,7 @@ def create_server_submit():
 
     "limits": main_product['limits'],
     
-    "feature_limits": main_product['feature_limits'],
+    "feature_limits": main_product['product_limits'],
     "allocation": {
     "default": alloac_id
     },
