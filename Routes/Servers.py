@@ -45,7 +45,7 @@ def create_server():
     products_local = products
     for server in servers:
 
-        if server['attributes']['user'] == rows[0]:
+        if server['attributes']['user'] == id:
             print("mhm", 1, server['attributes']['name'], 2, server['attributes']['limits'],333333)
             if server['attributes']['limits']['memory'] == 128:
                 print("yes")
