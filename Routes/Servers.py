@@ -85,7 +85,7 @@ def create_server_submit():
         # print(egg_id, egg['egg_id'])
         if int(egg['egg_id']) == int(egg_id):
             docker_image = egg['docker_image']
-            startup = egg['docker_image']
+            startup = egg['startup']
             break
 
     resp = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations", headers=HEADERS).json()
@@ -104,10 +104,7 @@ def create_server_submit():
 
     "limits": main_product['limits'],
     
-    "feature_limits": {
-    "databases": 0,
-    "backups": 0
-    },
+    "feature_limits": main_product['feature_limits'],
     "allocation": {
     "default": alloac_id
     },

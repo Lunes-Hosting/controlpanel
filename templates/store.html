@@ -1,0 +1,5 @@
+{% for product in products%}
+<a href="{{ url_for('store.create_checkout_session', price_link=product['price_link']) }}">
+    Buy {{ product['price'] }} credits
+</a>
+{% endfor %}
