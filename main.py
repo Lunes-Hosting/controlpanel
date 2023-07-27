@@ -32,6 +32,11 @@ scheduler.init_app(app)
 def job1():
     print("started job")
     use_credits()
+    
+@scheduler.task('interval', id='do_job_2', seconds=60, misfire_grace_time=900)
+def job2():
+    print("started job")
+    check_to_unsuspend
 scheduler.start()
 
 
