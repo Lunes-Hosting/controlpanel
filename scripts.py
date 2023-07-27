@@ -305,10 +305,52 @@ def use_credits():
             email = cursor.fetchone()
             cnx.commit()
             if email is not None:
+                if server['attributes']['suspended'] == False:
+                    result = remove_credits(email[0], product['price'] / 30 /24)
+                    if result == "SUSPEND":
+                        suspend_server(server['attributes']['id'])
                 
-                result = remove_credits(email[0], product['price'] / 30 /24)
-                if result == "SUSPEND":
-                    suspend_server(server['attributes']['id'])
+            else:
+                print(email, product['price'])
+        else:
+            print(server['attributes']['name'])
+    cursor.close()
+    cnx.close()
+
+
+def unsuspend_server(id:int):
+    requests.post(f"{PTERODACTYL_URL}api/application/servers/{id}/un", headers=HEADERS)
+    
+    
+def check_to_unsuspend():
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS).json()
+    cnx = mysql.connector.connect(
+            host=HOST,
+            user=USER,
+            password=PASSWORD,
+            database=DATABASE
+            )
+
+    cursor = cnx.cursor()
+    for server in response['data']:
+
+        product = convert_to_product(server)
+        if product is not None:
+
+            query = f"SELECT email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
+            cursor.execute(query)
+            email = cursor.fetchone()
+            cnx.commit()
+            
+            query = f"SELECT credits FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
+            cursor.execute(query)
+            credits = cursor.fetchone()
+            cnx.commit()
+            
+            if email is not None:
+                if server['attributes']['suspended'] == True:
+                    if credits[0] >= product['price'] / 30 /24:
+                        unsuspend_server(server['attributes']['id'])
             else:
                 print(email, product['price'])
         else:
