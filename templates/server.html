@@ -20,5 +20,6 @@
 {% include 'taskbar.html' %}
 <h1>{{info['attributes']['name']}}</h1>
 <a href="{{url_for('servers.delete_server', server_id=info['attributes']['id'])}}"><button class="delete">Delete</button></a>
+<a href="https://ctrl.lunes.host/server/{{info['attributes']['uuid'].split('-')[0]}}">Manage</a>
 </body>
 </html>
