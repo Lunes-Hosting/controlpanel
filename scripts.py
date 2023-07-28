@@ -361,3 +361,20 @@ def check_to_unsuspend():
             pass
     cursor.close()
     cnx.close()
+    
+def get_credits(email:str):
+    cnx = mysql.connector.connect(
+            host=HOST,
+            user=USER,
+            password=PASSWORD,
+            database=DATABASE
+            )
+
+    cursor = cnx.cursor()
+    query = f"SELECT credits FROM users WHERE email='{email}'"
+    cursor.execute(query)
+    credits = cursor.fetchone()
+    cnx.commit()
+    cursor.close()
+    cnx.close()
+    return credits[0]
