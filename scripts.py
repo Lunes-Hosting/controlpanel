@@ -319,7 +319,7 @@ def use_credits():
 
 
 def unsuspend_server(id:int):
-    requests.post(f"{PTERODACTYL_URL}api/application/servers/{id}/un", headers=HEADERS)
+    requests.post(f"{PTERODACTYL_URL}api/application/servers/{id}/unsuspend", headers=HEADERS)
     
     
 def check_to_unsuspend():
@@ -335,7 +335,7 @@ def check_to_unsuspend():
     for server in response['data']:
 
         product = convert_to_product(server)
-        if product is not None:
+        if product is not None and product['name'] != "Free Tier":
 
             query = f"SELECT email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
             cursor.execute(query)
@@ -346,14 +346,18 @@ def check_to_unsuspend():
             cursor.execute(query)
             credits = cursor.fetchone()
             cnx.commit()
+            if email is None or credits is None:
+                print(server['attributes']['user'], server['attributes'])
             
             if email is not None:
                 if server['attributes']['suspended'] == True:
+                    print(server['attributes']['user'], "is suspeded", credits[0], product['price'] / 30/ 24)
                     if credits[0] >= product['price'] / 30 /24:
+                        print(3333333)
                         unsuspend_server(server['attributes']['id'])
             else:
                 print(email, product['price'])
         else:
-            print(server['attributes']['name'])
+            pass
     cursor.close()
     cnx.close()

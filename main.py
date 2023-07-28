@@ -30,13 +30,15 @@ scheduler.init_app(app)
 
 @scheduler.task('interval', id='do_job_1', seconds=3600, misfire_grace_time=900)
 def job1():
-    print("started job")
+    print("started job1")
     use_credits()
+    print("finished job 2")
     
 @scheduler.task('interval', id='do_job_2', seconds=60, misfire_grace_time=900)
 def job2():
-    print("started job")
-    check_to_unsuspend
+    print("started job2")
+    check_to_unsuspend()
+    print("finished job 2")
 scheduler.start()
 
 
@@ -49,4 +51,4 @@ def index():
             return redirect(url_for('user.login_user'))
 
 # job1()
-app.run(debug=True, host="0.0.0.0", port=8080)
+app.run(debug=False, host="0.0.0.0", port=8080)
