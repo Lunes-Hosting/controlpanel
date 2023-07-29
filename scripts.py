@@ -151,16 +151,25 @@ def login(email: str, password: str):
         if cnx:
             cnx.close()
 @retry_on_gateway_error()          
-def register(email: str, password: str, name: str):
+def register(email: str, password: str, name: str, ip: str):
     salt = bcrypt.gensalt(rounds=10)
-    password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
-
     cnx = mysql.connector.connect(
         host=HOST,
         user=USER,
         password=PASSWORD,
         database=DATABASE
     )
+    password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
+    cursor = cnx.cursor()
+        
+    query = f"SELECT * FROM users WHERE ip='{ip}'"
+    cursor.execute(query)
+    results = cursor.fetchone()
+    cnx.commit()
+    if results is not None:
+        return "Ip is already registered"
+
+
     
     body = {
         "email": email,
@@ -179,9 +188,9 @@ def register(email: str, password: str, name: str):
     except KeyError:
         cursor = cnx.cursor()
         
-        query = "INSERT INTO users (name, email, password, id, pterodactyl_id) VALUES (%s, %s, %s, %s, %s)"
+        query = "INSERT INTO users (name, email, password, id, pterodactyl_id, ip) VALUES (%s, %s, %s, %s, %s, %s)"
 
-        values = (name, email, password_hash, data['attributes']['id'] + 500, data['attributes']['id'])
+        values = (name, email, password_hash, data['attributes']['id'] + 500, data['attributes']['id'], ip)
         cursor.execute(query, values)
         cnx.commit()
         cursor.close()
