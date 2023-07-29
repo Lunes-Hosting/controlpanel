@@ -3,12 +3,14 @@ from flask_session import Session
 from Routes.AuthenticationHandler import *
 from Routes.Servers import *
 from Routes.Store import *
+from Routes.Tickets import *
 from flask_apscheduler import APScheduler
 app = Flask(__name__, "/static")
 
 app.register_blueprint(user)
 app.register_blueprint(servers, url_prefix="/servers")
 app.register_blueprint(store, url_prefix="/store")
+app.register_blueprint(tickets, url_prefix="/ticket")
 class Config:
     SCHEDULER_API_ENABLED = True
 
