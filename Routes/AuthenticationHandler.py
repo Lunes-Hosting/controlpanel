@@ -15,21 +15,19 @@ def register_user():
         email = data.get('email')
         password = data.get('password')
         name = data.get('username')
+        ip = request.remote_addr
 
-        try:
-            response = register(email, password, name)
-            print(8)
-            try:
-                _ = json.load(response)
-                return response
-            except Exception:
-                session['email'] = email
-                
-                return redirect(url_for('index'))
-        except Exception as e:
-            pass
+
+        response = register(email, password, name, ip)
+        print(response)
+        if type(response) == dict:
+            session['email'] = email
+            
+            return redirect(url_for('index'))
+            
+        else:
+            return response
     else:
-        print(2)
         return render_template("register.html")
 
 
