@@ -7,6 +7,10 @@ import json
 # Create a blueprint for the user routes
 user = Blueprint('user', __name__)
 
+@user.route('/pswdreset', methods=['GET', 'POST'])
+def forgot_password():
+    
+
 @user.route('/register', methods=['POST', 'GET'])
 def register_user():
     if request.method == "POST":
