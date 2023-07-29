@@ -42,7 +42,7 @@ def create_server():
     servers = list_servers(id[0][0])
     nodes = get_nodes()
     eggs = get_eggs()
-    products_local = products
+    products_local = list(products)
     for server in servers:
         if server['attributes']['user'] == id[0][0]:
 
