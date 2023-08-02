@@ -5,6 +5,13 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/login.css') }}">
 </head>
 <body>
+    {% with messages = get_flashed_messages() %}
+   {% if messages %}
+      {% for message in messages %}
+         {{ message }}
+      {% endfor %}
+   {% endif %}
+{% endwith %}
     <div class="login-box">
         <h2>Login</h2>
         <form action="{{ url_for('user.login_user') }}" method="POST">
@@ -18,7 +25,7 @@
             </div>
             <a><button type="submit">Submit</button><a>
         </form>
-    <a href={{ url_for('user.forgot_password') }}>Forgot Password</a>
+    <a href={{ url_for('reset_password') }}>Forgot Password</a>
     <a href={{ url_for('user.register_user') }}>Dont have an account? Register</a>
     </div>
 </body>
