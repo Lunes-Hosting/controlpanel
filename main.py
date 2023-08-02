@@ -21,7 +21,7 @@ class Config:
 app.config["SESSION_PERMANENT"] = True
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SECRET_KEY"] = "LunesHost"
-app.config['SERVER_NAME'] = 'betadash.lunes.host:27112'
+app.config['SERVER_NAME'] = 'node2.lunes.host:27112'
 
 # Initialize the session
 Session(app)
