@@ -21,7 +21,7 @@ class Config:
 app.config["SESSION_PERMANENT"] = True
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SECRET_KEY"] = "LunesHost"
-app.config['SERVER_NAME'] = '192.168.1.240:2048'
+app.config['SERVER_NAME'] = 'https://dash.lunes.host'
 
 # Initialize the session
 Session(app)
