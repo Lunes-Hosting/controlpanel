@@ -25,6 +25,46 @@ CLIENT_HEADERS =  {"Authorization": f"Bearer {PTERODACTYL_ADMIN_USER_KEY}",
         'Accept': 'application/json',
         'Content-Type': 'application/json'}
 
+def sync_users_script():
+    cnxpanel = mysql.connector.connect(
+            host=HOST,
+            user=USER,
+            password=PASSWORD,
+            database=DATABASE
+        )
+    cnx = mysql.connector.connect(
+            host=HOST,
+            user=USER,
+            password=PASSWORD,
+            database="panel"
+        )
+
+    cursor = cnx.cursor()
+    cursorpanel = cnxpanel.cursor()
+    data = requests.get(f"{PTERODACTYL_URL}api/application/users", headers=HEADERS).json()
+    for user in data['data']:
+
+        query = f"SELECT * FROM users WHERE email = '{user['attributes']['email']}'"
+        cursor.execute(query)
+        user = cursor.fetchone()
+
+        if user is None:
+            cursorpanel.execute(f"select password from users where email='{user['attributes']['email']}'")
+            password = cursorpanel.fetchone()
+            query = "INSERT INTO users (name, email, password, id, pterodactyl_id) VALUES (%s, %s, %s, %s, %s)"
+
+            values = (user['attributes']['username'], user['attributes']['email'], password, user['attributes']['username'], user['attributes']['id'] + 500, user['attributes']['id'])
+            cursor.execute(query, values)
+            cnx.commit()
+        
+            
+            
+    cursor.close()
+    cnx.close()
+    cursorpanel.close()
+    cnx.close()
+
+
 def get_nodes():
     available_nodes = []
     nodes = requests.get(f"{PTERODACTYL_URL}api/application/nodes", headers=HEADERS).json()
