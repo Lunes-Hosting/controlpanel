@@ -21,7 +21,7 @@ class Config:
 app.config["SESSION_PERMANENT"] = True
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SECRET_KEY"] = "LunesHost"
-app.config['SERVER_NAME'] = 'node2.lunes.host:27112'
+# app.config['SERVER_NAME'] = 'node2.lunes.host:27112'
 
 # Initialize the session
 Session(app)
@@ -61,7 +61,7 @@ def send_email(email: str, reset_token: str, app):
     print("started emailer")
     with app.app_context():
         msg = Message('Password Reset Request', recipients=[email])
-        msg.body = f'Please click the link below to reset your password:\n\n{url_for("reset_password_confirm", token=reset_token, _external=True)}'
+        msg.body = f'Please click the link below to reset your password:\n\n {HOSTED_URL}reset_password/{reset_token}'
         mail.send(msg)
         print("email sent")
 
@@ -125,10 +125,20 @@ def reset_password_confirm(token):
                 cursor = cnx.cursor()
             
                 query = f"UPDATE users SET password = %s WHERE email = '{email}'"
-
+                ptero_id = get_ptero_id(email)
                 values = (password_hash.decode(),)
                 print(password_hash, email, type(email))
                 cursor.execute(query, values)
+                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0][0]}", headers=HEADERS).json()['attributes']
+                body = {
+                    "username": info['username'],
+                    "email": info['email'],
+                    "first_name": info['first_name'],
+                    "last_name": info['last_name'],
+                    "password": password
+                }
+                
+                res = requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0][0]}", headers=HEADERS, json=body)
                 cnx.commit()
                 cursor.close()
                 cnx.close()
@@ -158,6 +168,13 @@ def job2():
     check_to_unsuspend()
     print("finished job 2")
 scheduler.start()
+
+@scheduler.task('interval', id='do_sync_users', seconds=30, misfire_grace_time=900)
+def sync_users():
+    print("started users sync")
+    sync_users_script()
+    print("finished job 2")
+
 
 
 
