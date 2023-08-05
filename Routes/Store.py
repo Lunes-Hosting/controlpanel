@@ -22,7 +22,7 @@ def storepage():
 @store.route('/checkout/<price_link>', methods=['POST', 'GET'])
 def create_checkout_session(price_link: str):
     check_session = stripe.checkout.Session.create(
-    payment_method_types=['card'],
+    payment_method_types=['card', 'cashapp', 'wechat_pay'],
     line_items=[{
         'price': price_link,
         'quantity': 1,
