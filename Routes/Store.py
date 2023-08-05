@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, redirect, url_for, session, jsonify
+from flask import Blueprint, request, render_template, redirect, url_for, session, jsonify, flash
 import sys
 sys.path.append("..") 
 from scripts import *
@@ -42,10 +42,12 @@ def success():
     try:
         id = session['pay_id']
     except KeyError:
-        return "not valid payment"
+        flash("not valid payment")
+        return url_for('index')
     check_session = stripe.checkout.Session.retrieve(id)
     if check_session is None or id not in active_payments:
-        return "not valid payment"
+        flash("not valid payment")
+        return url_for('index')
     if check_session['payment_status'] =='paid':
         print(check_session)
         active_payments.remove(id)
@@ -53,11 +55,14 @@ def success():
             if product['price_link'] == session['price_link']:
                 credits_to_add = product['price']
         add_credits(check_session['customer_email'], credits_to_add)
-        return "got moneys"
+        flash("Success")
+        return url_for('index')
         
     elif check_session['status'] == 'expired':
         active_payments.remove(id)
-        return "payment link expired"
+        flash("payment link expired")
+        return url_for('index') 
+    
     
 @store.route('/cancel', methods=['GET'])
 def cancel():
