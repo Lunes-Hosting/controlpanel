@@ -206,8 +206,8 @@ def register(email: str, password: str, name: str, ip: str):
     cursor.execute(query)
     results = cursor.fetchone()
     cnx.commit()
-    if results is not None:
-        return "Ip is already registered"
+    # if results is not None:
+    #     return "Ip is already registered"
 
 
     
