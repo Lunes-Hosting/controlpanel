@@ -12,3 +12,4 @@ STRIPE_SECRET_KEY = "sk_live_51MjBaRGc0pLG1vqRsGaBiYkgsW2jP8BqOznAMJ7or8MztXWHKb
 URL = "https://betadash.lunes.host/"
 YOUR_SUCCESS_URL = f'{URL}store/success'
 YOUR_CANCEL_URL = f'{URL}store/cancel'
+HOSTED_URL = URL
