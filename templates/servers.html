@@ -2,33 +2,24 @@
 <html>
 <head>
     <title>Servers</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/login.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/servers.css') }}">
 </head>
 <body>
-    <a href="{{url_for('servers.create_server')}}"><button> Make server bozo</button></a>
-    <style>
-        .grid-container {
-        display: grid;
-        grid-template-columns: 2fr 2fr;
-        grid-gap: 10px;
-        justify-items: center;
-        align-items: center;
-          height: 10vh; /* Adjust as needed */
-        }
-    </style>
-{% include 'taskbar.html' %}
-{% for server in servers %}
+    {% include 'taskbar.html' %}
 
+    <div class="grid-container">
+        {% for server in servers %}
+            <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}">
+                <div class="server-box">
+                    <h3>{{ server['attributes']['name'] }}</h3>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
 
-<div class="grid-container">
-    <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}">
-        <div class="center-div">
-        <h3>{{ server['attributes']['name'] }}</h3>
-        </div>
-    </a>
-
-</div>
-
-{% endfor %}
+    <div class="centered-button">
+        <a href="{{url_for('servers.create_server')}}"><button>Server create</button></a>
+    </div>
 </body>
 </html>
