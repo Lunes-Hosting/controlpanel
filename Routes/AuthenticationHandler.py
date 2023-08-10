@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, redirect, url_for, session
+from flask import Blueprint, request, render_template, redirect, url_for, session, flash
 import sys
 sys.path.append("..") 
 from scripts import *
@@ -41,6 +41,7 @@ def login_user():
         try:
             response = login(email, password)
             if response is None:
+                flash("Not correct info please make sure you have an account")
                 return redirect(url_for('user.login_user'))
             print(8)
             try:
