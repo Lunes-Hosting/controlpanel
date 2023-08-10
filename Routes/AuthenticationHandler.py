@@ -49,8 +49,10 @@ def login_user():
                 return response
             except Exception:
                 session['email'] = email
+                print("yes")
                 return redirect(url_for('index'))
         except Exception as e:
+            print(e)
             pass
     else:
         print(2)
