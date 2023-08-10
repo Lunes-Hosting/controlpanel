@@ -12,9 +12,13 @@
         <div class="product-list">
             {% for product in products %}
             <div class="product">
-                <a href="{{ url_for('store.create_checkout_session', price_link=product['price_link']) }}">
-                    Buy {{ product['price'] }} credits
-                </a>
+                {% if product['price_link'] %}
+                    <a href="{{ url_for('store.create_checkout_session', price_link=product['price_link']) }}">
+                        Buy {{ product['price'] }} credits
+                    </a>
+                {% else %}
+                   
+                {% endif %}
             </div>
             {% endfor %}
         </div>
