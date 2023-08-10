@@ -1,25 +1,16 @@
 <!DOCTYPE html>
+<html>
 <head>
-    <title>Server {{info['attributes']['name']}}</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/login.css') }}">
+    <title>Server {{ info['attributes']['name'] }}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/server_details.css') }}">
 </head>
 <body>
-    <style>
-        .grid-container {
-        display: grid;
-        grid-template-columns: 2fr 2fr;
-        grid-gap: 10px;
-        justify-items: center;
-        align-items: center;
-          height: 10vh; /* Adjust as needed */
-        }
-        .delete {
-            width: 100px;
-        }
-    </style>
-{% include 'taskbar.html' %}
-<h1>{{info['attributes']['name']}}</h1>
-<a href="{{url_for('servers.delete_server', server_id=info['attributes']['id'])}}"><button class="delete">Delete</button></a>
-<a href="https://ctrl.lunes.host/server/{{info['attributes']['uuid'].split('-')[0]}}">Manage</a>
+    {% include 'taskbar.html' %}
+    <div class="server-details-container">
+        <h1>{{ info['attributes']['name'] }}</h1>
+        <a href="{{ url_for('servers.delete_server', server_id=info['attributes']['id']) }}" class="button delete-button">Delete</a>
+        <a href="https://ctrl.lunes.host/server/{{ info['attributes']['uuid'].split('-')[0] }}" class="button manage-button">Manage</a>
+    </div>
 </body>
 </html>
