@@ -3,16 +3,18 @@
 <head>
     <title>Login</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/login.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
 </head>
 <body>
-    {% with messages = get_flashed_messages() %}
-   {% if messages %}
-      {% for message in messages %}
-         {{ message }}
-      {% endfor %}
-   {% endif %}
-{% endwith %}
+
     <div class="login-box">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+           {% for message in messages %}
+              {{ message }}
+           {% endfor %}
+        {% endif %}
+     {% endwith %}
         <h2>Login</h2>
         <form action="{{ url_for('user.login_user') }}" method="POST">
             <div class="user-box">
@@ -23,10 +25,15 @@
                 <input type="password" name="password" required>
                 <label>Password</label>
             </div>
-            <a><button type="submit">Submit</button><a>
+            <button class="submit-button" type="submit">
+                Submit
+                <span class="tooltip">Login</span>
+            </button>
         </form>
-    <a href={{ url_for('reset_password') }}>Forgot Password</a>
-    <a href={{ url_for('user.register_user') }}>Dont have an account? Register</a>
+        <div class="links">
+            <a href="{{ url_for('reset_password') }}" class="link">Forgot Password</a>
+            <a href="{{ url_for('user.register_user') }}" class="link">Don't have an account? Register</a>
+        </div>
     </div>
 </body>
 </html>

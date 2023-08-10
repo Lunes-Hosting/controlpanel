@@ -1,5 +1,23 @@
-{% for product in products%}
-<a href="{{ url_for('store.create_checkout_session', price_link=product['price_link']) }}">
-    Buy {{ product['price'] }} credits
-</a>
-{% endfor %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Store</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/store.css') }}">
+</head>
+<body>
+    {% include 'taskbar.html' %}
+    <div class="store-container">
+        <h2>Store</h2>
+        <div class="product-list">
+            {% for product in products %}
+            <div class="product">
+                <a href="{{ url_for('store.create_checkout_session', price_link=product['price_link']) }}">
+                    Buy {{ product['price'] }} credits
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
