@@ -2,14 +2,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Form Example</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/create_server.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <title>Create Server</title>
 </head>
 <body>
-    <style>
-        .options {
-            height: 80px;
-        }
-    </style>
     <h1>Create a server</h1>
     <form action="{{ url_for('servers.create_server_submit') }}" method="post">
         <label for="name">Name</label>
@@ -28,19 +25,27 @@
             {% for egg in eggs %}
             <option value="{{egg['egg_id']}}">{{egg['name']}}</option>
             {% endfor %}
-            <!-- Add more options as needed -->
         </select>
         <br>
-        <label for="plan">Plan:</label>
+        <div class="button-group">
+            <button type="button" class="button active" onclick="showPlanOptions()">Plans</button>
+        </div>
         <select id="plan" name="plan" class="plan" size="3" required>
             {% for product in products %}
-                <option class="options" value="{{product['id']}}">{{product['name']}} Memory {{product['limits']['memory']}}, Storage {{product['limits']['disk']}}, CPU%(0=Unlimited) {{product['limits']['cpu']}}</option>
-            <br>
+                <option class="plan-option" value="{{product['id']}}">{{product['name']}} Memory {{product['limits']['memory']}}, Storage {{product['limits']['disk']}}, CPU%(0=Unlimited) {{product['limits']['cpu']}}</option>
             {% endfor %}
-            <!-- Add more options as needed -->
         </select>
         <br>
         <input type="submit" value="Submit">
     </form>
+
+    <script>
+        function showPlanOptions() {
+            const planOptions = document.querySelector(".plan");
+            const planButton = document.querySelector(".button.active");
+            planButton.classList.add("active");
+            planOptions.style.display = "block";
+        }
+    </script>
 </body>
 </html>
