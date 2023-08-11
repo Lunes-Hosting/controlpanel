@@ -160,7 +160,7 @@ def login(email: str, password: str):
         )
 
         # Create a cursor object to execute SQL queries
-        cursor = cnx.cursor()
+        cursor = cnx.cursor(buffered=True)
 
         # Retrieve the hashed password from the database
         query = f"SELECT password FROM users WHERE email = '{email}'"
@@ -200,7 +200,7 @@ def register(email: str, password: str, name: str, ip: str):
         database=DATABASE
     )
     password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
-    cursor = cnx.cursor()
+    cursor = cnx.cursor(buffered=True)
         
     query = f"SELECT * FROM users WHERE ip='{ip}'"
     cursor.execute(query)
