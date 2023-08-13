@@ -63,7 +63,7 @@ def index():
     if not 'email' in session:
         return redirect(url_for('user.login_user'))
     credits = get_credits(session['email'])
-    return render_template("account.html", credits=credits)
+    return render_template("account.html", credits=int(credits))
 
 @user.route('/logout', methods=['GET'])
 def logout():
