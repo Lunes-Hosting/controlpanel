@@ -93,7 +93,7 @@ def create_server_submit():
             startup = egg['startup']
             break
 
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations", headers=HEADERS).json()
+    resp = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=1000", headers=HEADERS).json()
     for allocation in resp['data']:
         if allocation['attributes']['assigned'] == False:
             alloac_id = allocation['attributes']['id']
