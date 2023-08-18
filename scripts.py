@@ -70,7 +70,8 @@ def get_nodes():
     available_nodes = []
     nodes = requests.get(f"{PTERODACTYL_URL}api/application/nodes", headers=HEADERS).json()
     for node in nodes['data']:
-        available_nodes.append({"node_id": node['attributes']['id'], "name": node['attributes']['name']})
+        if "full" not in node['attributes']['name'].lower():
+            available_nodes.append({"node_id": node['attributes']['id'], "name": node['attributes']['name']})
     return available_nodes
 
 def get_eggs():
