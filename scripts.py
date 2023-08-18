@@ -406,7 +406,6 @@ def check_to_unsuspend():
             if email is not None:
                 if server['attributes']['suspended'] == True:
                     # print(server['attributes']['user'], "is suspeded", credits[0], product['price'] / 30/ 24)
-                    pass
                     if credits[0] >= product['price'] / 30 /24:
                         unsuspend_server(server['attributes']['id'])
                     else:
