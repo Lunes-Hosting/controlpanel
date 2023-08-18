@@ -1,5 +1,6 @@
 import mysql.connector
 import bcrypt
+import datetime
 # Establish a connection to the database
 import mysql.connector
 from config import *
@@ -366,13 +367,18 @@ def use_credits():
     cursor.close()
     cnx.close()
 
+def delete_server(server_id):
+    response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS)
+    if response.status_code == 204:
+        print(f"Server {server_id} deleted successfully.")
+    else:
+        print(f"Failed to delete server {server_id}. Status code: {response.status_code}")
 
 def unsuspend_server(id:int):
     requests.post(f"{PTERODACTYL_URL}api/application/servers/{id}/unsuspend", headers=HEADERS)
     
-    
 def check_to_unsuspend():
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS).json()
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
     cnx = mysql.connector.connect(
             host=HOST,
             user=USER,
@@ -396,14 +402,27 @@ def check_to_unsuspend():
             credits = cursor.fetchone()
             cnx.commit()
             if email is None or credits is None:
-                print(server['attributes']['user'], server['attributes'])
-            
+                pass
             if email is not None:
                 if server['attributes']['suspended'] == True:
-                    print(server['attributes']['user'], "is suspeded", credits[0], product['price'] / 30/ 24)
+                    # print(server['attributes']['user'], "is suspeded", credits[0], product['price'] / 30/ 24)
+                    pass
                     if credits[0] >= product['price'] / 30 /24:
-                        print(3333333)
                         unsuspend_server(server['attributes']['id'])
+                    else:
+                        if server['attributes']['suspended']:
+                        
+                            suspended_at = server['attributes']['updated_at']
+                            suspension_duration = datetime.datetime.now() - datetime.datetime.strptime(suspended_at, "%Y-%m-%dT%H:%M:%S+00:00")
+                            if "Test" in server['attributes']['name']:
+                                print(server['attributes']['name'], suspension_duration.days)
+                            
+                            if suspension_duration.days > 8:
+                                
+                                print(f"Deleting server {server['attributes']['name']} due to suspension for more than 7 days.")
+                                
+                                delete_server(server['attributes']['id'])
+
             else:
                 print(email, product['price'])
         else:
