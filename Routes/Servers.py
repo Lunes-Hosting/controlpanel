@@ -116,6 +116,7 @@ def create_server_submit():
     "environment": {
         "BUILD_NUMBER": "latest",
         "MINECRAFT_VERSION": "latest",
+        "MEMORY_OVERHEAD": "1500"
     }
     }
     
