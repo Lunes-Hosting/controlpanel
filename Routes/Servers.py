@@ -114,7 +114,8 @@ def create_server_submit():
     "default": alloac_id
     },
     "environment": {
-        
+        "BUILD_NUMBER": "latest",
+        "MINECRAFT_VERSION": "latest",
     }
     }
     
