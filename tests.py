@@ -1,12 +1,12 @@
 from scripts import *
 
-res =login("harelmoreno@gmail.com", "Abc1234")
-print(res)
+# res =login("harelmoreno@gmail.com", "Abc1234")
+# print(res)
 
 # res = describe_users()
 # print(res)
 
-# register("dwattynip123@gmail.com", "datnipthecoolest", "Dwatnip")
+register("dwattynip1a23@gmail.com", "datnipthecaoolest", "Dwatnip", "0.0.0.0")
 
 # res = get_all_users()
 # for re in res:
