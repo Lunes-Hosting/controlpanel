@@ -230,9 +230,9 @@ def register(email: str, password: str, name: str, ip: str):
     except KeyError:
         cursor = cnx.cursor()
         
-        query = "INSERT INTO users (name, email, password, id, pterodactyl_id, ip) VALUES (%s, %s, %s, %s, %s, %s)"
+        query = "INSERT INTO users (name, email, password, id, pterodactyl_id, ip, credits) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
-        values = (name, email, password_hash, data['attributes']['id'] + 500, data['attributes']['id'], ip)
+        values = (name, email, password_hash, data['attributes']['id'] + 500, data['attributes']['id'], ip, 25)
         cursor.execute(query, values)
         cnx.commit()
         cursor.close()
@@ -417,7 +417,7 @@ def check_to_unsuspend():
                             if "Test" in server['attributes']['name']:
                                 print(server['attributes']['name'], suspension_duration.days)
                             
-                            if suspension_duration.days > 8:
+                            if suspension_duration.days > 3:
                                 
                                 print(f"Deleting server {server['attributes']['name']} due to suspension for more than 7 days.")
                                 
