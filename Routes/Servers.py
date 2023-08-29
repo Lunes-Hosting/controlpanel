@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, redirect, url_for, session
+from flask import Blueprint, request, render_template, redirect, url_for, session, flash
 import sys
 sys.path.append("..") 
 from scripts import *
@@ -100,6 +100,11 @@ def create_server_submit():
     for product in products:
         if product['id'] == int(request.form.get('plan')):
             main_product = product
+            credits_used = main_product['price'] / 30 / 24
+            res = remove_credits(session['email'], credits_used)
+            if res == "SUSPEND":
+                flash("You are out of credits")
+                return redirect(url_for('servers.servers_index'))
     body = {
     "name": request.form['name'],
     "user": session['pterodactyl_id'][0][0],
