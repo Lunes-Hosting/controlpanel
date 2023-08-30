@@ -11,6 +11,17 @@ active_payments = []
 
 @store.route("/")
 def storepage():
+    if not 'email' in session:
+        return redirect(url_for('user.login_user'))
+        
+    if 'pterodactyl_id' in session:
+        id = session['pterodactyl_id']
+    else:
+        id = get_ptero_id(session['email'])
+        session['pterodactyl_id'] = id
+        
+    update_last_seen(session['email'])
+    
     products_local = products
     for product in products_local:
         if product['price_link'] is None:
@@ -21,6 +32,17 @@ def storepage():
 
 @store.route('/checkout/<price_link>', methods=['POST', 'GET'])
 def create_checkout_session(price_link: str):
+    if not 'email' in session:
+        return redirect(url_for('user.login_user'))
+        
+    if 'pterodactyl_id' in session:
+        id = session['pterodactyl_id']
+    else:
+        id = get_ptero_id(session['email'])
+        session['pterodactyl_id'] = id
+        
+    update_last_seen(session['email'])
+    
     check_session = stripe.checkout.Session.create(
     payment_method_types=['card', 'cashapp'],
     line_items=[{
@@ -39,6 +61,7 @@ def create_checkout_session(price_link: str):
 
 @store.route('/success', methods=['GET'])
 def success():
+    
     try:
         id = session['pay_id']
     except KeyError:
