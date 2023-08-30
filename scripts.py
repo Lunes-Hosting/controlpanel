@@ -391,6 +391,9 @@ def check_to_unsuspend():
     for server in response['data']:
 
         product = convert_to_product(server)
+        if product is None:
+            print(server)
+        # print(server['attributes']['name'], product)
         if product is not None and product['name'] != "Free Tier":
 
             query = f"SELECT email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
@@ -419,14 +422,24 @@ def check_to_unsuspend():
                             
                             if suspension_duration.days > 3:
                                 
-                                print(f"Deleting server {server['attributes']['name']} due to suspension for more than 7 days.")
+                                print(f"Deleting server {server['attributes']['name']} due to suspension for more than 3 days.")
                                 
                                 delete_server(server['attributes']['id'])
 
             else:
                 print(email, product['price'])
-        else:
-            pass
+        elif product['name'] == "Free Tier":
+            query = f"SELECT last_seen FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
+            cursor.execute(query)
+            last_seen = cursor.fetchone()
+            if last_seen is not None:
+                if datetime.datetime.now() - last_seen[0] > datetime.timedelta(days=30):
+                    print(f"Deleting server {server['attributes']['name']} due to inactivity for more than 30 days.")
+                    delete_server(server['attributes']['id'])
+                else:
+                    pass
+            cnx.commit()
+            
     cursor.close()
     cnx.close()
     
@@ -446,3 +459,47 @@ def get_credits(email:str):
     cursor.close()
     cnx.close()
     return credits[0]
+
+
+def update_last_seen(email:str=None, everyone:bool=False):
+    print(1, email)
+    cnx = mysql.connector.connect(
+            host=HOST,
+            user=USER,
+            password=PASSWORD,
+            database=DATABASE
+            )
+    if everyone is True:
+        cursor = cnx.cursor()
+        query = f"UPDATE users SET last_seen = '{datetime.datetime.now()}'"
+        cursor.execute(query)
+        cnx.commit()
+        cursor.close()
+        cnx.close()
+    else:
+        cursor = cnx.cursor()
+        query = f"UPDATE users SET last_seen = '{datetime.datetime.now()}' WHERE email='{email}'"
+        cursor.execute(query)
+        cnx.commit()
+        cursor.close()
+        cnx.close()
+
+
+def get_last_seen(email:str):
+    cnx = mysql.connector.connect(
+            host=HOST,
+            user=USER,
+            password=PASSWORD,
+            database=DATABASE
+            )
+
+    cursor = cnx.cursor()
+    query = f"SELECT last_seen FROM users WHERE email='{email}'"
+    cursor.execute(query)
+    last_seen = cursor.fetchone()
+    cnx.commit()
+    cursor.close()
+    cnx.close()
+    return last_seen[0]
+
+

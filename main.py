@@ -162,7 +162,7 @@ def job1():
     use_credits()
     print("finished job 2")
     
-@scheduler.task('interval', id='do_job_2', seconds=120, misfire_grace_time=900)
+@scheduler.task('interval', id='do_job_2', seconds=10, misfire_grace_time=900)
 def job2():
     print("started job2")
     check_to_unsuspend()
@@ -181,6 +181,7 @@ def sync_users():
 @app.route('/')
 def index():
         if 'email' in session:
+            update_last_seen(session['email'])
             return render_template('index.html')
         else:
             return redirect(url_for('user.login_user'))
