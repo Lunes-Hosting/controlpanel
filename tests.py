@@ -6,7 +6,8 @@ from scripts import *
 # res = describe_users()
 # print(res)
 
-register("dwattynip1a23@gmail.com", "datnipthecaoolest", "Dwatnip", "0.0.0.0")
+# register("dwattynip1a23@gmail.com", "datnipthecaoolest", "Dwatnip", "0.0.0.0")
+update_last_seen(everyone=True)
 
 # res = get_all_users()
 # for re in res:

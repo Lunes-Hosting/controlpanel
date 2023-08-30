@@ -17,6 +17,8 @@ def servers_index():
         id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = id
         
+    update_last_seen(session['email'])
+    
     servers = list_servers(id[0][0])
     return render_template('servers.html', servers=servers)
 
@@ -25,6 +27,8 @@ def server(server_id):
     print(server_id)
     info = get_server_information(server_id)
     print(info)
+    update_last_seen(session['email'])
+    
     return render_template('server.html', info=info)
 
 @servers.route("/create")
@@ -38,7 +42,9 @@ def create_server():
     else:
         id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = id
-        
+    
+    update_last_seen(session['email'])
+    
     servers = list_servers(id[0][0])
     nodes = get_nodes()
     eggs = get_eggs()
@@ -58,6 +64,8 @@ def create_server():
 def delete_server(server_id):
     if not 'email' in session:
         return redirect(url_for('user.login_user'))
+    update_last_seen(session['email'])
+    
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     cnx = mysql.connector.connect(
     host=HOST,
@@ -83,6 +91,8 @@ def delete_server(server_id):
 def create_server_submit():
     if not 'email' in session:
         return redirect(url_for('user.login_user'))
+    update_last_seen(session['email'])
+    
     node_id = request.form['node_id']
     egg_id = request.form['egg_id']
     eggs = get_eggs()

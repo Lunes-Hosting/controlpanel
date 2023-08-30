@@ -22,7 +22,8 @@ def register_user():
         print(response)
         if type(response) == dict:
             session['email'] = email
-            
+            update_last_seen(session['email'])
+    
             return redirect(url_for('index'))
             
         else:
