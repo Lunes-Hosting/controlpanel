@@ -461,6 +461,21 @@ def get_credits(email:str):
     cnx.close()
     return credits[0]
 
+def update_ip(email:str, ip):
+    print(2, ip)
+    cnx = mysql.connector.connect(
+            host=HOST,
+            user=USER,
+            password=PASSWORD,
+            database=DATABASE
+            )
+
+    cursor = cnx.cursor()
+    query = f"UPDATE users SET ip = '{ip}' where email='{email}'"
+    cursor.execute(query)
+    cnx.commit()
+    cursor.close()
+    cnx.close()
 
 def update_last_seen(email:str=None, everyone:bool=False):
     print(1, email)
