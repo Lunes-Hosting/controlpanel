@@ -174,7 +174,7 @@ def register_user():
         password = data.get('password')
         name = data.get('username')
         ip = request.headers.get('Cf-Connecting-Ip', request.remote_addr)
-        update_ip(session['email'], request.headers.get('Cf-Connecting-Ip', request.remote_addr))
+        update_ip(session['email'], request.headers)
         register(email, password, name, ip)
 
         # Generate a verification token
