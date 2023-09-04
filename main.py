@@ -58,18 +58,16 @@ def generate_reset_token():
     return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
 
 def send_email(email: str, reset_token: str, app):
-    print("started emailer")
     with app.app_context():
         msg = Message('Password Reset Request', recipients=[email])
         msg.body = f'Please click the link below to reset your password:\n\n {HOSTED_URL}reset_password/{reset_token}'
         mail.send(msg)
-        print("email sent")
+
 
 # Route to request a password reset (via email)
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
     if request.method == 'POST':
-        print(1)
         email = request.form.get('email')
 
         # Check if the email exists in your user database
@@ -80,11 +78,9 @@ def reset_password():
 
         # Store the reset token in the cache with the email as the key
         cache.set(email, reset_token, timeout=TOKEN_EXPIRATION_TIME)
-        print(2, email)
         # Compose and send the reset email
         email_thread = threading.Thread(target=send_email, args=(str(email), reset_token, app,), daemon=True)
         email_thread.start()
-        print(reset_token)
         flash('An email with instructions to reset your password has been sent.')
         return redirect(url_for('user.login_user'))
 
