@@ -173,8 +173,8 @@ def register_user():
         email = data.get('email')
         password = data.get('password')
         name = data.get('username')
-        ip = request.headers.get('cf-connecting-ip', request.remote_addr)
-        update_ip(session['email'], request.headers.get('cf-connecting-ip', request.remote_addr))
+        ip = request.headers.get('Cf-Connecting-Ip', request.remote_addr)
+        update_ip(session['email'], request.headers.get('Cf-Connecting-Ip', request.remote_addr))
         register(email, password, name, ip)
 
         # Generate a verification token
@@ -270,7 +270,7 @@ def index():
             update_last_seen(session['email'])
             print(request.headers, "hmm")
             print(request.environ, "hm2")
-            update_ip(session['email'], request.headers.get('cf-connecting-ip', request.remote_addr))
+            update_ip(session['email'], request.headers.get('Cf-Connecting-Ip'))
             return render_template('index.html')
         else:
             return redirect(url_for('user.login_user'))

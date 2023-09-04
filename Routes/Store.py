@@ -21,7 +21,7 @@ def storepage():
         session['pterodactyl_id'] = id
         
     update_last_seen(session['email'])
-    update_ip(session['email'], request.headers.get('cf-connecting-ip', request.remote_addr))
+    update_ip(session['email'], request.headers.get('Cf-Connecting-Ip', request.remote_addr))
     
     products_local = products
     for product in products_local:
@@ -43,7 +43,7 @@ def create_checkout_session(price_link: str):
         session['pterodactyl_id'] = id
         
     update_last_seen(session['email'])
-    update_ip(session['email'], request.headers.get('cf-connecting-ip', request.remote_addr))
+    update_ip(session['email'], request.headers.get('Cf-Connecting-Ip', request.remote_addr))
     
     check_session = stripe.checkout.Session.create(
     payment_method_types=['card', 'cashapp'],
