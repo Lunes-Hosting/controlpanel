@@ -13,7 +13,8 @@ products = [
         },
         "product_limits": {
             "databases": 0,
-            "backups": 0
+            "backups": 0,
+            "allocations": 1
         }
     },
     {
@@ -30,7 +31,8 @@ products = [
         },
         "product_limits": {
             "databases": 0,
-            "backups": 0
+            "backups": 0,
+            "allocations": 1
         }
     },
     {
@@ -47,7 +49,8 @@ products = [
         },
         "product_limits": {
             "databases": 1,
-            "backups": 1
+            "backups": 1,
+            "allocations": 1
         }
     },
     {
@@ -64,7 +67,8 @@ products = [
         },
         "product_limits": {
             "databases": 1,
-            "backups": 2
+            "backups": 2,
+            "allocations": 1
         }
     },
     {
@@ -73,7 +77,7 @@ products = [
         "name": "Ls 3",
         "price": 300,
         "limits": {
-            "memory": 2048,
+            "memory": 3072,
             "swap": 0,
             "disk": 21504,
             "io": 500,
@@ -81,7 +85,8 @@ products = [
         },
         "product_limits": {
             "databases": 2,
-            "backups": 2
+            "backups": 2,
+            "allocations": 1
         }
     },
     {
@@ -98,7 +103,8 @@ products = [
         },
         "product_limits": {
             "databases": 2,
-            "backups": 3
+            "backups": 3,
+            "allocations": 1
         }
     },
     {
@@ -115,7 +121,8 @@ products = [
         },
         "product_limits": {
             "databases": 2,
-            "backups": 3
+            "backups": 3,
+            "allocations": 1
         }
     },
         {
@@ -132,7 +139,8 @@ products = [
         },
         "product_limits": {
             "databases": 2,
-            "backups": 3
+            "backups": 3,
+            "allocations": 1
         }
     },
 ]
