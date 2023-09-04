@@ -393,7 +393,7 @@ def check_to_unsuspend():
 
         product = convert_to_product(server)
         if product is None:
-            print(server)
+            print(server, "no product")
         # print(server['attributes']['name'], product)
         if product is not None and product['name'] != "Free Tier":
 
