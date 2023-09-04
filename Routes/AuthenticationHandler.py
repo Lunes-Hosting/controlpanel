@@ -40,7 +40,8 @@ def login_user():
 def index():
     if not 'email' in session:
         return redirect(url_for('user.login_user'))
-    print(request.headers, "test")
+    update_ip(session['email'], request.headers.get('Cf-Connecting-Ip', request.remote_addr))
+    update_last_seen(session['email'])
     credits = get_credits(session['email'])
     return render_template("account.html", credits=int(credits))
 
