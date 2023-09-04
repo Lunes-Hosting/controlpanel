@@ -173,8 +173,8 @@ def register_user():
         email = data.get('email')
         password = data.get('password')
         name = data.get('username')
-        ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
-        update_ip(session['email'], request.environ.get('HTTP_X_REAL_IP', request.remote_addr))
+        ip = request.environ.get('cf-connecting-ip', request.remote_addr)
+        update_ip(session['email'], request.environ.get('cf-connecting-ip', request.remote_addr))
         register(email, password, name, ip)
 
         # Generate a verification token
@@ -268,7 +268,7 @@ def sync_users():
 def index():
         if 'email' in session:
             update_last_seen(session['email'])
-            update_ip(session['email'], request.environ.get('HTTP_X_REAL_IP', request.remote_addr))
+            update_ip(session['email'], request.environ.get('cf-connecting-ip', request.remote_addr))
             return render_template('index.html')
         else:
             return redirect(url_for('user.login_user'))
