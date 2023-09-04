@@ -43,6 +43,43 @@ def servers_index():
 def server(server_id):
     if not 'email' in session:
         return redirect(url_for('user.login_user'))
+    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
+    cnx = mysql.connector.connect(
+    host=HOST,
+    user=USER,
+    password=PASSWORD,
+    database=DATABASE
+    )
+
+    cursor = cnx.cursor()
+    query = f"SELECT pterodactyl_id FROM users where email = '{session['email']}'"
+    cursor.execute(query)
+    rows = cursor.fetchone()
+    cursor.close()
+    cnx.close()
+    print(rows[0])
+    
+    
+    
+    
+    if 'pterodactyl_id' in session:
+        id = session['pterodactyl_id']
+    else:
+        id = get_ptero_id(session['email'])
+        session['pterodactyl_id'] = id
+
+    
+    servers = list_servers(id[0][0])
+
+    products_local = list(products)
+    for server in servers:
+        if server['attributes']['user'] == id[0][0]:
+
+            if server['attributes']['limits']['memory'] == 128:
+                print("yes")
+                
+                products_local.remove(products[0])
+                break
     
 
     print(server_id)
@@ -51,7 +88,7 @@ def server(server_id):
     update_last_seen(session['email'])
     update_ip(session['email'], request.headers)
     
-    return render_template('server.html', info=info)
+    return render_template('server.html', info=info, products=products_local)
 
 @servers.route("/create")
 def create_server():
@@ -167,7 +204,7 @@ def create_server_submit():
     "allocation": {
     "default": alloac_id
     },
-    "enviroment": {
+    "environment": {
         "BUILD_NUMBER": "latest",
         "MINECRAFT_VERSION": "latest",
         "MEMORY_OVERHEAD": "1500",
@@ -178,3 +215,44 @@ def create_server_submit():
     res = requests.post(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, json=body)
     print(res.json())
     return redirect(url_for('servers.servers_index'))
+
+@servers.route('/update/<server_id>', methods=['POST'])
+def update_server_submit(server_id):
+    if not 'email' in session:
+        return redirect(url_for('user.login_user'))
+    update_last_seen(session['email'])
+    update_ip(session['email'], request.headers)
+    
+    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
+    cnx = mysql.connector.connect(
+    host=HOST,
+    user=USER,
+    password=PASSWORD,
+    database=DATABASE
+    )
+
+    cursor = cnx.cursor()
+    query = f"SELECT pterodactyl_id FROM users where email = '{session['email']}'"
+    cursor.execute(query)
+    rows = cursor.fetchone()
+    cursor.close()
+    cnx.close()
+    print(rows[0])
+    if resp['attributes']['user'] == rows[0]:
+        for product in products:
+            if product['id'] == int(request.form.get('plan')):
+                main_product = product
+                credits_used = main_product['price'] / 30 / 24
+                res = remove_credits(session['email'], credits_used)
+                if res == "SUSPEND":
+                    flash("You are out of credits")
+                    return redirect(url_for('servers.servers_index'))
+        body=main_product['limits']
+        body["feature_limits"] = main_product['product_limits']
+        body['allocation'] = resp['attributes']['allocation']
+        print(body)
+        resp2 = requests.patch(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}/build", headers=HEADERS, json=body)
+        print(resp2.text)
+        return redirect(url_for('servers.servers_index'))
+    else:
+        return "You can't update this server you dont own it!"
