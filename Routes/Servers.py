@@ -18,12 +18,32 @@ def servers_index():
         session['pterodactyl_id'] = id
         
     update_last_seen(session['email'])
-    
+    cnx = mysql.connector.connect(
+        host=HOST,
+        user=USER,
+        password=PASSWORD,
+        database=DATABASE
+        )
+    cursor = cnx.cursor(buffered=True)
+        
+    query = f"Select email_verified_at FROM users where email='{session['email']}'"
+    cursor.execute(query)
+    results = cursor.fetchone()
+    print(results)
+    cnx.commit()
+    if results[0] == None:
+        verified=False
+    else:
+        verified=True
     servers = list_servers(id[0][0])
-    return render_template('servers.html', servers=servers)
+    return render_template('servers.html', servers=servers, verified=verified)
 
 @servers.route('/<server_id>')
 def server(server_id):
+    if not 'email' in session:
+        return redirect(url_for('user.login_user'))
+    
+
     print(server_id)
     info = get_server_information(server_id)
     print(info)
@@ -44,6 +64,21 @@ def create_server():
         session['pterodactyl_id'] = id
     
     update_last_seen(session['email'])
+    cnx = mysql.connector.connect(
+        host=HOST,
+        user=USER,
+        password=PASSWORD,
+        database=DATABASE
+        )
+    cursor = cnx.cursor(buffered=True)
+        
+    query = f"Select email_verified_at FROM users where email='{session['email']}'"
+    cursor.execute(query)
+    results = cursor.fetchone()
+    print(results)
+    cnx.commit()
+    if results[0] == None:
+        return redirect(url_for('servers.servers_index'))
     
     servers = list_servers(id[0][0])
     nodes = get_nodes()
@@ -52,7 +87,6 @@ def create_server():
     for server in servers:
         if server['attributes']['user'] == id[0][0]:
 
-            print("mhm", 1, server['attributes']['name'], 2, server['attributes']['limits'],333333)
             if server['attributes']['limits']['memory'] == 128:
                 print("yes")
                 

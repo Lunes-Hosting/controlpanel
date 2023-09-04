@@ -7,29 +7,6 @@ import json
 # Create a blueprint for the user routes
 user = Blueprint('user', __name__)
 
-@user.route('/register', methods=['POST', 'GET'])
-def register_user():
-    if request.method == "POST":
-        print(1)
-        data = request.form
-        email = data.get('email')
-        password = data.get('password')
-        name = data.get('username')
-        ip = request.remote_addr
-
-
-        response = register(email, password, name, ip)
-        print(response)
-        if type(response) == dict:
-            session['email'] = email
-            update_last_seen(session['email'])
-    
-            return redirect(url_for('index'))
-            
-        else:
-            return response
-    else:
-        return render_template("register.html")
 
 
 @user.route('/login', methods=['POST', 'GET'])
