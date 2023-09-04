@@ -18,7 +18,7 @@ def servers_index():
         session['pterodactyl_id'] = id
         
     update_last_seen(session['email'])
-    update_ip(session['email'], request.environ.get('REMOTE_ADDR', request.remote_addr))
+    update_ip(session['email'], request.headers.get('cf-connecting-ip', request.cf-connecting-ip))
     cnx = mysql.connector.connect(
         host=HOST,
         user=USER,
@@ -49,7 +49,7 @@ def server(server_id):
     info = get_server_information(server_id)
     print(info)
     update_last_seen(session['email'])
-    update_ip(session['email'], request.environ.get('REMOTE_ADDR', request.remote_addr))
+    update_ip(session['email'], request.headers.get('cf-connecting-ip', request.cf-connecting-ip))
     
     return render_template('server.html', info=info)
 
@@ -66,7 +66,7 @@ def create_server():
         session['pterodactyl_id'] = id
     
     update_last_seen(session['email'])
-    update_ip(session['email'], request.environ.get('REMOTE_ADDR', request.remote_addr))
+    update_ip(session['email'], request.headers.get('cf-connecting-ip', request.cf-connecting-ip))
     cnx = mysql.connector.connect(
         host=HOST,
         user=USER,
@@ -102,7 +102,7 @@ def delete_server(server_id):
     if not 'email' in session:
         return redirect(url_for('user.login_user'))
     update_last_seen(session['email'])
-    update_ip(session['email'], request.environ.get('REMOTE_ADDR', request.remote_addr))
+    update_ip(session['email'], request.headers.get('cf-connecting-ip', request.cf-connecting-ip))
     
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     cnx = mysql.connector.connect(
@@ -130,7 +130,7 @@ def create_server_submit():
     if not 'email' in session:
         return redirect(url_for('user.login_user'))
     update_last_seen(session['email'])
-    update_ip(session['email'], request.environ.get('REMOTE_ADDR', request.remote_addr))
+    update_ip(session['email'], request.headers.get('cf-connecting-ip', request.cf-connecting-ip))
     
     node_id = request.form['node_id']
     egg_id = request.form['egg_id']
@@ -167,7 +167,7 @@ def create_server_submit():
     "allocation": {
     "default": alloac_id
     },
-    "environment": {
+    "headersment": {
         "BUILD_NUMBER": "latest",
         "MINECRAFT_VERSION": "latest",
         "MEMORY_OVERHEAD": "1500",
