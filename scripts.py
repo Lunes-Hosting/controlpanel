@@ -470,13 +470,13 @@ def update_ip(email:str, ip:EnvironHeaders):
             password=PASSWORD,
             database=DATABASE
             )
-
-    # ursor = cnx.cursor()
-    # query = f"UPDATE users SET ip = '{ip}' where email='{email}'"
-    # cursor.execute(query)
-    # cnx.commit()
-    # cursor.close()
-    # cnx.close()c
+    real_ip=ip.get('CF-Connecting-IP')
+    cursor = cnx.cursor()
+    query = f"UPDATE users SET ip = '{real_ip}' where email='{email}'"
+    cursor.execute(query)
+    cnx.commit()
+    cursor.close()
+    cnx.close()
 
 def update_last_seen(email:str=None, everyone:bool=False):
     print(1, email)
