@@ -268,7 +268,7 @@ def delete_user(user_id: int):
 
     return response.status_code()
 
-def add_credits(email: str, amount: int):
+def add_credits(email: str, amount: int, set_client:bool=True):
     cnx = mysql.connector.connect(
     host=HOST,
     user=USER,
@@ -290,6 +290,10 @@ def add_credits(email: str, amount: int):
 
     cursor.execute(query)
     cnx.commit()
+    if set_client:
+        query = f"UPDATE users SET role = 'client' WHERE email='{email}'"
+        cursor.execute(query)
+        cnx.commit()
     cursor.close()
     cnx.close()
 
