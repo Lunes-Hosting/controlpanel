@@ -175,8 +175,10 @@ def register_user():
         name = data.get('username')
         ip = request.headers.get('Cf-Connecting-Ip', request.remote_addr)
         update_ip(session['email'], request.headers)
-        register(email, password, name, ip)
-
+        res = register(email, password, name, ip)
+        if type(res) == str:
+            flash(res + " If this in error please contact support at owner@lunes.host")
+            return render_template('register.html')
         # Generate a verification token
         verification_token = generate_verification_token()
 
@@ -187,7 +189,7 @@ def register_user():
         email_thread = threading.Thread(target=send_verification_email, args=(email, verification_token, app,), daemon=True)
         email_thread.start()
 
-        flash('A verification email has been sent to your email address. Please check your inbox to verify your email.')
+        flash('A verification email has been sent to your email address. Please check your inbox and spam to verify your email.')
         return redirect(url_for('index'))
     else:
         return render_template("register.html")

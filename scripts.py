@@ -209,8 +209,8 @@ def register(email: str, password: str, name: str, ip: str):
     cursor.execute(query)
     results = cursor.fetchone()
     cnx.commit()
-    # if results is not None:
-    #     return "Ip is already registered"
+    if results is not None:
+        return "Ip is already registered"
 
 
     
@@ -463,7 +463,6 @@ def get_credits(email:str):
     return credits[0]
 
 def update_ip(email:str, ip:EnvironHeaders):
-    print(ip, ip.get('CF-Connecting-IP'))
     cnx = mysql.connector.connect(
             host=HOST,
             user=USER,
