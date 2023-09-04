@@ -268,7 +268,8 @@ def sync_users():
 def index():
         if 'email' in session:
             update_last_seen(session['email'])
-            print(request.headers, request.environ)
+            print(request.headers, "hmm")
+            print(request.environ, "hm2")
             update_ip(session['email'], request.headers.get('cf-connecting-ip', request.remote_addr))
             return render_template('index.html')
         else:
