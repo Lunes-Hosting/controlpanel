@@ -8,6 +8,7 @@ import requests
 from products import products
 from retrying import retry
 import requests
+from werkzeug.datastructures.headers import EnvironHeaders
 
 # Define the retry decorator
 def retry_on_gateway_error():
@@ -461,8 +462,8 @@ def get_credits(email:str):
     cnx.close()
     return credits[0]
 
-def update_ip(email:str, ip):
-    print(2, ip)
+def update_ip(email:str, ip:EnvironHeaders):
+    print(ip, ip.get('CF-Connecting-IP'))
     cnx = mysql.connector.connect(
             host=HOST,
             user=USER,
@@ -470,12 +471,12 @@ def update_ip(email:str, ip):
             database=DATABASE
             )
 
-    cursor = cnx.cursor()
-    query = f"UPDATE users SET ip = '{ip}' where email='{email}'"
-    cursor.execute(query)
-    cnx.commit()
-    cursor.close()
-    cnx.close()
+    # ursor = cnx.cursor()
+    # query = f"UPDATE users SET ip = '{ip}' where email='{email}'"
+    # cursor.execute(query)
+    # cnx.commit()
+    # cursor.close()
+    # cnx.close()c
 
 def update_last_seen(email:str=None, everyone:bool=False):
     print(1, email)
