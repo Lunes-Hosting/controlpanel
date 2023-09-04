@@ -229,9 +229,8 @@ def verify_email(token):
             
         query = f"UPDATE users SET email_verified_at = '{datetime.datetime.now()}' where email = '{email}'"
         cursor.execute(query)
-        results = cursor.fetchone()
         cnx.commit()
-        print(results)
+        
 
         # Remove the verification token from the cache
         cache.delete(email)
