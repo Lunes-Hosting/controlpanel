@@ -153,7 +153,94 @@ def reset_password_confirm(token):
     return render_template('reset_password_confirm.html', token=token)
 
 
+# Function to generate a verification token
+def generate_verification_token():
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
 
+# Function to send a verification email
+def send_verification_email(email: str, verification_token: str, app):
+    with app.app_context():
+        print("started emails")
+        msg = Message('Email Verification', recipients=[email])
+        msg.body = f'Please click the link below to verify your email:\n\n {HOSTED_URL}verify_email/{verification_token}'
+        mail.send(msg)
+        print(f"sent email to {email}")
+# Modified register_user function
+@app.route('/register', methods=['POST', 'GET'])
+def register_user():
+    if request.method == "POST":
+        data = request.form
+        email = data.get('email')
+        password = data.get('password')
+        name = data.get('username')
+        ip = request.remote_addr
+
+        register(email, password, name, ip)
+
+        # Generate a verification token
+        verification_token = generate_verification_token()
+
+        # Store the verification token in the cache with the email as the key
+        cache.set(email, verification_token, timeout=TOKEN_EXPIRATION_TIME)
+
+        # Compose and send the verification email
+        email_thread = threading.Thread(target=send_verification_email, args=(email, verification_token, app,), daemon=True)
+        email_thread.start()
+
+        flash('A verification email has been sent to your email address. Please check your inbox to verify your email.')
+        return redirect(url_for('index'))
+    else:
+        return render_template("register.html")
+
+@app.route("/resend_confirmation_email")
+def resend_confirmation_email():
+    if not 'email' in session:
+        return redirect(url_for('user.login_user'))
+    verification_token = generate_verification_token()
+
+    # Store the verification token in the cache with the email as the key
+    cache.set(session['email'], verification_token, timeout=TOKEN_EXPIRATION_TIME)
+
+    # Compose and send the verification email
+    email_thread = threading.Thread(target=send_verification_email, args=(session['email'], verification_token, app,), daemon=True)
+    email_thread.start()
+    flash("Sent a verification email")
+    return redirect(url_for('index'))
+
+# Route to confirm the email using the token
+@app.route('/verify_email/<token>', methods=['GET'])
+def verify_email(token):
+    if not 'email' in session:
+        return redirect(url_for('user.login_user'))
+    
+    email = session['email']
+
+    # Retrieve the stored verification token from the cache
+    stored_token = cache.get(email)
+
+    if stored_token and stored_token == token:
+        cnx = mysql.connector.connect(
+        host=HOST,
+        user=USER,
+        password=PASSWORD,
+        database=DATABASE
+        )
+        cursor = cnx.cursor(buffered=True)
+            
+        query = f"UPDATE users SET email_verified_at = '{datetime.datetime.now()}'"
+        cursor.execute(query)
+        results = cursor.fetchone()
+        cnx.commit()
+        print(results)
+
+        # Remove the verification token from the cache
+        cache.delete(email)
+
+        flash('Your email has been successfully verified.')
+    else:
+        flash('Invalid or expired verification token.')
+
+    return redirect(url_for('index'))
 
 
 @scheduler.task('interval', id='do_job_1', seconds=3600, misfire_grace_time=900)

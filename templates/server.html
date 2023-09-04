@@ -6,6 +6,13 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/server_details.css') }}">
 </head>
 <body>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    {% for message in messages %}
+        {{ message }}
+    {% endfor %}
+{% endif %}
+{% endwith %}
     {% include 'taskbar.html' %}
     <div class="server-details-container">
         <h1>{{ info['attributes']['name'] }}</h1>
