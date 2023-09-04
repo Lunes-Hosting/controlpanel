@@ -428,18 +428,19 @@ def check_to_unsuspend():
 
             else:
                 print(email, product['price'])
-        elif product['name'] == "Free Tier":
-            query = f"SELECT last_seen FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
-            cursor.execute(query)
-            last_seen = cursor.fetchone()
-            if last_seen is not None:
-                if datetime.datetime.now() - last_seen[0] > datetime.timedelta(days=30):
-                    print(f"Deleting server {server['attributes']['name']} due to inactivity for more than 30 days.")
-                    delete_server(server['attributes']['id'])
-                else:
-                    pass
-            cnx.commit()
-            
+        elif product is not None:
+            if product['name'] == "Free Tier":
+                query = f"SELECT last_seen FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
+                cursor.execute(query)
+                last_seen = cursor.fetchone()
+                if last_seen is not None:
+                    if datetime.datetime.now() - last_seen[0] > datetime.timedelta(days=30):
+                        print(f"Deleting server {server['attributes']['name']} due to inactivity for more than 30 days.")
+                        delete_server(server['attributes']['id'])
+                    else:
+                        pass
+                cnx.commit()
+                
     cursor.close()
     cnx.close()
     
