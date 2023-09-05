@@ -8,6 +8,7 @@ import requests
 from products import products
 from retrying import retry
 import requests
+from flask import request, session, url_for, redirect
 from werkzeug.datastructures.headers import EnvironHeaders
 
 # Define the retry decorator
@@ -473,7 +474,7 @@ def update_ip(email:str, ip:EnvironHeaders):
             password=PASSWORD,
             database=DATABASE
             )
-    real_ip=ip.get('CF-Connecting-IP')
+    real_ip=ip.get('CF-Connecting-IP', "localhost")
     cursor = cnx.cursor()
     query = f"UPDATE users SET ip = '{real_ip}' where email='{email}'"
     cursor.execute(query)
