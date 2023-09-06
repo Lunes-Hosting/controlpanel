@@ -385,7 +385,7 @@ def remove_credits(email: str, amount: float):
 def convert_to_product(data):
     returned = None
     for product in products:
-        if product['limits']['memory'] == data['attributes']['limits']['memory']:
+        if int(product['limits']['memory']) == int(data['attributes']['limits']['memory']):
             returned = product
             break
         else:
