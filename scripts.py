@@ -5,10 +5,12 @@ import datetime
 import mysql.connector
 from config import *
 import requests
+import typing as t
+from functools import wraps
 from products import products
 from retrying import retry
 import requests
-from flask import request, session, url_for, redirect
+from flask import request, session, url_for, redirect, abort
 from werkzeug.datastructures.headers import EnvironHeaders
 
 # Define the retry decorator
@@ -27,6 +29,58 @@ HEADERS = {"Authorization": f"Bearer {PTERODACTYL_ADMIN_KEY}",
 CLIENT_HEADERS =  {"Authorization": f"Bearer {PTERODACTYL_ADMIN_USER_KEY}",
         'Accept': 'application/json',
         'Content-Type': 'application/json'}
+
+
+
+# def login_check(
+#         session_key: str='email',
+#         fail_endpoint: t.Optional[str] = None,
+
+# ):
+
+#     def login_check_wrapper(func):
+#         @wraps(func)
+#         def inner(*args, **kwargs):
+#             skey = session.get(session_key)
+
+#             if skey is None:
+#                 if fail_endpoint:
+#                     if endpoint_kwargs:
+#                         return redirect(url_for(fail_endpoint, **endpoint_kwargs))
+
+#                     return redirect(url_for(fail_endpoint))
+
+#                 return func(*args, **kwargs)
+
+#             if skey is not None:
+#                 if _check_against_values_allowed(skey, values_allowed):
+#                     if pass_endpoint:
+#                         if message:
+#                             flash(message, message_category)
+
+#                         if endpoint_kwargs:
+#                             return redirect(url_for(pass_endpoint, **endpoint_kwargs))
+
+#                         return redirect(url_for(pass_endpoint))
+
+#                     return func(*args, **kwargs)
+
+#                 if fail_endpoint:
+#                     if endpoint_kwargs:
+#                         return redirect(url_for(fail_endpoint, **endpoint_kwargs))
+
+#                     return redirect(url_for(fail_endpoint))
+
+#                 return func(*args, **kwargs)
+
+#             return abort(403)
+
+#         return inner
+
+#     return login_check_wrapper
+
+
+
 
 def sync_users_script():
     cnxpanel = mysql.connector.connect(
@@ -335,6 +389,8 @@ def convert_to_product(data):
             returned = product
             break
         
+    if returned == None:
+        print(data['attributes']['limits']['memory'], products)
     return returned
     
 def suspend_server(id:int):
