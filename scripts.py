@@ -388,8 +388,7 @@ def convert_to_product(data):
         if int(product['limits']['memory']) == int(data['attributes']['limits']['memory']):
             returned = product
             break
-        else:
-            print(product['limits']['memory'])
+
         
     if returned == None:
         print(data['attributes']['limits']['memory'], products)
