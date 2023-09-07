@@ -46,6 +46,7 @@ def create_checkout_session(price_link: str):
     
     check_session = stripe.checkout.Session.create(
     payment_method_types=['card', 'cashapp'],
+    allow_promotion_codes=True,
     line_items=[{
         'price': price_link,
         'quantity': 1,
