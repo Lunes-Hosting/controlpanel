@@ -241,7 +241,7 @@ def update_server_submit(server_id):
     if resp['attributes']['user'] == rows[0]:
         for product in products:
             if product['id'] == int(request.form.get('plan')):
-                main_product = product
+                main_product = dict(product)
                 credits_used = main_product['price'] / 30 / 24
                 res = remove_credits(session['email'], credits_used)
                 if res == "SUSPEND":

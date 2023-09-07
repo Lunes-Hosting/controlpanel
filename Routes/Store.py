@@ -23,11 +23,10 @@ def storepage():
     update_last_seen(session['email'])
     update_ip(session['email'], request.headers)
     
-    products_local = products
+    products_local = list(products)
     for product in products_local:
         if product['price_link'] is None:
             products_local.remove(product)
-    print(products_local)
     return render_template("store.html", products=products_local)
 
 
