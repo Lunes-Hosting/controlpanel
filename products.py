@@ -143,4 +143,22 @@ products = [
             "allocations": 1
         }
     },
+    {
+        "price_link": "price_1NnkF6Gc0pLG1vqRSj3llmXi",
+        "id": 7,
+        "name": "Ls 10",
+        "price": 1000,
+        "limits": {
+            "memory": 10240,
+            "swap": 0,
+            "disk": 71680,
+            "io": 500,
+            "cpu": 0
+        },
+        "product_limits": {
+            "databases": 4,
+            "backups": 8,
+            "allocations": 1
+        }
+    },
 ]
