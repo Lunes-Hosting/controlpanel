@@ -501,7 +501,7 @@ def check_to_unsuspend():
                         print(f"Deleting server {server['attributes']['name']} due to inactivity for more than 30 days.")
                         delete_server(server['attributes']['id'])
                     else:
-                        pass
+                        unsuspend_server(server['attributes']['id'])
                 cnx.commit()
                 
     cursor.close()
