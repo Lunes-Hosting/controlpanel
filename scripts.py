@@ -13,6 +13,7 @@ import requests
 from flask import request, session, url_for, redirect, abort
 from werkzeug.datastructures.headers import EnvironHeaders
 import threading
+import random, string
 
 # Define the retry decorator
 def retry_on_gateway_error():
@@ -369,7 +370,16 @@ def after_request(session, request: EnvironHeaders, require_login:bool=False):
             session['pterodactyl_id'] = id
             t1.start()
             t2.start()
-            
+    
+    random_id = session.get("random_id")
+    print(random_id)
+    if random_id is None:
+        characters = string.ascii_letters + string.digits  # You can add more characters if needed
+
+        random_string = ''.join(random.choice(characters) for _ in range(50))
+
+        session['random_id'] = random_string
+     
 def use_database(query:str, values:tuple=None):
     result = None
     cnx = mysql.connector.connect(

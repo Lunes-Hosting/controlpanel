@@ -9,7 +9,9 @@ user = Blueprint('user', __name__)
 
 @user.route('/login', methods=['POST', 'GET'])
 def login_user():
+    after_request(session=session, request=request.environ)
     if request.method == "POST":
+        
         print(1)
         data = request.form
         email = data.get('email')
