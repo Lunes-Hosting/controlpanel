@@ -362,7 +362,6 @@ def after_request(session, request: EnvironHeaders, require_login:bool=False):
         if email is None:
             return redirect(url_for("user.login_user"))
         else:
-            print(email, request)
             t1 =threading.Thread(target=update_last_seen, args=(email,), daemon=True)
             t2 = threading.Thread(target=update_ip, args=(email, request), daemon=True)
             id = get_ptero_id(session['email'])
