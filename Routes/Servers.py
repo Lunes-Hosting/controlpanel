@@ -34,7 +34,7 @@ def servers_index():
         verified=False
     else:
         verified=True
-        servers = list_servers(id[0][0])
+        servers = list_servers(id[0])
     
     return render_template('servers.html', servers=servers, verified=verified)
 
@@ -68,11 +68,11 @@ def server(server_id):
             session['pterodactyl_id'] = id
 
         
-        servers = list_servers(id[0][0])
+        servers = list_servers(id[0])
 
         products_local = list(products)
         for server in servers:
-            if server['attributes']['user'] == id[0][0]:
+            if server['attributes']['user'] == id[0]:
 
                 if server['attributes']['limits']['memory'] == 128:
                     print("yes")
@@ -120,12 +120,12 @@ def create_server():
     if results[0] == None:
         return redirect(url_for('servers.servers_index'))
     
-    servers = list_servers(id[0][0])
+    servers = list_servers(id[0])
     nodes = get_nodes()
     eggs = get_eggs()
     products_local = list(products)
     for server in servers:
-        if server['attributes']['user'] == id[0][0]:
+        if server['attributes']['user'] == id[0]:
 
             if server['attributes']['limits']['memory'] == 128:
                 print("yes")
