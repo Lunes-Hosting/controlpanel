@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, redirect, url_for, session, flash
+from flask import Blueprint, request, render_template, redirect, url_for, session, flash, current_app
 import sys
 sys.path.append("..") 
 from scripts import *
@@ -6,8 +6,6 @@ import json
 
 # Create a blueprint for the user routes
 user = Blueprint('user', __name__)
-
-
 
 @user.route('/login', methods=['POST', 'GET'])
 def login_user():
