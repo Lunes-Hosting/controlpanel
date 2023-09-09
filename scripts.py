@@ -336,6 +336,7 @@ def get_credits(email:str):
 def update_ip(email:str, ip:EnvironHeaders):
     real_ip=ip.get('CF-Connecting-IP', "localhost")
     query = f"UPDATE users SET ip = '{real_ip}' where email = %s"
+    print(query, email, real_ip, "222")
     use_database(query, (email,))
     
 def update_last_seen(email:str=None, everyone:bool=False):
