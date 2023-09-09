@@ -28,7 +28,7 @@ def servers_index():
     cursor = cnx.cursor(buffered=True)
         
     query = f"Select email_verified_at FROM users where email = %s"
-    cursor.execute(query, (session['email']))
+    cursor.execute(query, (session['email'],))
     results = cursor.fetchone()
     print(results)
     cnx.commit()
@@ -53,7 +53,7 @@ def server(server_id):
 
     cursor = cnx.cursor()
     query = f"SELECT pterodactyl_id FROM users where email = %s"
-    cursor.execute(query, (session['email']))
+    cursor.execute(query, (session['email'],))
     rows = cursor.fetchone()
     cursor.close()
     cnx.close()
@@ -113,7 +113,7 @@ def create_server():
     cursor = cnx.cursor(buffered=True)
         
     query = f"Select email_verified_at FROM users where email = %s"
-    cursor.execute(query, (session['email']))
+    cursor.execute(query, (session['email'],))
     results = cursor.fetchone()
     print(results)
     cnx.commit()
@@ -151,7 +151,7 @@ def delete_server(server_id):
 
     cursor = cnx.cursor()
     query = f"SELECT pterodactyl_id FROM users where email = %s"
-    cursor.execute(query, (session['email']))
+    cursor.execute(query, (session['email'],))
     rows = cursor.fetchone()
     cursor.close()
     cnx.close()
@@ -233,7 +233,7 @@ def update_server_submit(server_id):
 
     cursor = cnx.cursor()
     query = f"SELECT pterodactyl_id FROM users where email = %s"
-    cursor.execute(query, (session['email']))
+    cursor.execute(query, (session['email'],))
     rows = cursor.fetchone()
     cursor.close()
     cnx.close()
