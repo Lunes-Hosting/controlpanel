@@ -3,7 +3,7 @@ import sys
 sys.path.append("..") 
 from scripts import *
 from products import products
-import json
+import threading
 servers = Blueprint('servers', __name__)
 
 @servers.route('/')
@@ -104,19 +104,9 @@ def create_server():
         id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = id
     
-    cnx = mysql.connector.connect(
-        host=HOST,
-        user=USER,
-        password=PASSWORD,
-        database=DATABASE
-        )
-    cursor = cnx.cursor(buffered=True)
-        
+
     query = f"Select email_verified_at FROM users where email = %s"
-    cursor.execute(query, (session['email'],))
-    results = cursor.fetchone()
-    print(results)
-    cnx.commit()
+    results = use_database(query, (session['email'],))
     if results[0] == None:
         return redirect(url_for('servers.servers_index'))
     
