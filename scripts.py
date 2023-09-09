@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 import mysql.connector
 import bcrypt
 import datetime
@@ -103,12 +101,12 @@ def sync_users_script():
     data = requests.get(f"{PTERODACTYL_URL}api/application/users", headers=HEADERS).json()
     for user in data['data']:
 
-        query = f"SELECT * FROM users WHERE email = '{user['attributes']['email']}'"
-        cursor.execute(query)
+        query = f"SELECT * FROM users WHERE email = %s"
+        cursor.execute(query, (user['attributes']['email']))
         user = cursor.fetchone()
 
         if user is None:
-            cursorpanel.execute(f"select password from users where email='{user['attributes']['email']}'")
+            cursorpanel.execute(f"select password from users where email = %s", (user['attributes']['email']))
             password = cursorpanel.fetchone()
             query = "INSERT INTO users (name, email, password, id, pterodactyl_id) VALUES (%s, %s, %s, %s, %s)"
 
@@ -146,38 +144,6 @@ def get_eggs():
                 {"egg_id": attributes['id'], "name": attributes['name'], "docker_image": attributes['docker_image'], "startup": attributes['startup']}
             )
     return available_eggs
-def describe_users():
-    cnx = mysql.connector.connect(
-    host=HOST,
-    user=USER,
-    password=PASSWORD,
-    database=DATABASE
-    )
-
-    cursor = cnx.cursor()
-    query = "DESCRIBE users"
-    cursor.execute(query)
-    rows = cursor.fetchall()
-    cursor.close()
-    cnx.close()
-    return rows
-    
-
-def get_all_users() ->list:
-    cnx = mysql.connector.connect(
-    host=HOST,
-    user=USER,
-    password=PASSWORD,
-    database=DATABASE
-    )
-
-    cursor = cnx.cursor()
-    query = "SELECT * FROM users WHERE email = 'dwattynip123@gmail.com'"
-    cursor.execute(query)
-    res = cursor.fetchall()
-    cursor.close()
-    cnx.close()
-    return res
 
 @retry_on_gateway_error()
 def list_servers(pterodactyl_id:int):
@@ -202,8 +168,8 @@ def get_ptero_id(email:str):
     )
 
     cursor = cnx.cursor()
-    query = f"SELECT pterodactyl_id FROM users WHERE email = '{email}'"
-    cursor.execute(query)
+    query = f"SELECT pterodactyl_id FROM users WHERE email = %s"
+    cursor.execute(query, (email))
     res = cursor.fetchall()
     cursor.close()
     cnx.close()
@@ -223,8 +189,8 @@ def login(email: str, password: str):
         cursor = cnx.cursor(buffered=True)
 
         # Retrieve the hashed password from the database
-        query = f"SELECT password FROM users WHERE email = '{email}'"
-        cursor.execute(query)
+        query = f"SELECT password FROM users WHERE email = %s"
+        cursor.execute(query, (email))
         hashed_password = cursor.fetchone()
 
         if hashed_password is not None:
@@ -233,8 +199,8 @@ def login(email: str, password: str):
 
             if is_matched:
                 # Retrieve all information of the user
-                all_info = f"SELECT * FROM users WHERE email = '{email}'"
-                cursor.execute(all_info)
+                all_info = f"SELECT * FROM users WHERE email = %s"
+                cursor.execute(all_info, (email))
                 info = cursor.fetchone()
                 return info
 
@@ -262,8 +228,8 @@ def register(email: str, password: str, name: str, ip: str):
     password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
     cursor = cnx.cursor(buffered=True)
         
-    query = f"SELECT * FROM users WHERE ip='{ip}'"
-    cursor.execute(query)
+    query = f"SELECT * FROM users WHERE ip = %s"
+    cursor.execute(query, (ip))
     results = cursor.fetchone()
     cnx.commit()
     if results is not None:
@@ -336,20 +302,20 @@ def add_credits(email: str, amount: int, set_client:bool=True):
     cursor = cnx.cursor()
     
     # Delete the user from the database
-    query = f"SELECT credits FROM users WHERE email='{email}'"
+    query = f"SELECT credits FROM users WHERE email = %s"
     
 
-    cursor.execute(query)
+    cursor.execute(query, (email))
     credits = cursor.fetchone()
     print(credits, email)
-    query = f"UPDATE users SET credits = {int(credits[0]) + amount} WHERE email='{email}'"
+    query = f"UPDATE users SET credits = {int(credits[0]) + amount} WHERE email = %s"
     
 
-    cursor.execute(query)
+    cursor.execute(query, (email))
     cnx.commit()
     if set_client:
-        query = f"UPDATE users SET role = 'client' WHERE email='{email}'"
-        cursor.execute(query)
+        query = f"UPDATE users SET role = 'client' WHERE email = %s"
+        cursor.execute(query, (email))
         cnx.commit()
     cursor.close()
     cnx.close()
@@ -366,19 +332,19 @@ def remove_credits(email: str, amount: float):
     cursor = cnx.cursor()
     print(email)
     # Delete the user from the database
-    query = f"SELECT credits FROM users WHERE email='{email}'"
+    query = f"SELECT credits FROM users WHERE email = %s"
     
 
-    cursor.execute(query)
+    cursor.execute(query, (email))
     credits = cursor.fetchone()
     print(credits, email)
     new_credits = float(credits[0]) - amount
     if new_credits <=0:
         return "SUSPEND"
-    query = f"UPDATE users SET credits = {new_credits} WHERE email='{email}'"
+    query = f"UPDATE users SET credits = {new_credits} WHERE email = %s"
     
 
-    cursor.execute(query)
+    cursor.execute(query, (email))
     cnx.commit()
     cursor.close()
     cnx.close()
@@ -518,8 +484,8 @@ def get_credits(email:str):
             )
 
     cursor = cnx.cursor()
-    query = f"SELECT credits FROM users WHERE email='{email}'"
-    cursor.execute(query)
+    query = f"SELECT credits FROM users WHERE email = %s"
+    cursor.execute(query, (email))
     credits = cursor.fetchone()
     cnx.commit()
     cursor.close()
@@ -535,8 +501,8 @@ def update_ip(email:str, ip:EnvironHeaders):
             )
     real_ip=ip.get('CF-Connecting-IP', "localhost")
     cursor = cnx.cursor()
-    query = f"UPDATE users SET ip = '{real_ip}' where email='{email}'"
-    cursor.execute(query)
+    query = f"UPDATE users SET ip = '{real_ip}' where email = %s"
+    cursor.execute(query, (email))
     cnx.commit()
     cursor.close()
     cnx.close()
@@ -558,8 +524,8 @@ def update_last_seen(email:str=None, everyone:bool=False):
         cnx.close()
     else:
         cursor = cnx.cursor()
-        query = f"UPDATE users SET last_seen = '{datetime.datetime.now()}' WHERE email='{email}'"
-        cursor.execute(query)
+        query = f"UPDATE users SET last_seen = '{datetime.datetime.now()}' WHERE email = %s"
+        cursor.execute(query, (email))
         cnx.commit()
         cursor.close()
         cnx.close()
@@ -574,13 +540,11 @@ def get_last_seen(email:str):
             )
 
     cursor = cnx.cursor()
-    query = f"SELECT last_seen FROM users WHERE email='{email}'"
-    cursor.execute(query)
+    query = f"SELECT last_seen FROM users WHERE email = %s"
+    cursor.execute(query, (email))
     last_seen = cursor.fetchone()
     cnx.commit()
     cursor.close()
     cnx.close()
     return last_seen[0]
 
-
->>>>>>> parent of 8d6a6a2 (fixed sql injection)
