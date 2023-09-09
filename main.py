@@ -224,8 +224,8 @@ def verify_email(token):
         )
         cursor = cnx.cursor(buffered=True)
             
-        query = f"UPDATE users SET email_verified_at = '{datetime.datetime.now()}' where email = '{email}'"
-        cursor.execute(query)
+        query = f"UPDATE users SET email_verified_at = '{datetime.datetime.now()}' where email = ?"
+        cursor.execute(query, (email))
         cnx.commit()
         
 
