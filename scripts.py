@@ -347,8 +347,8 @@ def update_last_seen(email:str, everyone:bool=False):
         use_database(query)
     else:
         query = f"UPDATE users SET last_seen = '{datetime.datetime.now()}' WHERE email = %s"
-        use_database(query, (email,))
-        
+    use_database(query, (email,))
+
 
 def get_last_seen(email:str):
     query = f"SELECT last_seen FROM users WHERE email = %s"
@@ -373,6 +373,7 @@ def after_request(session, request: EnvironHeaders, require_login:bool=False):
             t2.start()
             
 def use_database(query:str, values:tuple=None):
+    result = None
     cnx = mysql.connector.connect(
             host=HOST,
             user=USER,
@@ -382,7 +383,8 @@ def use_database(query:str, values:tuple=None):
 
     cursor = cnx.cursor(buffered=True)
     cursor.execute(query, values)
-    result = cursor.fetchone()
+    if "select" in query.lower():
+        result = cursor.fetchone()
     cnx.commit()
     cursor.close()
     cnx.close()
