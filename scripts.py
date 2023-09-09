@@ -188,7 +188,6 @@ def add_credits(email: str, amount: int, set_client:bool=True):
     query = f"SELECT credits FROM users WHERE email = %s"
     
     credits = use_database(query, (email,))
-    print(credits, email)
     query = f"UPDATE users SET credits = {int(credits[0]) + amount} WHERE email = %s"
     
     use_database(query, (email,))
@@ -203,7 +202,6 @@ def remove_credits(email: str, amount: float):
     
 
     credits = use_database(query, (email,))
-    print(credits, email)
     new_credits = float(credits[0]) - amount
     if new_credits <=0:
         return "SUSPEND"
