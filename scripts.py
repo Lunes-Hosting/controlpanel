@@ -336,14 +336,12 @@ def get_credits(email:str):
     return credits[0]
 
 def update_ip(email:str, ip:EnvironHeaders):
-    print(email, ip, "222")
     real_ip=ip.get('CF-Connecting-IP', "localhost")
     query = f"UPDATE users SET ip = '{real_ip}' where email = %s"
     
     use_database(query, (email,))
     
 def update_last_seen(email:str=None, everyone:bool=False):
-    print(email, 11111111111)
     if everyone is True:
         query = f"UPDATE users SET last_seen = '{datetime.datetime.now()}'"
         use_database(query)
@@ -367,15 +365,11 @@ def after_request(session, request: EnvironHeaders, require_login:bool=False):
             return redirect(url_for("user.login_user"))
         else:
             
-            t1 =threading.Thread(target=update_last_seen, args=(email,), daemon=True)
-            print(email, request, session['email'], 3331)
+            # t1 =threading.Thread(target=update_last_seen, args=(email,), daemon=True)
             t2 = threading.Thread(target=update_ip, args=(email, request), daemon=True)
-            print(email, request, session['email'], 3332)
             id = get_ptero_id(session['email'])
-            print(email, id, request, session['email'], 3333)
             session['pterodactyl_id'] = id
-            print(email, id, request, session['email'], 333)
-            t1.start()
+            # t1.start()
             t2.start()
             
 def use_database(query:str, values:tuple=None):
@@ -390,8 +384,6 @@ def use_database(query:str, values:tuple=None):
     cursor.execute(query, values)
     result = cursor.fetchone()
     if result is None:
-        print("ALERTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
-    print(result, query, values)
     cnx.commit()
     cursor.close()
     cnx.close()
