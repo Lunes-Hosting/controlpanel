@@ -151,7 +151,7 @@ def delete_server(server_id):
 
     cursor = cnx.cursor()
     query = f"SELECT pterodactyl_id FROM users where email = %s"
-    cursor.execute(query, session['email'])
+    cursor.execute(query, (session['email']))
     rows = cursor.fetchone()
     cursor.close()
     cnx.close()

@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 from flask import Flask
 from flask_session import Session
 from Routes.AuthenticationHandler import *
@@ -122,9 +120,9 @@ def reset_password_confirm(token):
                 password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
                 cursor = cnx.cursor()
             
-                query = f"UPDATE users SET password = %s WHERE email = '{email}'"
+                query = f"UPDATE users SET password = %s WHERE email = %s"
                 ptero_id = get_ptero_id(email)
-                values = (password_hash.decode(),)
+                values = (password_hash.decode(), email)
                 print(password_hash, email, type(email))
                 cursor.execute(query, values)
                 info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0][0]}", headers=HEADERS).json()['attributes']
@@ -226,8 +224,8 @@ def verify_email(token):
         )
         cursor = cnx.cursor(buffered=True)
             
-        query = f"UPDATE users SET email_verified_at = '{datetime.datetime.now()}' where email = '{email}'"
-        cursor.execute(query)
+        query = f"UPDATE users SET email_verified_at = '{datetime.datetime.now()}' where email = %s"
+        cursor.execute(query, (email))
         cnx.commit()
         
 
@@ -276,4 +274,3 @@ def index():
 
 # job1()
 app.run(debug=False, host="0.0.0.0", port=27112)
->>>>>>> parent of 8d6a6a2 (fixed sql injection)
