@@ -113,6 +113,8 @@ def get_server_information(server_id:int):
 def get_ptero_id(email:str):
     query = f"SELECT pterodactyl_id FROM users WHERE email = %s"
     res = use_database(query, (email,))
+    if res is None:
+        print(email, "does not have ptero id")
     return res
 
 def login(email: str, password: str):
