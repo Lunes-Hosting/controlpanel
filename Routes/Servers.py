@@ -8,17 +8,15 @@ servers = Blueprint('servers', __name__)
 
 @servers.route('/')
 def servers_index():
-    if not 'email' in session:
-        return redirect(url_for('user.login_user'))
-        
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    after_request(session=session, request=request.environ, require_login=True)
     if 'pterodactyl_id' in session:
         id = session['pterodactyl_id']
     else:
         id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = id
-        
-    update_last_seen(session['email'])
-    update_ip(session['email'], request.headers)
+
     cnx = mysql.connector.connect(
         host=HOST,
         user=USER,
@@ -26,23 +24,25 @@ def servers_index():
         database=DATABASE
         )
     cursor = cnx.cursor(buffered=True)
-        
+    
     query = f"Select email_verified_at FROM users where email = %s"
     cursor.execute(query, (session['email'],))
     results = cursor.fetchone()
-    print(results)
+    servers = []
     cnx.commit()
     if results[0] == None:
         verified=False
     else:
         verified=True
-    servers = list_servers(id[0][0])
+        servers = list_servers(id[0][0])
+    
     return render_template('servers.html', servers=servers, verified=verified)
 
 @servers.route('/<server_id>')
 def server(server_id):
-    if not 'email' in session:
-        return redirect(url_for('user.login_user'))
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    after_request(session=session, request=request.environ, require_login=True)
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     cnx = mysql.connector.connect(
     host=HOST,
@@ -57,43 +57,45 @@ def server(server_id):
     rows = cursor.fetchone()
     cursor.close()
     cnx.close()
-    print(rows[0])
     
-    
-    
-    
-    if 'pterodactyl_id' in session:
-        id = session['pterodactyl_id']
+
+    if resp['attributes']['user'] == rows[0]:
+
+        if 'pterodactyl_id' in session:
+            id = session['pterodactyl_id']
+        else:
+            id = get_ptero_id(session['email'])
+            session['pterodactyl_id'] = id
+
+        
+        servers = list_servers(id[0][0])
+
+        products_local = list(products)
+        for server in servers:
+            if server['attributes']['user'] == id[0][0]:
+
+                if server['attributes']['limits']['memory'] == 128:
+                    print("yes")
+                    
+                    products_local.remove(products[0])
+                    break
+        
+
+        info = get_server_information(server_id)
+        print(info)
+        update_last_seen(session['email'])
+        update_ip(session['email'], request.headers)
+        
+        return render_template('server.html', info=info, products=products_local)
     else:
-        id = get_ptero_id(session['email'])
-        session['pterodactyl_id'] = id
+        return "You cant view this server you dont own it!"
 
     
-    servers = list_servers(id[0][0])
-
-    products_local = list(products)
-    for server in servers:
-        if server['attributes']['user'] == id[0][0]:
-
-            if server['attributes']['limits']['memory'] == 128:
-                print("yes")
-                
-                products_local.remove(products[0])
-                break
-    
-
-    print(server_id)
-    info = get_server_information(server_id)
-    print(info)
-    update_last_seen(session['email'])
-    update_ip(session['email'], request.headers)
-    
-    return render_template('server.html', info=info, products=products_local)
-
 @servers.route("/create")
 def create_server():
-    if not 'email' in session:
-        return redirect(url_for('user.login_user'))
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    after_request(session=session, request=request.environ, require_login=True)
     
 
     if 'pterodactyl_id' in session:
@@ -102,8 +104,6 @@ def create_server():
         id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = id
     
-    update_last_seen(session['email'])
-    update_ip(session['email'], request.headers)
     cnx = mysql.connector.connect(
         host=HOST,
         user=USER,
@@ -136,10 +136,9 @@ def create_server():
 
 @servers.route("/delete/<server_id>")
 def delete_server(server_id):
-    if not 'email' in session:
-        return redirect(url_for('user.login_user'))
-    update_last_seen(session['email'])
-    update_ip(session['email'], request.headers)
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    after_request(session=session, request=request.environ, require_login=True)
     
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     cnx = mysql.connector.connect(
@@ -164,11 +163,9 @@ def delete_server(server_id):
 
 @servers.route('/create/submit', methods=['POST'])
 def create_server_submit():
-    if not 'email' in session:
-        return redirect(url_for('user.login_user'))
-    update_last_seen(session['email'])
-    update_ip(session['email'], request.headers)
-    
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    after_request(session=session, request=request.environ, require_login=True)
     node_id = request.form['node_id']
     egg_id = request.form['egg_id']
     eggs = get_eggs()
@@ -218,10 +215,9 @@ def create_server_submit():
 
 @servers.route('/update/<server_id>', methods=['POST'])
 def update_server_submit(server_id):
-    if not 'email' in session:
-        return redirect(url_for('user.login_user'))
-    update_last_seen(session['email'])
-    update_ip(session['email'], request.headers)
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    after_request(session=session, request=request.environ, require_login=True)
     
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     cnx = mysql.connector.connect(

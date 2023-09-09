@@ -12,6 +12,7 @@ from retrying import retry
 import requests
 from flask import request, session, url_for, redirect, abort
 from werkzeug.datastructures.headers import EnvironHeaders
+import threading
 
 # Define the retry decorator
 def retry_on_gateway_error():
@@ -547,4 +548,19 @@ def get_last_seen(email:str):
     cursor.close()
     cnx.close()
     return last_seen[0]
+
+def after_request(session, request: EnvironHeaders, require_login:bool=False):
+    """
+    This function is called after every request
+    """
+    if require_login is True:
+        email = session.get("email")
+        if email is None:
+            return redirect(url_for("user.login_user"))
+        else:
+            t1 =threading.Thread(target=update_last_seen, args=(email,), daemon=True)
+            t2 = threading.Thread(target=update_ip, args=(email, request), daemon=True)
+            t1.start()
+            t2.start()
+            
 

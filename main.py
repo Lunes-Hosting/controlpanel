@@ -191,8 +191,9 @@ def register_user():
 
 @app.route("/resend_confirmation_email")
 def resend_confirmation_email():
-    if not 'email' in session:
-        return redirect(url_for('user.login_user'))
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    after_request(session=session, request=request.environ, require_login=True)
     verification_token = generate_verification_token()
 
     # Store the verification token in the cache with the email as the key
@@ -207,8 +208,9 @@ def resend_confirmation_email():
 # Route to confirm the email using the token
 @app.route('/verify_email/<token>', methods=['GET'])
 def verify_email(token):
-    if not 'email' in session:
-        return redirect(url_for('user.login_user'))
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    after_request(session=session, request=request.environ, require_login=True)
     
     email = session['email']
 
@@ -263,14 +265,9 @@ def sync_users():
 
 @app.route('/')
 def index():
-        if 'email' in session:
-            update_last_seen(session['email'])
-            print(request.headers, "hmm")
-            print(request.environ, "hm2")
-            update_ip(session['email'], request.headers.get('Cf-Connecting-Ip'))
-            return render_template('index.html')
-        else:
-            return redirect(url_for('user.login_user'))
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    after_request(session=session, request=request.environ, require_login=True)
 
 # job1()
 app.run(debug=False, host="0.0.0.0", port=27112)
