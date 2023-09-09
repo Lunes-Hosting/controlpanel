@@ -169,7 +169,7 @@ def create_server_submit():
             alloac_id = allocation['attributes']['id']
         products_local = list(products)
         
-        servers = list_servers(id[0])
+        servers = list_servers(get_ptero_id(session['email'])[0])
         products_local = list(products)
         for server in servers:
             if server['attributes']['user'] == id[0]:
