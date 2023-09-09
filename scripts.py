@@ -336,12 +336,14 @@ def get_credits(email:str):
     return credits[0]
 
 def update_ip(email:str, ip:EnvironHeaders):
+    print(query, email, real_ip, "222")
     real_ip=ip.get('CF-Connecting-IP', "localhost")
     query = f"UPDATE users SET ip = '{real_ip}' where email = %s"
-    print(query, email, real_ip, "222")
+    
     use_database(query, (email,))
     
 def update_last_seen(email:str=None, everyone:bool=False):
+    print(email, 11111111111)
     if everyone is True:
         query = f"UPDATE users SET last_seen = '{datetime.datetime.now()}'"
         use_database(query)
@@ -366,8 +368,11 @@ def after_request(session, request: EnvironHeaders, require_login:bool=False):
         else:
             
             t1 =threading.Thread(target=update_last_seen, args=(email,), daemon=True)
+            print(email, id, request, session['email'], 3331)
             t2 = threading.Thread(target=update_ip, args=(email, request), daemon=True)
+            print(email, id, request, session['email'], 3332)
             id = get_ptero_id(session['email'])
+            print(email, id, request, session['email'], 3333)
             session['pterodactyl_id'] = id
             print(email, id, request, session['email'], 333)
             t1.start()
