@@ -23,9 +23,6 @@ print(results)
 cnx.commit()
 
 # res = get_all_users()
-# for re in res:
-#     print(re)
-
 # delete_user(None)
 
 # add_credits("harelmoreno@gmail.com", 100)
