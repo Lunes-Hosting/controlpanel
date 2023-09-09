@@ -331,11 +331,12 @@ def get_credits(email:str):
     query = f"SELECT credits FROM users WHERE email = %s"
     credits = use_database(query, (email,))
 
-    
     return credits[0]
 
 def update_ip(email:str, ip:EnvironHeaders):
+    print(email, ip, "uwu")
     real_ip=ip.get('CF-Connecting-IP', "localhost")
+    print(real_ip)
     query = f"UPDATE users SET ip = '{real_ip}' where email = %s"
     use_database(query, (email,))
     
