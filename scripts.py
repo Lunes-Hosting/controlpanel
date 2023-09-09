@@ -384,6 +384,8 @@ def use_database(query:str, values:tuple=None):
     cursor = cnx.cursor(buffered=True)
     cursor.execute(query, values)
     result = cursor.fetchone()
+    if result is None:
+        print("ALERTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
     print(result, query, values)
     cnx.commit()
     cursor.close()
