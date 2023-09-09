@@ -190,7 +190,7 @@ def create_server_submit():
                 return redirect(url_for('servers.servers_index'))
     body = {
     "name": request.form['name'],
-    "user": session['pterodactyl_id'][0][0],
+    "user": session['pterodactyl_id'][0],
     "egg": egg_id,
     "docker_image": docker_image,
     "startup": startup,

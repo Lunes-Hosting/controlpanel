@@ -33,56 +33,6 @@ CLIENT_HEADERS =  {"Authorization": f"Bearer {PTERODACTYL_ADMIN_USER_KEY}",
 
 
 
-# def login_check(
-#         session_key: str='email',
-#         fail_endpoint: t.Optional[str] = None,
-
-# ):
-
-#     def login_check_wrapper(func):
-#         @wraps(func)
-#         def inner(*args, **kwargs):
-#             skey = session.get(session_key)
-
-#             if skey is None:
-#                 if fail_endpoint:
-#                     if endpoint_kwargs:
-#                         return redirect(url_for(fail_endpoint, **endpoint_kwargs))
-
-#                     return redirect(url_for(fail_endpoint))
-
-#                 return func(*args, **kwargs)
-
-#             if skey is not None:
-#                 if _check_against_values_allowed(skey, values_allowed):
-#                     if pass_endpoint:
-#                         if message:
-#                             flash(message, message_category)
-
-#                         if endpoint_kwargs:
-#                             return redirect(url_for(pass_endpoint, **endpoint_kwargs))
-
-#                         return redirect(url_for(pass_endpoint))
-
-#                     return func(*args, **kwargs)
-
-#                 if fail_endpoint:
-#                     if endpoint_kwargs:
-#                         return redirect(url_for(fail_endpoint, **endpoint_kwargs))
-
-#                     return redirect(url_for(fail_endpoint))
-
-#                 return func(*args, **kwargs)
-
-#             return abort(403)
-
-#         return inner
-
-#     return login_check_wrapper
-
-
-
-
 def sync_users_script():
     cnxpanel = mysql.connector.connect(
             host=HOST,
@@ -159,40 +109,16 @@ def list_servers(pterodactyl_id:int):
 def get_server_information(server_id:int):
     response = requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS)
     return response.json()
-def get_ptero_id(email:str):
-    
-    cnx = mysql.connector.connect(
-    host=HOST,
-    user=USER,
-    password=PASSWORD,
-    database=DATABASE
-    )
 
-    cursor = cnx.cursor()
+def get_ptero_id(email:str):
     query = f"SELECT pterodactyl_id FROM users WHERE email = %s"
-    cursor.execute(query, (email,))
-    res = cursor.fetchall()
-    cursor.close()
-    cnx.close()
+    res = use_database(query, (email,))
     return res
 
 def login(email: str, password: str):
     try:
-        # Establish a connection to the MySQL server
-        cnx = mysql.connector.connect(
-            host=HOST,
-            user=USER,
-            password=PASSWORD,
-            database=DATABASE
-        )
-
-        # Create a cursor object to execute SQL queries
-        cursor = cnx.cursor(buffered=True)
-
-        # Retrieve the hashed password from the database
         query = f"SELECT password FROM users WHERE email = %s"
-        cursor.execute(query, (email,))
-        hashed_password = cursor.fetchone()
+        hashed_password = use_database(query, (email,))
 
         if hashed_password is not None:
             # Verify the password
@@ -201,8 +127,8 @@ def login(email: str, password: str):
             if is_matched:
                 # Retrieve all information of the user
                 all_info = f"SELECT * FROM users WHERE email = %s"
-                cursor.execute(all_info, (email,))
-                info = cursor.fetchone()
+                info = use_database(all_info, (email,))
+
                 return info
 
         return None
@@ -220,24 +146,14 @@ def login(email: str, password: str):
 @retry_on_gateway_error()          
 def register(email: str, password: str, name: str, ip: str):
     salt = bcrypt.gensalt(rounds=10)
-    cnx = mysql.connector.connect(
-        host=HOST,
-        user=USER,
-        password=PASSWORD,
-        database=DATABASE
-    )
     password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
-    cursor = cnx.cursor(buffered=True)
-        
+
     query = f"SELECT * FROM users WHERE ip = %s"
-    cursor.execute(query, (ip,))
-    results = cursor.fetchone()
-    cnx.commit()
+    results = use_database(query, (ip,))
+
     if results is not None:
         return "Ip is already registered"
 
-
-    
     body = {
         "email": email,
         "username": name,
@@ -253,91 +169,47 @@ def register(email: str, password: str, name: str, ip: str):
         error = data['errors'][0]['detail']
         return error
     except KeyError:
-        cursor = cnx.cursor()
         
         query = "INSERT INTO users (name, email, password, id, pterodactyl_id, ip, credits) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
         values = (name, email, password_hash, data['attributes']['id'] + 500, data['attributes']['id'], ip, 25)
-        cursor.execute(query, values)
-        cnx.commit()
-        cursor.close()
-        cnx.close()
+        use_database(query, values)
 
         return response.json()
 
 @retry_on_gateway_error()
 def delete_user(user_id: int):
-    cnx = mysql.connector.connect(
-        host=HOST,
-        user=USER,
-        password=PASSWORD,
-        database=DATABASE
-    )
-
-    cursor = cnx.cursor()
-    
     # Delete the user from the database
     query = "DELETE FROM users WHERE id = %s"
     values = (user_id,)
 
-    cursor.execute(query, values)
-    cnx.commit()
-
+    use_database(query, values)
 
     response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS)
     response.raise_for_status()
 
-    cursor.close()
-    cnx.close()
-
     return response.status_code()
 
 def add_credits(email: str, amount: int, set_client:bool=True):
-    cnx = mysql.connector.connect(
-    host=HOST,
-    user=USER,
-    password=PASSWORD,
-    database=DATABASE
-    )
-
-    cursor = cnx.cursor()
-    
     # Delete the user from the database
     query = f"SELECT credits FROM users WHERE email = %s"
     
-
-    cursor.execute(query, (email,))
-    credits = cursor.fetchone()
+    credits = use_database(query, (email,))
     print(credits, email)
     query = f"UPDATE users SET credits = {int(credits[0]) + amount} WHERE email = %s"
     
-
-    cursor.execute(query, (email,))
-    cnx.commit()
+    use_database(query, (email,))
     if set_client:
         query = f"UPDATE users SET role = 'client' WHERE email = %s"
-        cursor.execute(query, (email,))
-        cnx.commit()
-    cursor.close()
-    cnx.close()
+        use_database(query, (email,))
+
 
 
 def remove_credits(email: str, amount: float):
-    cnx = mysql.connector.connect(
-    host=HOST,
-    user=USER,
-    password=PASSWORD,
-    database=DATABASE
-    )
-
-    cursor = cnx.cursor()
-    print(email)
-    # Delete the user from the database
     query = f"SELECT credits FROM users WHERE email = %s"
     
 
-    cursor.execute(query, (email,))
-    credits = cursor.fetchone()
+    credits = use_database(query, (email,))
     print(credits, email)
     new_credits = float(credits[0]) - amount
     if new_credits <=0:
@@ -345,10 +217,7 @@ def remove_credits(email: str, amount: float):
     query = f"UPDATE users SET credits = {new_credits} WHERE email = %s"
     
 
-    cursor.execute(query, (email,))
-    cnx.commit()
-    cursor.close()
-    cnx.close()
+    use_database(query, (email,))
     return None
     
 def convert_to_product(data):
@@ -368,14 +237,8 @@ def suspend_server(id:int):
     
 def use_credits():
     response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS).json()
-    cnx = mysql.connector.connect(
-            host=HOST,
-            user=USER,
-            password=PASSWORD,
-            database=DATABASE
-            )
 
-    cursor = cnx.cursor()
+
     for server in response['data']:
 
         product = convert_to_product(server)
@@ -384,9 +247,8 @@ def use_credits():
             query = f"SELECT email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
             
 
-            cursor.execute(query)
-            email = cursor.fetchone()
-            cnx.commit()
+            email = use_database(query)
+            
             if email is not None:
                 if server['attributes']['suspended'] == False:
                     result = remove_credits(email[0], product['price'] / 30 /24)
@@ -397,8 +259,6 @@ def use_credits():
                 print(email, product['price'])
         else:
             print(server['attributes']['name'])
-    cursor.close()
-    cnx.close()
 
 def delete_server(server_id):
     response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS)
@@ -477,76 +337,29 @@ def check_to_unsuspend():
     cnx.close()
     
 def get_credits(email:str):
-    cnx = mysql.connector.connect(
-            host=HOST,
-            user=USER,
-            password=PASSWORD,
-            database=DATABASE
-            )
-
-    cursor = cnx.cursor()
     query = f"SELECT credits FROM users WHERE email = %s"
-    cursor.execute(query, (email,))
+    use_database(query, (email,))
     credits = cursor.fetchone()
-    cnx.commit()
-    cursor.close()
-    cnx.close()
+    
     return credits[0]
 
 def update_ip(email:str, ip:EnvironHeaders):
-    cnx = mysql.connector.connect(
-            host=HOST,
-            user=USER,
-            password=PASSWORD,
-            database=DATABASE
-            )
     real_ip=ip.get('CF-Connecting-IP', "localhost")
-    cursor = cnx.cursor()
     query = f"UPDATE users SET ip = '{real_ip}' where email = %s"
-    cursor.execute(query, (email,))
-    cnx.commit()
-    cursor.close()
-    cnx.close()
-
+    use_database(query, (email,))
+    
 def update_last_seen(email:str=None, everyone:bool=False):
-    print(1, email)
-    cnx = mysql.connector.connect(
-            host=HOST,
-            user=USER,
-            password=PASSWORD,
-            database=DATABASE
-            )
     if everyone is True:
-        cursor = cnx.cursor()
         query = f"UPDATE users SET last_seen = '{datetime.datetime.now()}'"
-        cursor.execute(query)
-        cnx.commit()
-        cursor.close()
-        cnx.close()
+        use_database(query)
     else:
-        cursor = cnx.cursor()
         query = f"UPDATE users SET last_seen = '{datetime.datetime.now()}' WHERE email = %s"
-        cursor.execute(query, (email,))
-        cnx.commit()
-        cursor.close()
-        cnx.close()
-
+        use_database(query, (email,))
+        
 
 def get_last_seen(email:str):
-    cnx = mysql.connector.connect(
-            host=HOST,
-            user=USER,
-            password=PASSWORD,
-            database=DATABASE
-            )
-
-    cursor = cnx.cursor()
     query = f"SELECT last_seen FROM users WHERE email = %s"
-    cursor.execute(query, (email,))
-    last_seen = cursor.fetchone()
-    cnx.commit()
-    cursor.close()
-    cnx.close()
+    last_seen = use_database(query, (email,))
     return last_seen[0]
 
 def after_request(session, request: EnvironHeaders, require_login:bool=False):
@@ -560,7 +373,23 @@ def after_request(session, request: EnvironHeaders, require_login:bool=False):
         else:
             t1 =threading.Thread(target=update_last_seen, args=(email,), daemon=True)
             t2 = threading.Thread(target=update_ip, args=(email, request), daemon=True)
+            id = get_ptero_id(session['email'])
+            session['pterodactyl_id'] = id
             t1.start()
             t2.start()
             
+def use_database(query:str, values:tuple=None):
+    cnx = mysql.connector.connect(
+            host=HOST,
+            user=USER,
+            password=PASSWORD,
+            database=DATABASE
+            )
 
+    cursor = cnx.cursor(buffered=True)
+    cursor.execute(query, values)
+    result = cursor.fetchone()
+    cnx.commit()
+    cursor.close()
+    cnx.close()
+    return result
