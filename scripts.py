@@ -116,33 +116,24 @@ def get_ptero_id(email:str):
     return res
 
 def login(email: str, password: str):
-    try:
-        query = f"SELECT password FROM users WHERE email = %s"
-        hashed_password = use_database(query, (email,))
 
-        if hashed_password is not None:
-            # Verify the password
-            is_matched = bcrypt.checkpw(password.encode('utf-8'), hashed_password[0].encode('utf-8'))
+    query = f"SELECT password FROM users WHERE email = %s"
+    hashed_password = use_database(query, (email,))
 
-            if is_matched:
-                # Retrieve all information of the user
-                all_info = f"SELECT * FROM users WHERE email = %s"
-                info = use_database(all_info, (email,))
+    if hashed_password is not None:
+        # Verify the password
+        is_matched = bcrypt.checkpw(password.encode('utf-8'), hashed_password[0].encode('utf-8'))
 
-                return info
+        if is_matched:
+            # Retrieve all information of the user
+            all_info = f"SELECT * FROM users WHERE email = %s"
+            info = use_database(all_info, (email,))
 
-        return None
+            return info
 
-    except mysql.connector.Error as err:
-        print(f"Error: {err}")
-        return None
+    return None
 
-    finally:
-        # Close the cursor and the connection
-        if cursor:
-            cursor.close()
-        if cnx:
-            cnx.close()
+    
 @retry_on_gateway_error()          
 def register(email: str, password: str, name: str, ip: str):
     salt = bcrypt.gensalt(rounds=10)
@@ -338,8 +329,8 @@ def check_to_unsuspend():
     
 def get_credits(email:str):
     query = f"SELECT credits FROM users WHERE email = %s"
-    use_database(query, (email,))
-    credits = cursor.fetchone()
+    credits = use_database(query, (email,))
+
     
     return credits[0]
 
