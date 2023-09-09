@@ -368,9 +368,9 @@ def after_request(session, request: EnvironHeaders, require_login:bool=False):
         else:
             
             t1 =threading.Thread(target=update_last_seen, args=(email,), daemon=True)
-            print(email, id, request, session['email'], 3331)
+            print(email, request, session['email'], 3331)
             t2 = threading.Thread(target=update_ip, args=(email, request), daemon=True)
-            print(email, id, request, session['email'], 3332)
+            print(email, request, session['email'], 3332)
             id = get_ptero_id(session['email'])
             print(email, id, request, session['email'], 3333)
             session['pterodactyl_id'] = id
