@@ -341,7 +341,7 @@ def update_ip(email:str, ip:EnvironHeaders):
     
     use_database(query, (email,))
     
-def update_last_seen(email:str=None, everyone:bool=False):
+def update_last_seen(email:str, everyone:bool=False):
     if everyone is True:
         query = f"UPDATE users SET last_seen = '{datetime.datetime.now()}'"
         use_database(query)
@@ -364,13 +364,13 @@ def after_request(session, request: EnvironHeaders, require_login:bool=False):
         if email is None:
             return redirect(url_for("user.login_user"))
         else:
-            
+            print(email)
             t1 =threading.Thread(target=update_last_seen, args=(email,), daemon=True)
-            # t2 = threading.Thread(target=update_ip, args=(email, request), daemon=True)
+            t2 = threading.Thread(target=update_ip, args=(email, request), daemon=True)
             id = get_ptero_id(session['email'])
             session['pterodactyl_id'] = id
             t1.start()
-            # t2.start()
+            t2.start()
             
 def use_database(query:str, values:tuple=None):
     cnx = mysql.connector.connect(
