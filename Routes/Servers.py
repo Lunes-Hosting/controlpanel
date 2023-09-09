@@ -167,14 +167,31 @@ def create_server_submit():
     for allocation in resp['data']:
         if allocation['attributes']['assigned'] == False:
             alloac_id = allocation['attributes']['id']
-    for product in products:
+        products_local = list(products)
+        
+        servers = list_servers(id[0])
+        products_local = list(products)
+        for server in servers:
+            if server['attributes']['user'] == id[0]:
+
+                if server['attributes']['limits']['memory'] == 128:
+                    print("yes")
+                    
+                    products_local.remove(products[0])
+                    break
+    found_product = False
+    for product in products_local:
         if product['id'] == int(request.form.get('plan')):
+            found_product = True
             main_product = product
             credits_used = main_product['price'] / 30 / 24
             res = remove_credits(session['email'], credits_used)
             if res == "SUSPEND":
                 flash("You are out of credits")
                 return redirect(url_for('servers.servers_index'))
+    
+    if found_product == False:
+        return "You already have free server"
     body = {
     "name": request.form['name'],
     "user": session['pterodactyl_id'][0],
