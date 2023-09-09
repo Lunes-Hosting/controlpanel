@@ -11,8 +11,9 @@ active_payments = []
 
 @store.route("/")
 def storepage():
-    if not 'email' in session:
-        return redirect(url_for('user.login_user'))
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    after_request(session=session, request=request.environ, require_login=True)
         
     if 'pterodactyl_id' in session:
         id = session['pterodactyl_id']
@@ -20,8 +21,6 @@ def storepage():
         id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = id
         
-    update_last_seen(session['email'])
-    update_ip(session['email'], request.headers)
     
     products_local = list(products)
     for product in products_local:
@@ -32,8 +31,9 @@ def storepage():
 
 @store.route('/checkout/<price_link>', methods=['POST', 'GET'])
 def create_checkout_session(price_link: str):
-    if not 'email' in session:
-        return redirect(url_for('user.login_user'))
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    after_request(session=session, request=request.environ, require_login=True)
         
     if 'pterodactyl_id' in session:
         id = session['pterodactyl_id']
@@ -41,9 +41,7 @@ def create_checkout_session(price_link: str):
         id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = id
         
-    update_last_seen(session['email'])
-    update_ip(session['email'], request.headers)
-    
+
     check_session = stripe.checkout.Session.create(
     payment_method_types=['card', 'cashapp'],
     allow_promotion_codes=True,

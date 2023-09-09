@@ -38,10 +38,9 @@ def login_user():
     
 @user.route('/')
 def index():
-    if not 'email' in session:
-        return redirect(url_for('user.login_user'))
-    update_ip(session['email'], request.headers)
-    update_last_seen(session['email'])
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    after_request(session=session, request=request.environ, require_login=True)
     credits = get_credits(session['email'])
     return render_template("account.html", credits=int(credits))
 
