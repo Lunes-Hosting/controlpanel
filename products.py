@@ -145,7 +145,7 @@ products = [
     },
     {
         "price_link": "price_1NnkF6Gc0pLG1vqRSj3llmXi",
-        "id": 7,
+        "id": 8,
         "name": "Ls 10",
         "price": 1000,
         "limits": {
