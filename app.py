@@ -9,7 +9,14 @@ from flask_mail import Mail, Message
 from flask_caching import Cache
 import random, string
 import threading
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+
+
 app = Flask(__name__, "/static")
+limiter = Limiter(get_remote_address, app=app, default_limits=["200 per day", "50 per hour"])
+limiter.limit("20/hour")(user)
 
 app.register_blueprint(user)
 app.register_blueprint(servers, url_prefix="/servers")
@@ -17,12 +24,9 @@ app.register_blueprint(store, url_prefix="/store")
 class Config:
     SCHEDULER_API_ENABLED = True
 
-
 app.config["SESSION_PERMANENT"] = True
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SECRET_KEY"] = SECRET_KEY
-# app.config['SERVER_NAME'] = 'node2.lunes.host:27112'
-
 # Initialize the session
 Session(app)
 
@@ -65,7 +69,9 @@ def send_email(email: str, reset_token: str, app):
 
 
 # Route to request a password reset (via email)
+
 @app.route('/reset_password', methods=['GET', 'POST'])
+@limiter.limit("20/day")
 def reset_password():
     if request.method == 'POST':
         email = request.form.get('email')
@@ -270,4 +276,5 @@ def index():
     after_request(session=session, request=request.environ, require_login=True)
 
 # job1()
-app.run(debug=False, host="0.0.0.0", port=27112)
+if __name__ == "__main__":
+    app.run(debug=False, host="0.0.0.0", port=27112)
