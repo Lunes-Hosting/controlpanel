@@ -15,8 +15,18 @@ from flask_limiter.util import get_remote_address
 
 
 app = Flask(__name__, "/static")
-limiter = Limiter(get_remote_address, app=app, default_limits=["200 per day", "50 per hour"])
-limiter.limit("20/hour")(user)
+
+
+
+def rate_limit_key():
+    # Replace 'user_id' with the actual key used to store the user identifier in the session
+    user_identifier = session.get('random_id', None)
+    print(user_identifier, 1)
+    return user_identifier
+limiter = Limiter(rate_limit_key, app=app, default_limits=["200 per day", "50 per hour"])
+
+limiter.limit("20/hour", key_func=rate_limit_key)(user)
+limiter.limit("8/hour", key_func=rate_limit_key)(servers)
 
 app.register_blueprint(user)
 app.register_blueprint(servers, url_prefix="/servers")
@@ -69,9 +79,7 @@ def send_email(email: str, reset_token: str, app):
 
 
 # Route to request a password reset (via email)
-
 @app.route('/reset_password', methods=['GET', 'POST'])
-@limiter.limit("20/day")
 def reset_password():
     if request.method == 'POST':
         email = request.form.get('email')
