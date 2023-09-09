@@ -167,18 +167,18 @@ def create_server_submit():
     for allocation in resp['data']:
         if allocation['attributes']['assigned'] == False:
             alloac_id = allocation['attributes']['id']
-        products_local = list(products)
-        
-        servers = list_servers(get_ptero_id(session['email'])[0])
-        products_local = list(products)
-        for server in servers:
-            if server['attributes']['user'] == id[0]:
+    products_local = list(products)
+    ptero_id = get_ptero_id(session['email'])[0]
+    servers = list_servers(ptero_id)
+    products_local = list(products)
+    for server in servers:
+        if server['attributes']['user'] == ptero_id:
 
-                if server['attributes']['limits']['memory'] == 128:
-                    print("yes")
+            if server['attributes']['limits']['memory'] == 128:
+                print("yes")
                     
-                    products_local.remove(products[0])
-                    break
+                products_local.remove(products[0])
+                break
     found_product = False
     for product in products_local:
         if product['id'] == int(request.form.get('plan')):
