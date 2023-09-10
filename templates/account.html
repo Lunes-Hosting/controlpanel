@@ -1,13 +1,75 @@
 {% include 'taskbar.html' %}
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/index.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            margin-top: 50px;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            font-size: 28px;
+            color: #333;
+            text-align: center;
+        }
+        .user-info {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .user-info p {
+            font-size: 18px;
+            margin: 10px 0;
+            color: #555;
+        }
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .account-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+        .account-button:hover {
+            background-color: #2980b9;
+        }
+    </style>
 </head>
 <body>
-    <div class="centered-content">
-        <!-- Add your desired text here -->
-        <p>This dashboard is in early beta if you find any issues with it join the <a href='https://discord.gg/MHEAwNjKb2'>discord</a> or email owner@lunes.host.</p>
-        <p>Credits: {{credits}}</p>
+    <div class="container">
+        <h1>Welcome to Your Account</h1>
+        <div class="user-info">
+            <p><strong>Username:</strong> {{username}}</p>
+            <p><strong>Email:</strong> {{email}}</p>
+            <p><strong>Credits:</strong> {{credits}}</p>
+            <p><strong>Server Count:</strong> {{server_count}}</p>
+            <p><strong>Current monthly credit usage:</strong>{{monthly_usage}}</p>
+        </div>
+        <div class="button-container">
+            <a href="{{url_for('user.logout')}}" class="account-button">Log out</a>
+        </div>
     </div>
+
 {% with messages = get_flashed_messages() %}
 {% if messages %}
 {% for message in messages %}
@@ -16,3 +78,4 @@
 {% endif %}
 {% endwith %}
 </body>
+</html>

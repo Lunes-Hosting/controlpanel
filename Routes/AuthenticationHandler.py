@@ -42,7 +42,24 @@ def index():
         return redirect(url_for("user.login_user"))
     after_request(session=session, request=request.environ, require_login=True)
     credits = get_credits(session['email'])
-    return render_template("account.html", credits=int(credits))
+    servers = list_servers(get_ptero_id(session['email'])[0])
+    server_count = len(servers)
+    monthly_usage=0
+    for server in servers:
+        product = convert_to_product(server)
+        monthly_usage += product['price']
+    
+    cnx = mysql.connector.connect(
+            host=HOST,
+            user=USER,
+            password=PASSWORD,
+            database=DATABASE
+            )
+
+    cursor = cnx.cursor(buffered=True)
+    cursor.execute("SELECT name from users where email = %s", (session['email'],))
+    username = cursor.fetchone()
+    return render_template("account.html", credits=int(credits), server_count=server_count, username=username[0], email=session['email'], monthly_usage=monthly_usage)
 
 @user.route('/logout', methods=['GET'])
 def logout():
