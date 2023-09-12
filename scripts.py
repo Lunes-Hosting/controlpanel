@@ -350,6 +350,8 @@ def get_credits(email:str):
 def check_if_user_suspended(pterodactyl_id: str):
     suspended = use_database(f"SELECT suspended FROM users WHERE pterodactyl_id = %s", (pterodactyl_id,))
     to_bool = {0: False, 1: True}
+    if suspended is None:
+        return True
     
     return to_bool[suspended[0]]
     
