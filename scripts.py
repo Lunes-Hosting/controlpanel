@@ -288,6 +288,7 @@ def check_to_unsuspend():
             query = f"SELECT credits FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
             cursor.execute(query)
             credits = cursor.fetchone()
+            
             cnx.commit()
             if email is None or credits is None:
                 pass
@@ -295,7 +296,8 @@ def check_to_unsuspend():
                 if server['attributes']['suspended'] == True:
                     # print(server['attributes']['user'], "is suspeded", credits[0], product['price'] / 30/ 24)
                     if credits[0] >= product['price'] / 30 /24:
-                        unsuspend_server(server['attributes']['id'])
+                        if check_if_user_suspended(server['attributes']['user']) == False:
+                            unsuspend_server(server['attributes']['id'])
                     else:
                         if server['attributes']['suspended']:
                         
@@ -322,7 +324,8 @@ def check_to_unsuspend():
                         print(f"Deleting server {server['attributes']['name']} due to inactivity for more than 30 days.")
                         delete_server(server['attributes']['id'])
                     else:
-                        unsuspend_server(server['attributes']['id'])
+                        if check_if_user_suspended(server['attributes']['user']) == False:
+                            unsuspend_server(server['attributes']['id'])
                 cnx.commit()
                 
     cursor.close()
@@ -334,6 +337,12 @@ def get_credits(email:str):
 
     return credits[0]
 
+def check_if_user_suspended(pterodactyl_id: str):
+    suspended = use_database(f"SELECT suspended FROM users WHERE pterodactyl_id = %s", (pterodactyl_id,))
+    to_bool = {0: False, 1: True}
+    
+    return to_bool[suspended[0]]
+    
 def update_ip(email:str, ip:EnvironHeaders):
     real_ip=ip.get('CF-Connecting-IP', "localhost")
     query = f"UPDATE users SET ip = '{real_ip}' where email = %s"
@@ -379,7 +388,7 @@ def after_request(session, request: EnvironHeaders, require_login:bool=False):
         random_string = ''.join(random.choice(characters) for _ in range(50))
 
         session['random_id'] = random_string
-     
+
 def use_database(query:str, values:tuple=None):
     result = None
     cnx = mysql.connector.connect(

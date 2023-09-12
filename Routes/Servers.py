@@ -192,6 +192,8 @@ def create_server_submit():
     
     if found_product == False:
         return "You already have free server"
+    if check_if_user_suspended(get_ptero_id(session['email'])) == True:
+        return "Your Account has been suspended for breaking our TOS, if you believe this is a mistake you can submit apeal at owner@lunes.host"
     body = {
     "name": request.form['name'],
     "user": session['pterodactyl_id'][0],
@@ -230,6 +232,8 @@ def update_server_submit(server_id):
     password=PASSWORD,
     database=DATABASE
     )
+    if check_if_user_suspended(get_ptero_id(session['email'])) == True:
+        return "Your Account has been suspended for breaking our TOS, if you believe this is a mistake you can submit apeal at owner@lunes.host"
 
     cursor = cnx.cursor()
     query = f"SELECT pterodactyl_id FROM users where email = %s"
