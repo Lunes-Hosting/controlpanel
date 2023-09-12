@@ -119,7 +119,7 @@ def create_server():
                 
                 products_local.remove(products[0])
                 break
-    return render_template('create_server.html', eggs=eggs, nodes=nodes, products=products_local)
+    return render_template('create_server.html', eggs=eggs, nodes=nodes, products=products_local, RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
 @servers.route("/delete/<server_id>")
 def delete_server(server_id):
@@ -152,6 +152,17 @@ def delete_server(server_id):
 def create_server_submit():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
+    recaptcha_response = request.form.get('g-recaptcha-response')
+    data = {
+        'secret': RECAPTCHA_SECRET_KEY,
+        'response': recaptcha_response
+    }
+
+    response = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data)
+    result = response.json()
+    if not result['success']:
+        flash("Failed captcha please try again")
+        return redirect(url_for("servers.create_server"))
     after_request(session=session, request=request.environ, require_login=True)
     node_id = request.form['node_id']
     egg_id = request.form['egg_id']

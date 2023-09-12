@@ -4,6 +4,7 @@
     <title>Register Page</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/register.css') }}">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
     {% with messages = get_flashed_messages() %}
@@ -32,6 +33,7 @@
                 <input type="password" id="confirm_password" name="confirm_password" required>
                 <label>Confirm Password</label>
             </div>
+            <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
             <button class="submit-button" type="submit">
                 Register
                 <span class="tooltip">Create an account</span>

@@ -54,6 +54,8 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = MAIL_USERNAME
 app.config['MAIL_PASSWORD'] = MAIL_PASSWORD
 app.config['MAIL_DEFAULT_SENDER'] = MAIL_DEFAULT_SENDER
+app.config['RECAPTCHA_PUBLIC_KEY']= RECAPTCHA_SITE_KEY
+app.config['RECAPTCHA_PRIVATE_KEY']= RECAPTCHA_SECRET_KEY
 
 mail = Mail(app)
 
@@ -179,6 +181,17 @@ def send_verification_email(email: str, verification_token: str, app):
 @app.route('/register', methods=['POST', 'GET'])
 def register_user():
     if request.method == "POST":
+        recaptcha_response = request.form.get('g-recaptcha-response')
+        data = {
+            'secret': RECAPTCHA_SECRET_KEY,
+            'response': recaptcha_response
+        }
+
+        response = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data)
+        result = response.json()
+        if not result['success']:
+            flash("Failed captcha please try again")
+            return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
         data = request.form
         email = data.get('email')
         password = data.get('password')
@@ -187,7 +200,7 @@ def register_user():
         res = register(email, password, name, ip)
         if type(res) == str:
             flash(res + " If this in error please contact support at owner@lunes.host")
-            return render_template('register.html')
+            return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
         # Generate a verification token
         verification_token = generate_verification_token()
 
@@ -201,7 +214,7 @@ def register_user():
         flash('A verification email has been sent to your email address. Please check your inbox and spam to verify your email.')
         return redirect(url_for('index'))
     else:
-        return render_template("register.html")
+        return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
 @app.route("/resend_confirmation_email")
 def resend_confirmation_email():

@@ -11,6 +11,17 @@ user = Blueprint('user', __name__)
 def login_user():
     after_request(session=session, request=request.environ)
     if request.method == "POST":
+        recaptcha_response = request.form.get('g-recaptcha-response')
+        data = {
+            'secret': RECAPTCHA_SECRET_KEY,
+            'response': recaptcha_response
+        }
+
+        response = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data)
+        result = response.json()
+        if not result['success']:
+            flash("Failed captcha please try again")
+            return render_template("login.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
         
         print(1)
         data = request.form
@@ -34,7 +45,7 @@ def login_user():
             pass
     else:
         print(2)
-        return render_template("login.html")
+        return render_template("login.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
     
 @user.route('/')
 def index():
