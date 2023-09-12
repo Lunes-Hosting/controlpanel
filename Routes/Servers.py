@@ -203,7 +203,7 @@ def create_server_submit():
     
     if found_product == False:
         return "You already have free server"
-    if check_if_user_suspended(get_ptero_id(session['email'])) == True:
+    if check_if_user_suspended(get_ptero_id(session['email'])[0]) == True:
         return "Your Account has been suspended for breaking our TOS, if you believe this is a mistake you can submit apeal at owner@lunes.host"
     body = {
     "name": request.form['name'],
