@@ -161,3 +161,4 @@ cython_debug/
 flask_session/
 .vscode/launch.json
 config.py
+.vscode/settings.json
