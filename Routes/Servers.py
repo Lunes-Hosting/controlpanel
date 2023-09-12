@@ -252,16 +252,36 @@ def update_server_submit(server_id):
     rows = cursor.fetchone()
     cursor.close()
     cnx.close()
-    print(rows[0])
-    if resp['attributes']['user'] == rows[0]:
-        for product in products:
-            if product['id'] == int(request.form.get('plan')):
-                main_product = dict(product)
-                credits_used = main_product['price'] / 30 / 24
-                res = remove_credits(session['email'], credits_used)
-                if res == "SUSPEND":
-                    flash("You are out of credits")
-                    return redirect(url_for('servers.servers_index'))
+    
+    
+    products_local = list(products)
+    ptero_id = get_ptero_id(session['email'])[0]
+    servers = list_servers(ptero_id)
+    products_local = list(products)
+    for server in servers:
+        if server['attributes']['user'] == ptero_id:
+
+            if server['attributes']['limits']['memory'] == 128:
+                print("yes")
+                    
+                products_local.remove(products[0])
+                break
+    found_product = False
+    for product in products_local:
+        if product['id'] == int(request.form.get('plan')):
+            found_product = True
+            main_product = product
+            credits_used = main_product['price'] / 30 / 24
+            res = remove_credits(session['email'], credits_used)
+            if res == "SUSPEND":
+                flash("You are out of credits")
+                return redirect(url_for('servers.servers_index'))
+    
+        if found_product == False:
+            return "You already have free server"
+    
+
+        
         body=main_product['limits']
         body["feature_limits"] = main_product['product_limits']
         body['allocation'] = resp['attributes']['allocation']
