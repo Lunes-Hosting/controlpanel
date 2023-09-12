@@ -273,7 +273,19 @@ def check_to_unsuspend():
 
     cursor = cnx.cursor()
     for server in response['data']:
+        user_suspended =  check_if_user_suspended(int(server['attributes']['user']))
+        if user_suspended == True:
+            if server['attributes']['suspended'] == False:
+                suspend_server(server['attributes']['id'])
+            else:
+                suspended_at = server['attributes']['updated_at']
+                suspension_duration = datetime.datetime.now() - datetime.datetime.strptime(suspended_at, "%Y-%m-%dT%H:%M:%S+00:00")
 
+                if suspension_duration.days > 3:
+                    
+                    print(f"Deleting server {server['attributes']['name']} due to suspension for more than 3 days.")
+                    
+                    delete_server(server['attributes']['id'])
         product = convert_to_product(server)
         if product is None:
             print(server, "no product")
@@ -303,8 +315,6 @@ def check_to_unsuspend():
                         
                             suspended_at = server['attributes']['updated_at']
                             suspension_duration = datetime.datetime.now() - datetime.datetime.strptime(suspended_at, "%Y-%m-%dT%H:%M:%S+00:00")
-                            if "Test" in server['attributes']['name']:
-                                print(server['attributes']['name'], suspension_duration.days)
                             
                             if suspension_duration.days > 3:
                                 
