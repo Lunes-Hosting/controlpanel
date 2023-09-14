@@ -44,10 +44,11 @@ def sync_users_script():
 
 
         if user_controlpanel is None:
+            user_id = use_database("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
             password = use_database(f"select password from users where email = %s", (user['attributes']['email'],), "panel")
             query = "INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, %s, %s)"
 
-            values = (user['attributes']['username'], user['attributes']['email'], password[0], user['attributes']['id'] + 500, user['attributes']['id'], 25)
+            values = (user['attributes']['username'], user['attributes']['email'], password[0], user_id, user['attributes']['id'], 25)
             use_database(query, values)
 
 
@@ -140,10 +141,10 @@ def register(email: str, password: str, name: str, ip: str):
         error = data['errors'][0]['detail']
         return error
     except KeyError:
-        
+        user_id = use_database("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
         query = "INSERT INTO users (name, email, password, id, pterodactyl_id, ip, credits) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
-        values = (name, email, password_hash, data['attributes']['id'] + 500, data['attributes']['id'], ip, 25)
+        values = (name, email, password_hash, user_id, data['attributes']['id'], ip, 25)
         use_database(query, values)
 
         return response.json()
