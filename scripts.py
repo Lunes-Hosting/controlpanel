@@ -47,7 +47,7 @@ def sync_users_script():
             password = use_database(f"select password from users where email = %s", (user['attributes']['email'],), "panel")
             query = "INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, %s, %s)"
 
-            values = (user['attributes']['username'], user['attributes']['email'], password[0], user['attributes']['id'], user['attributes']['id'], 25)
+            values = (user['attributes']['username'], user['attributes']['email'], password[0], user['attributes']['id'] + 500, user['attributes']['id'], 25)
             use_database(query, values)
 
 
