@@ -307,9 +307,9 @@ def check_to_unsuspend():
                 query = f"SELECT last_seen, email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
                 cursor.execute(query)
                 last_seen, email = cursor.fetchone()
-                print(last_seen, email, last_seen[0])
+                print(last_seen, email)
                 if last_seen is not None:
-                    if datetime.datetime.now() - last_seen[0] > datetime.timedelta(days=30):
+                    if datetime.datetime.now() - last_seen > datetime.timedelta(days=30):
                         print(f"Deleting server {server['attributes']['name']} due to inactivity for more than 30 days.")
                         delete_server(server['attributes']['id'])
                     else:
