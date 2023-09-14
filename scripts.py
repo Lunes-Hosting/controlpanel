@@ -44,7 +44,7 @@ def sync_users_script():
 
 
         if user_controlpanel is None:
-            password = use_database(f"select password from users where email = %s", (user['attributes']['email'],))
+            password = use_database(f"select password from users where email = %s", (user['attributes']['email'],), "panel")
             query = "INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, %s, %s)"
 
             values = (user['attributes']['username'], user['attributes']['email'], password, user['attributes']['id'], user['attributes']['id'], 25)
@@ -378,13 +378,13 @@ def after_request(session, request: EnvironHeaders, require_login:bool=False):
 
         session['random_id'] = random_string
 
-def use_database(query:str, values:tuple=None):
+def use_database(query:str, values:tuple=None, database=DATABASE):
     result = None
     cnx = mysql.connector.connect(
             host=HOST,
             user=USER,
             password=PASSWORD,
-            database=DATABASE
+            database=database
             )
 
     cursor = cnx.cursor(buffered=True)
