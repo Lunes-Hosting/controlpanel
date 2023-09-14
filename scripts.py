@@ -35,43 +35,20 @@ CLIENT_HEADERS =  {"Authorization": f"Bearer {PTERODACTYL_ADMIN_USER_KEY}",
 
 
 def sync_users_script():
-    cnxpanel = mysql.connector.connect(
-            host=HOST,
-            user=USER,
-            password=PASSWORD,
-            database=DATABASE
-        )
-    cnx = mysql.connector.connect(
-            host=HOST,
-            user=USER,
-            password=PASSWORD,
-            database="panel"
-        )
 
-    cursor = cnx.cursor()
-    cursorpanel = cnxpanel.cursor()
-    data = requests.get(f"{PTERODACTYL_URL}api/application/users", headers=HEADERS).json()
+    data = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
     for user in data['data']:
 
         query = f"SELECT * FROM users WHERE email = %s"
-        cursor.execute(query, (user['attributes']['email'],))
-        user = cursor.fetchone()
+        user_controlpanel = use_database(query, (user['attributes']['email'],))
 
-        if user is None:
-            cursorpanel.execute(f"select password from users where email = %s", (user['attributes']['email']))
-            password = cursorpanel.fetchone()
-            query = "INSERT INTO users (name, email, password, id, pterodactyl_id) VALUES (%s, %s, %s, %s, %s)"
 
-            values = (user['attributes']['username'], user['attributes']['email'], password, user['attributes']['username'], user['attributes']['id'] + 500, user['attributes']['id'])
-            cursor.execute(query, values)
-            cnx.commit()
-        
-            
-            
-    cursor.close()
-    cnx.close()
-    cursorpanel.close()
-    cnx.close()
+        if user_controlpanel is None:
+            password = use_database(f"select password from users where email = %s", (user['attributes']['email']))
+            query = "INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, %s, %s)"
+
+            values = (user['attributes']['username'], user['attributes']['email'], password, data['attributes']['id'], data['attributes']['id'], 25)
+            use_database(query, values)
 
 
 def get_nodes():
@@ -228,7 +205,7 @@ def suspend_server(id:int):
     requests.post(f"{PTERODACTYL_URL}api/application/servers/{id}/suspend", headers=HEADERS)
     
 def use_credits():
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS).json()
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
 
 
     for server in response['data']:
