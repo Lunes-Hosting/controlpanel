@@ -44,7 +44,7 @@ def sync_users_script():
 
 
         if user_controlpanel is None:
-            password = use_database(f"select password from users where email = %s", (user['attributes']['email']))
+            password = use_database(f"select password from users where email = %s", (user['attributes']['email'],))
             query = "INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, %s, %s)"
 
             values = (user['attributes']['username'], user['attributes']['email'], password, data['attributes']['id'], data['attributes']['id'], 25)
