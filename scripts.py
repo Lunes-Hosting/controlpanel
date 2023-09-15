@@ -94,7 +94,7 @@ def get_server_information(server_id: int) -> dict:
     return response.json()
 
 
-def get_ptero_id(email: str) -> tuple | None:
+def get_ptero_id(email: str) -> tuple[int] | None:
     """Returns tuple with id in index 0, if no user is found returns None"""
     query = f"SELECT pterodactyl_id FROM users WHERE email = %s"
     res = use_database(query, (email,))

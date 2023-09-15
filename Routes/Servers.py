@@ -204,7 +204,7 @@ def create_server_submit():
 
     if not found_product:
         return "You already have free server"
-    if check_if_user_suspended(get_ptero_id(session['email'])[0]):
+    if check_if_user_suspended(str(get_ptero_id(session['email'])[0])):
         return ("Your Account has been suspended for breaking our TOS, if you believe this is a mistake you can submit "
                 "apeal at owner@lunes.host")
     body = {
@@ -240,10 +240,9 @@ def update_server_submit(server_id):
     after_request(session=session, request=request.environ, require_login=True)
 
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
-    if check_if_user_suspended(get_ptero_id(session['email'])[0]):
+    if check_if_user_suspended(str(get_ptero_id(session['email'])[0])):
         return ("Your Account has been suspended for breaking our TOS, if you believe this is a mistake you can submit "
                 "apeal at owner@lunes.host")
-
 
     ptero_id = get_ptero_id(session['email'])[0]
     servers_list = list_servers(ptero_id)
