@@ -233,8 +233,19 @@ def create_server_submit():
     return redirect(url_for('servers.servers_index'))
 
 
+@servers.route('/adminupdate/<server_id>', methods=['POST'])
+def admin_update_server_submit(server_id):
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    if not is_admin(session['email']):
+        return "YOUR NOT ADMIN BRO"
+    res = update_server_submit(server_id, True)
+    print(res)
+    return redirect(url_for('admin.admin_server', server_id=server_id))
+
+
 @servers.route('/update/<server_id>', methods=['POST'])
-def update_server_submit(server_id):
+def update_server_submit(server_id, bypass_owner_only: bool = False):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     after_request(session=session, request=request.environ, require_login=True)
@@ -250,32 +261,35 @@ def update_server_submit(server_id):
     for server_inc in servers_list:
         if server_inc['attributes']['user'] == ptero_id:
 
-            if server_inc['attributes']['limits']['memory'] == 128:
+            if server_inc['attributes']['limits']['memory'] == 128 and bypass_owner_only is False:
                 print("yes")
 
                 products_local.remove(products[0])
                 break
+        elif bypass_owner_only is False:
+            return "You can't update this server you dont own it!"
+
     found_product = False
     for product in products_local:
+        print(product['id'], request.form.get('plan'))
         if product['id'] == int(request.form.get('plan')):
             found_product = True
             main_product = product
             credits_used = main_product['price'] / 30 / 24
-            res = remove_credits(session['email'], credits_used)
-            if res == "SUSPEND":
-                flash("You are out of credits")
-                return redirect(url_for('servers.servers_index'))
+            if bypass_owner_only is False:
+                res = remove_credits(session['email'], credits_used)
+                if res == "SUSPEND":
+                    flash("You are out of credits")
+                    return redirect(url_for('servers.servers_index'))
 
-        if not found_product:
-            return "You already have free server"
+    if not found_product:
+        return "You already have free server"
 
-        body = main_product['limits']
-        body["feature_limits"] = main_product['product_limits']
-        body['allocation'] = resp['attributes']['allocation']
-        print(body)
-        resp2 = requests.patch(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}/build", headers=HEADERS,
-                               json=body)
-        print(resp2.text)
-        return redirect(url_for('servers.servers_index'))
-    else:
-        return "You can't update this server you dont own it!"
+    body = main_product['limits']
+    body["feature_limits"] = main_product['product_limits']
+    body['allocation'] = resp['attributes']['allocation']
+    print(body)
+    resp2 = requests.patch(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}/build", headers=HEADERS,
+                           json=body)
+    print(resp2.text)
+    return redirect(url_for('servers.servers_index'))

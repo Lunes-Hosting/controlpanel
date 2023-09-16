@@ -7,6 +7,7 @@ from flask_mail import Mail, Message
 from Routes.AuthenticationHandler import *
 from Routes.Servers import *
 from Routes.Store import *
+from Routes.Admin import *
 from flask_session import Session
 
 app = Flask(__name__, "/static")
@@ -27,6 +28,7 @@ limiter.limit("15/hour", key_func=rate_limit_key)(servers)
 app.register_blueprint(user)
 app.register_blueprint(servers, url_prefix="/servers")
 app.register_blueprint(store, url_prefix="/store")
+app.register_blueprint(admin, url_prefix="/admin")
 
 
 class Config:

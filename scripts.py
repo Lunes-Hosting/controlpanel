@@ -416,8 +416,13 @@ def after_request(session, request: EnvironHeaders, require_login: bool = False)
 
         session['random_id'] = random_string
 
+def is_admin(email: str) -> bool:
+    query = "SELECT role FROM users WHERE email = %s"
+    role = use_database(query, (email,))
+    return role[0] == "admin"
 
-def use_database(query: str, values: tuple = None, database=DATABASE) -> Tuple | None:
+
+def use_database(query: str, values: tuple = None, database=DATABASE, all:bool=False) -> tuple | None | list:
     """Runs database query, if "SELECT" is in the query it returns unmodified result otherwise returns None"""
     result = None
     cnx = mysql.connector.connect(
@@ -430,7 +435,10 @@ def use_database(query: str, values: tuple = None, database=DATABASE) -> Tuple |
     cursor = cnx.cursor(buffered=True)
     cursor.execute(query, values)
     if "select" in query.lower():
-        result = cursor.fetchone()
+        if all is False:
+            result = cursor.fetchone()
+        else:
+            result = cursor.fetchall()
     cnx.commit()
     cursor.close()
     cnx.close()
