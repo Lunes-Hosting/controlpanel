@@ -282,12 +282,12 @@ def check_to_unsuspend():
                                                                                            "%Y-%m-%dT%H:%M:%S+00:00")
 
                 if suspension_duration.days > 3:
-                    print(f"Deleting server {server['attributes']['name']} due to suspension for more than 3 days.")
+                    webhook_log(f"Deleting server {server['attributes']['name']} due to suspension for more than 3 days.")
 
                     delete_server(server['attributes']['id'])
         product = convert_to_product(server)
         if product is None:
-            print(server, "no product")
+            webhook_log(f"```{server}``` no product")
         # print(server['attributes']['name'], product)
         if product is not None and product['name'] != "Free Tier":
 
