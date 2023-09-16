@@ -2,7 +2,6 @@ import datetime
 import random
 import string
 import threading
-from typing import Tuple
 
 import bcrypt
 import mysql.connector
@@ -104,8 +103,9 @@ def get_ptero_id(email: str) -> tuple[int] | None:
 
 
 def login(email: str, password: str):
-    """Checks if login info is correct if it isnt correct returns None if it is returns unmodified database
+    """Checks if login info is correct if it isn't correct returns None if it is returns unmodified database
     information"""
+    webhook_log(f"Login attempt with email {email}")
     query = f"SELECT password FROM users WHERE email = %s"
     hashed_password = use_database(query, (email,))
 
@@ -125,6 +125,7 @@ def login(email: str, password: str):
 
 def register(email: str, password: str, name: str, ip: str) -> str | dict:
     """Attempts to register user if it fails it returns error in string otherwise returns user object json"""
+    webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered")
     salt = bcrypt.gensalt(rounds=10)
     password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
 
@@ -247,9 +248,9 @@ def delete_server(server_id) -> int:
     """Tries to delete server returns status code"""
     response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS)
     if response.status_code == 204:
-        print(f"Server {server_id} deleted successfully.")
+        webhook_log(f"Server {server_id} deleted successfully.")
     else:
-        print(f"Failed to delete server {server_id}. Status code: {response.status_code}")
+        webhook_log(f"Failed to delete server {server_id}. Status code: {response.status_code}")
     return response.status_code
 
 
@@ -408,7 +409,6 @@ def after_request(session, request: EnvironHeaders, require_login: bool = False)
             t2.start()
 
     random_id = session.get("random_id")
-    print(random_id)
     if random_id is None:
         characters = string.ascii_letters + string.digits  # You can add more characters if needed
 
@@ -416,13 +416,14 @@ def after_request(session, request: EnvironHeaders, require_login: bool = False)
 
         session['random_id'] = random_string
 
+
 def is_admin(email: str) -> bool:
     query = "SELECT role FROM users WHERE email = %s"
     role = use_database(query, (email,))
     return role[0] == "admin"
 
 
-def use_database(query: str, values: tuple = None, database=DATABASE, all:bool=False) -> tuple | None | list:
+def use_database(query: str, values: tuple = None, database=DATABASE, all: bool = False) -> tuple | None | list:
     """Runs database query, if "SELECT" is in the query it returns unmodified result otherwise returns None"""
     result = None
     cnx = mysql.connector.connect(
@@ -443,3 +444,9 @@ def use_database(query: str, values: tuple = None, database=DATABASE, all:bool=F
     cursor.close()
     cnx.close()
     return result
+
+
+def webhook_log(message: str):
+    resp = requests.post(WEBHOOK_URL,
+                         json={"username": "Web Logs", "content": message})
+    print(resp.text)
