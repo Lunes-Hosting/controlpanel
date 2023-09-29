@@ -15,7 +15,7 @@ from flask_session import Session
 if (ENABLE_BOT):
     from bot import enable_bot
     import asyncio
-    asyncio.run(enable_bot(BOT_ID))
+    asyncio.run(enable_bot(TOKEN))
 
 app = Flask(__name__, "/static")
 
