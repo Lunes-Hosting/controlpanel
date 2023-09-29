@@ -1,7 +1,7 @@
 <br/>
 <p align="center">
   <a href="https://github.com/Lunes-Hosting/controlpanel">
-    <img src="https://avatars.githubusercontent.com/u/119768225?s=64&v=4" alt="Logo" width="80" height="80">
+    <img src="https://cdn.discordapp.com/avatars/1054831148557160639/b2c68aac0866e48f36f318d0137ced98.png?size=1024" alt="Logo" width="80" height="80">
   </a>
 
   <h3 align="center">Python-Pterodactyl DashPanel</h3>
