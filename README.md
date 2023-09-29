@@ -74,14 +74,14 @@ Contributions are what make the open source community such an amazing place to b
 ### Creating A Pull Request
 
 1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
+2. Create your Feature Branch 
+3. Commit your Changes 
+4. Push to the Branch 
 5. Open a Pull Request
 
 ## License
 
-Distributed under the MIT License. See [LICENSE](https://github.com//controlpanel/blob/main/LICENSE.md) for more information.
+Distributed under the GNU General Public License (GPL). See [LICENSE](https://github.com/Lunes-Hosting/controlpanel/blob/main/license.txt) for more information.
 
 ## Authors
 
