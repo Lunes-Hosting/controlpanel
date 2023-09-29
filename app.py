@@ -10,12 +10,10 @@ from Routes.Store import *
 from Routes.Admin import *
 from flask_session import Session
 
+from multiprocessing import Process
 
 #This imports the bot's code ONLY if the user wishes to use it
-if (ENABLE_BOT):
-    from bot import enable_bot
-    import asyncio
-    asyncio.run(enable_bot(TOKEN))
+
 
 app = Flask(__name__, "/static")
 
@@ -317,7 +315,16 @@ def index():
         return redirect(url_for("user.login_user"))
     after_request(session=session, request=request.environ, require_login=True)
 
-
-# job1()
-if __name__ == "__main__":
+def run_flask():
     app.run(debug=False, host="0.0.0.0", port=1137)
+
+
+from bot import enable_bot
+if __name__ == '__main__':
+    # Create separate processes for Flask and the Discord bot
+    flask_process = Process(target=run_flask)
+    discord_process = Process(target=enable_bot)
+
+    # Start both processes
+    flask_process.start()
+    discord_process.start()

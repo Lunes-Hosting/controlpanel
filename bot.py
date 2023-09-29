@@ -7,7 +7,8 @@ bot = discord.Bot()
 @bot.event 
 async def on_ready(): #on_ready, turn on print and print it.
     print(f"{bot.user} is ready and online!")
-    await bot.change_presence(activity=discord.Activity(name=HOST, type=3))
+    await bot.change_presence(activity=discord.Activity(name=URL, type=3))
 
-async def enable_bot(id):
+def enable_bot():
+    id = TOKEN
     bot.run(id) #id should be string
