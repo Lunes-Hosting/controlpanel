@@ -4,8 +4,14 @@
     <title>Servers</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/servers.css') }}">
+    <script async custom-element="amp-auto-ads"
+        src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
 </head>
 <body>
+    <amp-auto-ads type="adsense"
+        data-ad-client="ca-pub-6122367965027230">
+</amp-auto-ads>
     {%if not verified%}
     <h2>You must verify email to create servers <a href={{url_for('resend_confirmation_email')}}>Resend Verification email</a></h2>
     {% endif %}
