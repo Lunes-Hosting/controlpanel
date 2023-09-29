@@ -10,6 +10,11 @@ from Routes.Store import *
 from Routes.Admin import *
 from flask_session import Session
 
+from bot import enable_bot
+import asyncio
+
+asyncio.run(enable_bot())
+
 app = Flask(__name__, "/static")
 
 
