@@ -223,7 +223,11 @@ def register_user():
         email_thread = threading.Thread(target=send_verification_email, args=(email, verification_token, app,),
                                         daemon=True)
         email_thread.start()
+        # TEMP REMOVE REQUIRED EMAIL VERIF
 
+        query = f"UPDATE users SET email_verified_at = '{datetime.datetime.now()}' where email = %s"
+        use_database(query, (email,))
+        # TEMP REMOVE REQUIRED EMAIL VERIF
         flash(
             'A verification email has been sent to your email address. Please check your inbox and spam to verify '
             'your email.')
