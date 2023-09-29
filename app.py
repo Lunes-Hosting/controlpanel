@@ -9,7 +9,6 @@ from Routes.Servers import *
 from Routes.Store import *
 from Routes.Admin import *
 from flask_session import Session
-import pause
 from multiprocessing import Process
 from bot import enable_bot
 import asyncio
