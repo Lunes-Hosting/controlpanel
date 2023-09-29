@@ -11,11 +11,11 @@ from Routes.Admin import *
 from flask_session import Session
 
 
-##This imports the bot's code
+#This imports the bot's code ONLY if the user wishes to use it
 if (ENABLE_BOT):
     from bot import enable_bot
     import asyncio
-    asyncio.run(enable_bot())
+    asyncio.run(enable_bot(BOT_ID))
 
 app = Flask(__name__, "/static")
 
