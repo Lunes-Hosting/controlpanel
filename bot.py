@@ -1,15 +1,15 @@
 import discord
 from discord.ext import commands
-import configexample
+from config import *
 
 
-if (configexample.ENABLE_BOT):
+if (ENABLE_BOT):
     bot = discord.Bot()
 
     @bot.event
     async def on_ready():
         print(f"{bot.user} is ready and online!")
-        await bot.change_presence(activity=discord.Activity(name=configexample.HOST, type=3))
+        await bot.change_presence(activity=discord.Activity(name=HOST, type=3))
 
 
-    bot.run("MTAzNDU3OTMwOTE0MDExOTYzMg.Gtap4R.k3dFQ8JTyEEJTGJttK3vwqehFM-J1DexBuNSsw")
+    bot.run(BOT_ID)
