@@ -12,6 +12,7 @@ from flask_session import Session
 import pause
 from multiprocessing import Process
 from bot import enable_bot
+import asyncio
 #This imports the bot's code ONLY if the user wishes to use it
 
 
@@ -305,7 +306,11 @@ def run_job():
     global job_has_run
     print(job_has_run)
     if not job_has_run:
-        enable_bot()
+        
+    
+
+        asyncio.run(enable_bot())
+
         job_has_run = True
 
 
@@ -320,23 +325,15 @@ def sync_users():
     print("finished job 2")
 
 scheduler.start()
-pause.days(1)
 @app.route('/')
 def index():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     after_request(session=session, request=request.environ, require_login=True)
 
-def run_flask():
-    app.run(debug=False, host="0.0.0.0", port=1137)
-    
 
 
 
 if __name__ == '__main__':
     # Create separate processes for Flask and the Discord bot
-    flask_process = Process(target=run_flask)
-
-
-    # Start both processes
-    flask_process.start()
+    app.run(debug=False, host="0.0.0.0", port=1137)
