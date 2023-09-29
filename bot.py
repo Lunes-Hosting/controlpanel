@@ -11,5 +11,4 @@ async def on_ready():
 
 
 async def enable_bot():
-    if (ENABLE_BOT):
-        bot.run(BOT_ID)
+    bot.run()
