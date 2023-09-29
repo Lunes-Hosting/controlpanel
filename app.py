@@ -9,9 +9,9 @@ from Routes.Servers import *
 from Routes.Store import *
 from Routes.Admin import *
 from flask_session import Session
-
+import pause
 from multiprocessing import Process
-
+from bot import enable_bot
 #This imports the bot's code ONLY if the user wishes to use it
 
 
@@ -298,8 +298,19 @@ def job2():
     check_to_unsuspend()
     print("finished job 2")
 
+job_has_run = False
 
-scheduler.start()
+@scheduler.task('interval', id='do_run_job', seconds=5, misfire_grace_time=900)
+def run_job():
+    global job_has_run
+    print(job_has_run)
+    if not job_has_run:
+        enable_bot()
+        job_has_run = True
+
+
+
+
 
 
 @scheduler.task('interval', id='do_sync_users', seconds=30, misfire_grace_time=900)
@@ -308,7 +319,8 @@ def sync_users():
     sync_users_script()
     print("finished job 2")
 
-
+scheduler.start()
+pause.days(1)
 @app.route('/')
 def index():
     if 'email' not in session:
@@ -317,14 +329,14 @@ def index():
 
 def run_flask():
     app.run(debug=False, host="0.0.0.0", port=1137)
+    
 
 
-from bot import enable_bot
+
 if __name__ == '__main__':
     # Create separate processes for Flask and the Discord bot
     flask_process = Process(target=run_flask)
-    discord_process = Process(target=enable_bot)
+
 
     # Start both processes
     flask_process.start()
-    discord_process.start()
