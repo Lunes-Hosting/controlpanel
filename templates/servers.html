@@ -8,9 +8,7 @@
     crossorigin="anonymous"></script>
 </head>
 <body>
-    <amp-auto-ads type="adsense"
-        data-ad-client="ca-pub-6122367965027230">
-</amp-auto-ads>
+
     {%if not verified%}
     <h2>You must verify email to create servers <a href={{url_for('resend_confirmation_email')}}>Resend Verification email</a></h2>
     {% endif %}
