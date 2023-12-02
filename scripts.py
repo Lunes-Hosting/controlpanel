@@ -1,5 +1,4 @@
 import datetime
-import random
 import string
 import threading
 
@@ -13,6 +12,7 @@ from werkzeug.datastructures.headers import EnvironHeaders
 
 from config import *
 from products import products
+import secrets
 
 HEADERS = {"Authorization": f"Bearer {PTERODACTYL_ADMIN_KEY}",
            'Accept': 'application/json',
@@ -412,7 +412,7 @@ def after_request(session, request: EnvironHeaders, require_login: bool = False)
     if random_id is None:
         characters = string.ascii_letters + string.digits  # You can add more characters if needed
 
-        random_string = ''.join(random.choice(characters) for _ in range(50))
+        random_string = ''.join(secrets.SystemRandom().choice(characters) for _ in range(50))
 
         session['random_id'] = random_string
 
