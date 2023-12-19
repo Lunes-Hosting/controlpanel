@@ -13,6 +13,7 @@ from werkzeug.datastructures.headers import EnvironHeaders
 from config import *
 from products import products
 import secrets
+from security import safe_requests
 
 HEADERS = {"Authorization": f"Bearer {PTERODACTYL_ADMIN_KEY}",
            'Accept': 'application/json',
@@ -24,7 +25,7 @@ CLIENT_HEADERS = {"Authorization": f"Bearer {PTERODACTYL_ADMIN_USER_KEY}",
 
 def sync_users_script():
     """Adds any users to panel that was added using pterodactyl"""
-    data = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
+    data = safe_requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
     for user in data['data']:
 
         query = f"SELECT * FROM users WHERE email = %s"
@@ -48,7 +49,7 @@ def get_nodes() -> list[dict]:
     """Returns list of dictionaries with node information in format:
     {"node_id": node['attributes']['id'], "name": node['attributes']['name']}"""
     available_nodes = []
-    nodes = requests.get(f"{PTERODACTYL_URL}api/application/nodes", headers=HEADERS).json()
+    nodes = safe_requests.get(f"{PTERODACTYL_URL}api/application/nodes", headers=HEADERS).json()
     for node in nodes['data']:
         if "full" not in node['attributes']['name'].lower():
             available_nodes.append({"node_id": node['attributes']['id'], "name": node['attributes']['name']})
@@ -61,11 +62,11 @@ def get_eggs() -> list[dict]:
      "startup": attributes['startup']}
     """
     available_eggs = []
-    nests = requests.get(f"{PTERODACTYL_URL}api/application/nests", headers=HEADERS)
+    nests = safe_requests.get(f"{PTERODACTYL_URL}api/application/nests", headers=HEADERS)
 
     nests_data = nests.json()
     for nest in nests_data['data']:
-        resp = requests.get(f"{PTERODACTYL_URL}api/application/nests/{nest['attributes']['id']}/eggs", headers=HEADERS)
+        resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/nests/{nest['attributes']['id']}/eggs", headers=HEADERS)
         data = resp.json()
         for egg in data['data']:
             attributes = egg['attributes']
@@ -78,7 +79,7 @@ def get_eggs() -> list[dict]:
 
 def list_servers(pterodactyl_id: int) -> list[dict]:
     """Returns list of dictionaries of servers with owner of that pterodactyl id"""
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS)
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS)
     users_server = []
     data = response.json()
     for server in data['data']:
@@ -89,7 +90,7 @@ def list_servers(pterodactyl_id: int) -> list[dict]:
 
 def get_server_information(server_id: int) -> dict:
     """Returns dictionary of server information from pterodactyl api"""
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS)
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS)
     return response.json()
 
 
@@ -221,7 +222,7 @@ def suspend_server(server_id: int):
 
 def use_credits():
     """Checks all servers products and uses credits of owners"""
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
 
     for server in response['data']:
 
@@ -262,7 +263,7 @@ def unsuspend_server(server_id: int):
 def check_to_unsuspend():
     """Gets all servers loops through and checks if user has moore credits than required or was last seen for free
     tier to un-suspend it, ignores suspended users"""
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
     cnx = mysql.connector.connect(
         host=HOST,
         user=USER,
