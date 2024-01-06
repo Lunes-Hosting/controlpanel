@@ -12,7 +12,7 @@ from flask_session import Session
 from multiprocessing import Process
 from bot import enable_bot
 import asyncio
-import secrets as random
+import random
 #This imports the bot's code ONLY if the user wishes to use it
 
 
