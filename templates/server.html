@@ -8,7 +8,9 @@
     crossorigin="anonymous"></script>
 </head>
 <body>
-
+    {% if info['attributes']['limits']['memory'] == 128: { %}
+        <h1> WARNING: FREE SERVERS WILL BE DELETED IF YOU DO NOT LOGIN TO THE DASHBOARD EVERY 30 DAYS </h1>
+    {% endif %}
     {% with messages = get_flashed_messages() %}
     {% if messages %}
     {% for message in messages %}
