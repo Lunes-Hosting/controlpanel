@@ -144,7 +144,7 @@ def reset_password_confirm(token):
                 password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
                 cursor = cnx.cursor()
 
-                query = f"UPDATE users SET password = %s WHERE email = %s"
+                query = "UPDATE users SET password = %s WHERE email = %s"
                 ptero_id = get_ptero_id(email)
                 values = (password_hash.decode(), email)
                 print(password_hash, email, type(email))

@@ -27,7 +27,7 @@ def servers_index():
     )
     cursor = cnx.cursor(buffered=True)
 
-    query = f"Select email_verified_at FROM users where email = %s"
+    query = "Select email_verified_at FROM users where email = %s"
     cursor.execute(query, (session['email'],))
     results = cursor.fetchone()
     servers_list = []
@@ -55,7 +55,7 @@ def server(server_id):
     )
 
     cursor = cnx.cursor()
-    query = f"SELECT pterodactyl_id FROM users where email = %s"
+    query = "SELECT pterodactyl_id FROM users where email = %s"
     print(session)
     cursor.execute(query, (session['email'],))
     rows = cursor.fetchone()
@@ -100,7 +100,7 @@ def create_server():
         ptero_id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = ptero_id
 
-    query = f"Select email_verified_at FROM users where email = %s"
+    query = "Select email_verified_at FROM users where email = %s"
     results = use_database(query, (session['email'],))
     if results[0] is None:
         return redirect(url_for('servers.servers_index'))
@@ -137,7 +137,7 @@ def delete_server(server_id):
     )
 
     cursor = cnx.cursor()
-    query = f"SELECT pterodactyl_id FROM users where email = %s"
+    query = "SELECT pterodactyl_id FROM users where email = %s"
     cursor.execute(query, (session['email'],))
     rows = cursor.fetchone()
     cursor.close()

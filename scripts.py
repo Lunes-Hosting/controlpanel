@@ -27,12 +27,12 @@ def sync_users_script():
     data = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
     for user in data['data']:
 
-        query = f"SELECT * FROM users WHERE email = %s"
+        query = "SELECT * FROM users WHERE email = %s"
         user_controlpanel = use_database(query, (user['attributes']['email'],))
 
         if user_controlpanel is None:
             user_id = use_database("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
-            password = use_database(f"select password from users where email = %s", (user['attributes']['email'],),
+            password = use_database("select password from users where email = %s", (user['attributes']['email'],),
                                     "panel")
             query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, "
                      "%s, %s)")
@@ -95,7 +95,7 @@ def get_server_information(server_id: int) -> dict:
 
 def get_ptero_id(email: str) -> tuple[int] | None:
     """Returns tuple with id in index 0, if no user is found returns None"""
-    query = f"SELECT pterodactyl_id FROM users WHERE email = %s"
+    query = "SELECT pterodactyl_id FROM users WHERE email = %s"
     res = use_database(query, (email,))
     if res is None:
         return None
@@ -106,7 +106,7 @@ def login(email: str, password: str):
     """Checks if login info is correct if it isn't correct returns None if it is returns unmodified database
     information"""
     webhook_log(f"Login attempt with email {email}")
-    query = f"SELECT password FROM users WHERE email = %s"
+    query = "SELECT password FROM users WHERE email = %s"
     hashed_password = use_database(query, (email,))
 
     if hashed_password is not None:
@@ -115,7 +115,7 @@ def login(email: str, password: str):
 
         if is_matched:
             # Retrieve all information of the user
-            all_info = f"SELECT * FROM users WHERE email = %s"
+            all_info = "SELECT * FROM users WHERE email = %s"
             info = use_database(all_info, (email,))
 
             return info
@@ -129,7 +129,7 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
     salt = bcrypt.gensalt(rounds=10)
     password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
 
-    query = f"SELECT * FROM users WHERE ip = %s"
+    query = "SELECT * FROM users WHERE ip = %s"
     results = use_database(query, (ip,))
 
     if results is not None:
@@ -176,21 +176,21 @@ def delete_user(user_id: int) -> int:
 
 def add_credits(email: str, amount: int, set_client: bool = True):
     # Delete the user from the database
-    query = f"SELECT credits FROM users WHERE email = %s"
+    query = "SELECT credits FROM users WHERE email = %s"
 
     current_credits = use_database(query, (email,))
     query = f"UPDATE users SET credits = {int(current_credits[0]) + amount} WHERE email = %s"
 
     use_database(query, (email,))
     if set_client:
-        query = f"UPDATE users SET role = 'client' WHERE email = %s"
+        query = "UPDATE users SET role = 'client' WHERE email = %s"
         use_database(query, (email,))
 
 
 def remove_credits(email: str, amount: float) -> str | None:
     """Attempts to remove credits from user returns "SUSPEND" if the amount of credits to subtract is more than amount
      user has otherwise returns None"""
-    query = f"SELECT credits FROM users WHERE email = %s"
+    query = "SELECT credits FROM users WHERE email = %s"
 
     current_credits = use_database(query, (email,))
     new_credits = float(current_credits[0]) - amount
@@ -320,7 +320,7 @@ def check_to_unsuspend():
                             if suspension_duration.days > 3:
                                 print(
                                     f"Deleting server {server['attributes']['name']} due to suspension for more than "
-                                    f"3 days.")
+                                    "3 days.")
 
                                 delete_server(server['attributes']['id'])
 
@@ -349,7 +349,7 @@ def check_to_unsuspend():
 
 def get_credits(email: str) -> int:
     """Returns int of amount of credits in database."""
-    query = f"SELECT credits FROM users WHERE email = %s"
+    query = "SELECT credits FROM users WHERE email = %s"
     current_credits = use_database(query, (email,))
 
     return current_credits[0]
@@ -357,7 +357,7 @@ def get_credits(email: str) -> int:
 
 def check_if_user_suspended(pterodactyl_id: str) -> bool | None:
     """Returns the bool value of if a user is suspended, if user is not found with the pterodactyl id it returns None"""
-    suspended = use_database(f"SELECT suspended FROM users WHERE pterodactyl_id = %s", (pterodactyl_id,))
+    suspended = use_database("SELECT suspended FROM users WHERE pterodactyl_id = %s", (pterodactyl_id,))
     to_bool = {0: False, 1: True}
     if suspended is None:
         return True
@@ -386,7 +386,7 @@ def update_last_seen(email: str, everyone: bool = False):
 
 def get_last_seen(email: str) -> datetime.datetime:
     """Returns datetime object of when user with that email was last seen."""
-    query = f"SELECT last_seen FROM users WHERE email = %s"
+    query = "SELECT last_seen FROM users WHERE email = %s"
     last_seen = use_database(query, (email,))
     return last_seen[0]
 
