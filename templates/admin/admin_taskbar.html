@@ -5,7 +5,6 @@
     <script src="https://kit.fontawesome.com/37a0f8002e.js" crossorigin="anonymous"></script>
 </head>
 <body>
-</script>
     <div class="area"></div>
     <nav class="main-menu">
         <ul>
@@ -37,6 +36,24 @@
                 <a href="https://discord.gg/BAdPPdN97c">
                     <i class="fa-brands fa-discord fa-2x"></i>
                     <span class="nav-text">Discord</span>
+                </a>
+            </li>
+            <li class="has-subnav">
+                <a href="{{url_for('admin.admin_index')}}">
+                    <i class="fa-brands fa-discord fa-2x"></i>
+                    <span class="nav-text">Admin</span>
+                </a>
+            </li>
+            <li class="has-subnav">
+                <a href="{{url_for('admin.users')}}">
+                    <i class="fa-brands fa-discord fa-2x"></i>
+                    <span class="nav-text">users</span>
+                </a>
+            </li>
+            <li class="has-subnav">
+                <a href="{{url_for('admin.admin_servers')}}">
+                    <i class="fa-brands fa-discord fa-2x"></i>
+                    <span class="nav-text">Servers</span>
                 </a>
             </li>
         </ul>

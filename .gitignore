@@ -5,7 +5,7 @@ __pycache__/
 
 # C extensions
 *.so
-
+.idea
 # Distribution / packaging
 .Python
 build/
@@ -161,3 +161,4 @@ cython_debug/
 flask_session/
 .vscode/launch.json
 config.py
+.vscode/settings.json

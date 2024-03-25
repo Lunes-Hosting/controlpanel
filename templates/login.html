@@ -7,6 +7,7 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body data-theme="synthwave">
     <div id="flash-messages">
@@ -45,7 +46,7 @@
                             <label class="label"><a href="{{ url_for('reset_password') }}" class="label-text-alt link link-hover">Forgot password?</a></label>
                             <label class="label"><a href="{{ url_for('register_user') }}" class="label-text-alt link link-hover">Create account</a></label>
                         </div>
-
+                        <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
                         <div class="form-control mt-4">
                             <button type="submit" class="btn btn-neutral w-full">Submit</button>
                         </div>

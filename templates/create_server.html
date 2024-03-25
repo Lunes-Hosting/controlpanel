@@ -4,9 +4,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/create_server.css') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <title>Create Server</title>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230"
+    crossorigin="anonymous"></script>
 </head>
 <body>
+    <h1> WARNING: FREE SERVERS WILL BE DELETED IF YOU DO NOT LOGIN TO THE DASHBOARD EVERY 30 DAYS </h1>
     <h1>Create a server</h1>
     <form action="{{ url_for('servers.create_server_submit') }}" method="post">
         <label for="name">Name</label>
@@ -36,6 +40,7 @@
             {% endfor %}
         </select>
         <br>
+        <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
         <input type="submit" value="Submit">
     </form>
 

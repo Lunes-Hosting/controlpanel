@@ -1,21 +1,22 @@
 from flask import Flask
-from flask_session import Session
+from flask_apscheduler import APScheduler
+from flask_caching import Cache
+from flask_limiter import Limiter
+from flask_mail import Mail, Message
+
 from Routes.AuthenticationHandler import *
 from Routes.Servers import *
 from Routes.Store import *
-from flask_apscheduler import APScheduler
-from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_mail import Mail, Message
-from flask_caching import Cache
-import random, string
-import threading
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-
+from Routes.Admin import *
+from flask_session import Session
+from multiprocessing import Process
+from bot import enable_bot
+import asyncio
+import random
+#This imports the bot's code ONLY if the user wishes to use it
 
 
 app = Flask(__name__, "/static")
-
 
 
 def rate_limit_key():
@@ -23,6 +24,8 @@ def rate_limit_key():
     user_identifier = session.get('random_id', None)
     print(user_identifier, 1)
     return user_identifier
+
+
 limiter = Limiter(rate_limit_key, app=app, default_limits=["200 per day", "50 per hour"])
 
 limiter.limit("20/hour", key_func=rate_limit_key)(user)
@@ -31,8 +34,12 @@ limiter.limit("15/hour", key_func=rate_limit_key)(servers)
 app.register_blueprint(user)
 app.register_blueprint(servers, url_prefix="/servers")
 app.register_blueprint(store, url_prefix="/store")
+app.register_blueprint(admin, url_prefix="/admin")
+
+
 class Config:
     SCHEDULER_API_ENABLED = True
+
 
 app.config["SESSION_PERMANENT"] = True
 app.config["SESSION_TYPE"] = "filesystem"
@@ -44,7 +51,7 @@ app.config.from_object(Config())
 
 # initialize scheduler
 scheduler = APScheduler()
-# if you don't wanna use a config, you can set options here:
+# if you don't want to use a config, you can set options here:
 # scheduler.api_enabled = True
 scheduler.init_app(app)
 
@@ -54,6 +61,8 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = MAIL_USERNAME
 app.config['MAIL_PASSWORD'] = MAIL_PASSWORD
 app.config['MAIL_DEFAULT_SENDER'] = MAIL_DEFAULT_SENDER
+app.config['RECAPTCHA_PUBLIC_KEY'] = RECAPTCHA_SITE_KEY
+app.config['RECAPTCHA_PRIVATE_KEY'] = RECAPTCHA_SECRET_KEY
 
 mail = Mail(app)
 
@@ -71,8 +80,9 @@ reset_tokens = {}
 def generate_reset_token():
     return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
 
-def send_email(email: str, reset_token: str, app):
-    with app.app_context():
+
+def send_email(email: str, reset_token: str, inner_app):
+    with inner_app.app_context():
         msg = Message('Password Reset Request', recipients=[email])
         msg.body = f'Please click the link below to reset your password:\n\n {HOSTED_URL}reset_password/{reset_token}'
         mail.send(msg)
@@ -133,13 +143,14 @@ def reset_password_confirm(token):
                 )
                 password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
                 cursor = cnx.cursor()
-            
+
                 query = f"UPDATE users SET password = %s WHERE email = %s"
                 ptero_id = get_ptero_id(email)
                 values = (password_hash.decode(), email)
                 print(password_hash, email, type(email))
                 cursor.execute(query, values)
-                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0][0]}", headers=HEADERS).json()['attributes']
+                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0][0]}", headers=HEADERS).json()[
+                    'attributes']
                 body = {
                     "username": info['username'],
                     "email": info['email'],
@@ -147,8 +158,9 @@ def reset_password_confirm(token):
                     "last_name": info['last_name'],
                     "password": password
                 }
-                
-                res = requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0][0]}", headers=HEADERS, json=body)
+
+                requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0][0]}", headers=HEADERS,
+                               json=body)
                 cnx.commit()
                 cursor.close()
                 cnx.close()
@@ -167,18 +179,32 @@ def reset_password_confirm(token):
 def generate_verification_token():
     return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
 
+
 # Function to send a verification email
-def send_verification_email(email: str, verification_token: str, app):
-    with app.app_context():
+def send_verification_email(email: str, verification_token: str, inner_app):
+    with inner_app.app_context():
         print("started emails")
         msg = Message('Email Verification', recipients=[email])
         msg.body = f'Please click the link below to verify your email:\n\n {HOSTED_URL}verify_email/{verification_token}'
         mail.send(msg)
         print(f"sent email to {email}")
+
+
 # Modified register_user function
 @app.route('/register', methods=['POST', 'GET'])
 def register_user():
     if request.method == "POST":
+        recaptcha_response = request.form.get('g-recaptcha-response')
+        data = {
+            'secret': RECAPTCHA_SECRET_KEY,
+            'response': recaptcha_response
+        }
+
+        response = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data)
+        result = response.json()
+        if not result['success']:
+            flash("Failed captcha please try again")
+            return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
         data = request.form
         email = data.get('email')
         password = data.get('password')
@@ -187,7 +213,7 @@ def register_user():
         res = register(email, password, name, ip)
         if type(res) == str:
             flash(res + " If this in error please contact support at owner@lunes.host")
-            return render_template('register.html')
+            return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
         # Generate a verification token
         verification_token = generate_verification_token()
 
@@ -195,13 +221,21 @@ def register_user():
         cache.set(email, verification_token, timeout=TOKEN_EXPIRATION_TIME)
 
         # Compose and send the verification email
-        email_thread = threading.Thread(target=send_verification_email, args=(email, verification_token, app,), daemon=True)
+        email_thread = threading.Thread(target=send_verification_email, args=(email, verification_token, app,),
+                                        daemon=True)
         email_thread.start()
+        # TEMP REMOVE REQUIRED EMAIL VERIF
 
-        flash('A verification email has been sent to your email address. Please check your inbox and spam to verify your email.')
+        query = f"UPDATE users SET email_verified_at = '{datetime.datetime.now()}' where email = %s"
+        use_database(query, (email,))
+        # TEMP REMOVE REQUIRED EMAIL VERIF
+        flash(
+            'A verification email has been sent to your email address. Please check your inbox and spam to verify '
+            'your email.')
         return redirect(url_for('index'))
     else:
-        return render_template("register.html")
+        return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
+
 
 @app.route("/resend_confirmation_email")
 def resend_confirmation_email():
@@ -214,10 +248,12 @@ def resend_confirmation_email():
     cache.set(session['email'], verification_token, timeout=TOKEN_EXPIRATION_TIME)
 
     # Compose and send the verification email
-    email_thread = threading.Thread(target=send_verification_email, args=(session['email'], verification_token, app,), daemon=True)
+    email_thread = threading.Thread(target=send_verification_email, args=(session['email'], verification_token, app,),
+                                    daemon=True)
     email_thread.start()
     flash("Sent a verification email")
     return redirect(url_for('index'))
+
 
 # Route to confirm the email using the token
 @app.route('/verify_email/<token>', methods=['GET'])
@@ -225,7 +261,7 @@ def verify_email(token):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     after_request(session=session, request=request.environ, require_login=True)
-    
+
     email = session['email']
 
     # Retrieve the stored verification token from the cache
@@ -233,17 +269,16 @@ def verify_email(token):
 
     if stored_token and stored_token == token:
         cnx = mysql.connector.connect(
-        host=HOST,
-        user=USER,
-        password=PASSWORD,
-        database=DATABASE
+            host=HOST,
+            user=USER,
+            password=PASSWORD,
+            database=DATABASE
         )
         cursor = cnx.cursor(buffered=True)
-            
+
         query = f"UPDATE users SET email_verified_at = '{datetime.datetime.now()}' where email = %s"
         cursor.execute(query, (email,))
         cnx.commit()
-        
 
         # Remove the verification token from the cache
         cache.delete(email)
@@ -260,13 +295,32 @@ def job1():
     print("started job1")
     use_credits()
     print("finished job 2")
-    
+
+
 @scheduler.task('interval', id='do_job_2', seconds=120, misfire_grace_time=900)
 def job2():
     print("started job2")
     check_to_unsuspend()
     print("finished job 2")
-scheduler.start()
+
+job_has_run = False
+
+@scheduler.task('interval', id='do_run_job', seconds=5, misfire_grace_time=900)
+def run_job():
+    global job_has_run
+    print(job_has_run)
+    if not job_has_run:
+        
+    
+
+        asyncio.run(enable_bot())
+
+        job_has_run = True
+
+
+
+
+
 
 @scheduler.task('interval', id='do_sync_users', seconds=30, misfire_grace_time=900)
 def sync_users():
@@ -274,15 +328,16 @@ def sync_users():
     sync_users_script()
     print("finished job 2")
 
-
-
-
+scheduler.start()
 @app.route('/')
 def index():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     after_request(session=session, request=request.environ, require_login=True)
 
-# job1()
-if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=27112)
+
+
+
+if __name__ == '__main__':
+    # Create separate processes for Flask and the Discord bot
+    app.run(debug=False, host="0.0.0.0", port=1137)
