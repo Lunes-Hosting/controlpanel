@@ -75,5 +75,5 @@ Distributed under the GNU General Public License (GPL). See [LICENSE](https://gi
 ## Authors
 
 * **Lenny** - *MIS Student* - [Lenny](https://github.com/JewishLewish) - *Built ReadME Template + Discord Integration*
-* **Alexxy** - *Comp Sci Student* - [Alexxy](https://github.com/ItsNotAlexy) - *Main Architecture Developer*
-* **DWAA** - [DWAA](https://github.com/DWAA1660) - *Team Leader*
+* **Alexxy** - *SI Student* - [Alexxy](https://github.com/ItsNotAlexy) - *Frontend Developer*
+* **DWAA** - [DWAA](https://github.com/DWAA1660) - *Team Leader + Core Developer*
