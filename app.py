@@ -12,7 +12,8 @@ from flask_session import Session
 from multiprocessing import Process
 from bot import enable_bot
 import asyncio
-import random
+import secrets
+
 #This imports the bot's code ONLY if the user wishes to use it
 
 
@@ -78,7 +79,7 @@ reset_tokens = {}
 
 # Function to generate a random reset token
 def generate_reset_token():
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
+    return ''.join(secrets.SystemRandom().choices(string.ascii_letters + string.digits, k=20))
 
 
 def send_email(email: str, reset_token: str, inner_app):
@@ -177,7 +178,7 @@ def reset_password_confirm(token):
 
 # Function to generate a verification token
 def generate_verification_token():
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
+    return ''.join(secrets.SystemRandom().choices(string.ascii_letters + string.digits, k=20))
 
 
 # Function to send a verification email
