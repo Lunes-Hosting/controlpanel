@@ -27,7 +27,7 @@
 
                 <tr>
                     <td>{{ user['id'] }}</td>
-                    <td><a href="{{ url_for('admin.admin_user', user_id=user['pterodactyl_id']) }}">{{ user['name'] }}</a></td>
+                    <td><a href="{{ url_for('admin.admin_user', user_id=user['panel_id']) }}">{{ user['name'] }}</a></td>
                     <td>{{ user['email'] }}</td>
                     <td>{{ user['role'] }}</td>
                     <td>{{ user['credits'] }}</td>
