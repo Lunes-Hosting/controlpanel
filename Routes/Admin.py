@@ -26,7 +26,7 @@ def users():
     if not is_admin(session['email']):
         return "YOUR NOT ADMIN BRO"
     # resp = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
-    query = "SELECT name, credits, role, email, suspended, id FROM users, pterodactyl_id"
+    query = "SELECT name, credits, role, email, suspended, id, pterodactyl_id FROM users"
     users_from_db = use_database(query, all=True)
     for user in users_from_db:
         full_users.append({"name": user[0], "credits": int(user[1]), "role": user[2], "email": user[3], "suspended": user[4],
