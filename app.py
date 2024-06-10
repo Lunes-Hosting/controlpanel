@@ -159,7 +159,7 @@ def reset_password_confirm(token):
                     "password": password
                 }
 
-                requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0][0]}", headers=HEADERS,
+                requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS,
                                json=body)
                 cnx.commit()
                 cursor.close()
