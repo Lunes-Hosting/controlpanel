@@ -149,7 +149,7 @@ def reset_password_confirm(token):
                 values = (password_hash.decode(), email)
                 print(password_hash, email, type(email))
                 cursor.execute(query, values)
-                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0][0]}", headers=HEADERS).json()[
+                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS).json()[
                     'attributes']
                 body = {
                     "username": info['username'],
