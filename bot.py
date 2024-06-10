@@ -11,4 +11,4 @@ async def on_ready(): #on_ready, turn on print and print it.
 
 async def enable_bot():
     id = TOKEN
-    await bot.start(id) #id should be string
+    #await bot.start(id) #id should be string
