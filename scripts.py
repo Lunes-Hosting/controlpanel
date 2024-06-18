@@ -281,8 +281,8 @@ def check_to_unsuspend():
                 suspension_duration = datetime.datetime.now() - datetime.datetime.strptime(suspended_at,
                                                                                            "%Y-%m-%dT%H:%M:%S+00:00")
 
-                if suspension_duration.days > 3:
-                    webhook_log(f"Deleting server {server['attributes']['name']} due to suspension for more than 3 days.")
+                if suspension_duration.days > 5:
+                    webhook_log(f"Deleting server {server['attributes']['name']} due to suspension for more than 5 days.")
 
                     delete_server(server['attributes']['id'])
         product = convert_to_product(server)
