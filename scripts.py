@@ -267,7 +267,9 @@ def check_to_unsuspend():
         host=HOST,
         user=USER,
         password=PASSWORD,
-        database=DATABASE
+        database=DATABASE,
+        charset='utf8mb4',
+        collation='utf8mb4_unicode_ci'
     )
 
     cursor = cnx.cursor()
@@ -430,7 +432,9 @@ def use_database(query: str, values: tuple = None, database=DATABASE, all: bool 
         host=HOST,
         user=USER,
         password=PASSWORD,
-        database=database
+        database=database,
+        charset='utf8mb4',
+        collation='utf8mb4_unicode_ci'
     )
 
     cursor = cnx.cursor(buffered=True)

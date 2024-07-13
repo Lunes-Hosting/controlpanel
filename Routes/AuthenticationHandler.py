@@ -67,7 +67,9 @@ def index():
         host=HOST,
         user=USER,
         password=PASSWORD,
-        database=DATABASE
+        database=DATABASE,
+        charset='utf8mb4',
+        collation='utf8mb4_unicode_ci'
     )
 
     cursor = cnx.cursor(buffered=True)

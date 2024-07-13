@@ -139,7 +139,9 @@ def reset_password_confirm(token):
                     host=HOST,
                     user=USER,
                     password=PASSWORD,
-                    database=DATABASE
+                    database=DATABASE,
+                    charset='utf8mb4',
+                    collation='utf8mb4_unicode_ci'
                 )
                 password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
                 cursor = cnx.cursor()
@@ -272,7 +274,9 @@ def verify_email(token):
             host=HOST,
             user=USER,
             password=PASSWORD,
-            database=DATABASE
+            database=DATABASE,
+            charset='utf8mb4',
+            collation='utf8mb4_unicode_ci'
         )
         cursor = cnx.cursor(buffered=True)
 

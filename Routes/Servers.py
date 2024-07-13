@@ -23,7 +23,9 @@ def servers_index():
         host=HOST,
         user=USER,
         password=PASSWORD,
-        database=DATABASE
+        database=DATABASE,
+        charset='utf8mb4',
+        collation='utf8mb4_unicode_ci'
     )
     cursor = cnx.cursor(buffered=True)
 
@@ -51,7 +53,9 @@ def server(server_id):
         host=HOST,
         user=USER,
         password=PASSWORD,
-        database=DATABASE
+        database=DATABASE,
+        charset='utf8mb4',
+        collation='utf8mb4_unicode_ci'
     )
 
     cursor = cnx.cursor()
@@ -133,7 +137,9 @@ def delete_server(server_id):
         host=HOST,
         user=USER,
         password=PASSWORD,
-        database=DATABASE
+        database=DATABASE,
+        charset='utf8mb4',
+        collation='utf8mb4_unicode_ci'
     )
 
     cursor = cnx.cursor()
