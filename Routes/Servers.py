@@ -60,7 +60,6 @@ def server(server_id):
 
     cursor = cnx.cursor()
     query = f"SELECT pterodactyl_id FROM users where email = %s"
-    print(session)
     cursor.execute(query, (session['email'],))
     rows = cursor.fetchone()
     cursor.close()

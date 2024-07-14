@@ -8,6 +8,7 @@ from Routes.AuthenticationHandler import *
 from Routes.Servers import *
 from Routes.Store import *
 from Routes.Admin import *
+from Routes.Tickets import *
 from flask_session import Session
 from multiprocessing import Process
 from bot import enable_bot
@@ -35,6 +36,7 @@ app.register_blueprint(user)
 app.register_blueprint(servers, url_prefix="/servers")
 app.register_blueprint(store, url_prefix="/store")
 app.register_blueprint(admin, url_prefix="/admin")
+app.register_blueprint(tickets, url_prefix="/tickets")
 
 
 class Config:

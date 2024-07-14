@@ -101,6 +101,21 @@ def get_ptero_id(email: str) -> tuple[int] | None:
         return None
     return res
 
+def get_id(email: str) -> tuple[int] | None:
+    """Returns tuple with id in index 0, if no user is found returns None"""
+    query = f"SELECT id FROM users WHERE email = %s"
+    res = use_database(query, (email,))
+    if res is None:
+        return None
+    return res
+
+def get_name(user_id: int) -> tuple[str] | None:
+    """Returns tuple with id in index 0, if no user is found returns None"""
+    query = f"SELECT name FROM users WHERE id = %s"
+    res = use_database(query, (user_id,))
+    if res is None:
+        return None
+    return res
 
 def login(email: str, password: str):
     """Checks if login info is correct if it isn't correct returns None if it is returns unmodified database
