@@ -99,10 +99,17 @@ def add_message_submit(ticket_id):
 def ticket(ticket_id):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
+    
+    user_query = "SELECT * from users where email = %s"
+    user_info = use_database(user_query, (session['email'],))
+    
     messages = []
     query = "SELECT * FROM tickets where id = %s"
     # info will be (id, user_id, title, status, created_at)
     info = use_database(query, (ticket_id,))
+    
+    if user_info[2] != "admin" and info[1] != user_info[0]:
+        return redirect(url_for('tickets.tickets_index'))
     
     query_messages = "SELECT * FROM ticket_comments where ticket_id = %s"
     # messages tuple is a list of (id, ticket_id, user_id, ticketcomment, created_at)
