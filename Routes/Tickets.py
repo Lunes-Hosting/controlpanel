@@ -116,6 +116,6 @@ def ticket(ticket_id):
     messages_tuple = use_database(query_messages, (ticket_id,), all=True)
     title = info[2]
     for message in messages_tuple:
-        messages.append({"author": get_name(info[1])[0], "message": message[3], "created_at": message[4]})
+        messages.append({"author": get_name(message[1])[0], "message": message[3], "created_at": message[4]})
     real_info = {"author": get_name(info[1])[0], "title": info[2], "created_at": info[4], "id": info[0]}
     return render_template("ticket.html", messages=messages, info=real_info)
