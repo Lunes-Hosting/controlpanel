@@ -72,3 +72,22 @@ def admin_server(server_id):
     info = get_server_information(server_id)
     product = convert_to_product(info)
     return render_template('admin/server.html', info=info, products=products_local, product=product)
+
+
+@admin.route('/tickets')
+def admin_tickets_index():
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    if not is_admin(session['email']):
+        return "YOUR NOT ADMIN BRO"
+    after_request(session=session, request=request.environ, require_login=True)
+    if 'pterodactyl_id' in session:
+        ptero_id = session['pterodactyl_id']
+    else:
+        ptero_id = get_ptero_id(session['email'])
+        session['pterodactyl_id'] = ptero_id
+
+    user_id = get_id(session['email'])
+    tickets_list = use_database("SELECT * FROM tickets", all=True)
+
+    return render_template('admin/tickets.html', tickets=tickets_list)
