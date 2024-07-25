@@ -24,7 +24,7 @@ CLIENT_HEADERS = {"Authorization": f"Bearer {PTERODACTYL_ADMIN_USER_KEY}",
 
 def sync_users_script():
     """Adds any users to panel that was added using pterodactyl"""
-    data = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
+    data = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS, timeout=60).json()
     for user in data['data']:
 
         query = f"SELECT * FROM users WHERE email = %s"
@@ -48,7 +48,7 @@ def get_nodes() -> list[dict]:
     """Returns list of dictionaries with node information in format:
     {"node_id": node['attributes']['id'], "name": node['attributes']['name']}"""
     available_nodes = []
-    nodes = requests.get(f"{PTERODACTYL_URL}api/application/nodes", headers=HEADERS).json()
+    nodes = requests.get(f"{PTERODACTYL_URL}api/application/nodes", headers=HEADERS, timeout=60).json()
     for node in nodes['data']:
         if "full" not in node['attributes']['name'].lower():
             available_nodes.append({"node_id": node['attributes']['id'], "name": node['attributes']['name']})
@@ -61,11 +61,11 @@ def get_eggs() -> list[dict]:
      "startup": attributes['startup']}
     """
     available_eggs = []
-    nests = requests.get(f"{PTERODACTYL_URL}api/application/nests", headers=HEADERS)
+    nests = requests.get(f"{PTERODACTYL_URL}api/application/nests", headers=HEADERS, timeout=60)
 
     nests_data = nests.json()
     for nest in nests_data['data']:
-        resp = requests.get(f"{PTERODACTYL_URL}api/application/nests/{nest['attributes']['id']}/eggs", headers=HEADERS)
+        resp = requests.get(f"{PTERODACTYL_URL}api/application/nests/{nest['attributes']['id']}/eggs", headers=HEADERS, timeout=60)
         data = resp.json()
         for egg in data['data']:
             attributes = egg['attributes']
@@ -78,7 +78,7 @@ def get_eggs() -> list[dict]:
 
 def list_servers(pterodactyl_id: int) -> list[dict]:
     """Returns list of dictionaries of servers with owner of that pterodactyl id"""
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS)
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS, timeout=60)
     users_server = []
     data = response.json()
     for server in data['data']:
@@ -89,7 +89,7 @@ def list_servers(pterodactyl_id: int) -> list[dict]:
 
 def get_server_information(server_id: int) -> dict:
     """Returns dictionary of server information from pterodactyl api"""
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS)
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS, timeout=60)
     return response.json()
 
 
@@ -158,7 +158,7 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
         "password": password
     }
 
-    response = requests.post(f"{PTERODACTYL_URL}api/application/users", headers=HEADERS, json=body)
+    response = requests.post(f"{PTERODACTYL_URL}api/application/users", headers=HEADERS, json=body, timeout=60)
     data = response.json()
 
     try:
@@ -183,7 +183,7 @@ def delete_user(user_id: int) -> int:
 
     use_database(query, values)
 
-    response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS)
+    response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60)
     response.raise_for_status()
 
     return response.status_code
@@ -231,12 +231,12 @@ def convert_to_product(data) -> dict:
 
 
 def suspend_server(server_id: int):
-    requests.post(f"{PTERODACTYL_URL}api/application/servers/{server_id}/suspend", headers=HEADERS)
+    requests.post(f"{PTERODACTYL_URL}api/application/servers/{server_id}/suspend", headers=HEADERS, timeout=60)
 
 
 def use_credits():
     """Checks all servers products and uses credits of owners"""
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60).json()
 
     for server in response['data']:
 
@@ -261,7 +261,7 @@ def use_credits():
 
 def delete_server(server_id) -> int:
     """Tries to delete server returns status code"""
-    response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS)
+    response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS, timeout=60)
     if response.status_code == 204:
         webhook_log(f"Server {server_id} deleted successfully.")
     else:
@@ -271,13 +271,13 @@ def delete_server(server_id) -> int:
 
 def unsuspend_server(server_id: int):
     """Un-suspends specific server id"""
-    requests.post(f"{PTERODACTYL_URL}api/application/servers/{server_id}/unsuspend", headers=HEADERS)
+    requests.post(f"{PTERODACTYL_URL}api/application/servers/{server_id}/unsuspend", headers=HEADERS, timeout=60)
 
 
 def check_to_unsuspend():
     """Gets all servers loops through and checks if user has moore credits than required or was last seen for free
     tier to un-suspend it, ignores suspended users"""
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60).json()
     cnx = mysql.connector.connect(
         host=HOST,
         user=USER,
@@ -467,5 +467,5 @@ def use_database(query: str, values: tuple = None, database=DATABASE, all: bool 
 
 def webhook_log(message: str):
     resp = requests.post(WEBHOOK_URL,
-                         json={"username": "Web Logs", "content": message})
+                         json={"username": "Web Logs", "content": message}, timeout=60)
     print(resp.text)
