@@ -65,7 +65,7 @@ def create_ticket_submit():
     query_message = ("INSERT INTO ticket_comments (id, ticket_id, user_id, ticketcomment, created_at) VALUES (%s, %s, %s, %s, %s)")
     use_database(query_message, (comment_id, ticket_id, user_id, message, timestamp))
     
-    webhook_log(f"Ticket created by `{session['email']}` with title `{title}`")
+    webhook_log(f"Ticket created by `{session['email']}` with title `{title}` <@&1024761808428466257> https://betadash.lunes.host/tickets/{ticket_id}")
     return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
 
 
@@ -92,7 +92,7 @@ def add_message_submit(ticket_id):
     query_message = ("INSERT INTO ticket_comments (id, ticket_id, user_id, ticketcomment, created_at) VALUES (%s, %s, %s, %s, %s)")
     use_database(query_message, (comment_id, ticket_id, user_id, message, timestamp))
     
-    webhook_log(f"Ticket comment added by `{session['email']}` with message `{message}`")
+    webhook_log(f"Ticket comment added by `{session['email']}` with message `{message}` <@&1024761808428466257> https://betadash.lunes.host/tickets/{ticket_id}")
     return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
 
 @tickets.route('/<ticket_id>')
