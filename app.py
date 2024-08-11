@@ -32,6 +32,7 @@ limiter = Limiter(rate_limit_key, app=app, default_limits=["200 per day", "50 pe
 limiter.limit("20/hour", key_func=rate_limit_key)(user)
 limiter.limit("15/hour", key_func=rate_limit_key)(servers)
 limiter.limit("15/hour", key_func=rate_limit_key)(tickets)
+limiter.limit("10/hour", key_func=rate_limit_key)(store)
 
 app.register_blueprint(user)
 app.register_blueprint(servers, url_prefix="/servers")
