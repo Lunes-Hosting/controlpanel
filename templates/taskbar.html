@@ -1,60 +1,63 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/taskbar.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sidebar Redesign</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://kit.fontawesome.com/37a0f8002e.js" crossorigin="anonymous"></script>
 </head>
-<body>
-</script>
-    <div class="area"></div>
-    <nav class="main-menu">
-        <ul>
-            <li>
-                <a href="{{url_for(('index'))}}">
-                    <i class="fa fa-home fa-2x"></i>
-                    <span class="nav-text">Home</span>
-                </a>
-            </li>
-            <li class="has-subnav">
-                <a href="{{url_for('servers.servers_index')}}">
-                    <i class="fa fa-globe fa-2x"></i>
-                    <span class="nav-text">Servers</span>
-                </a>
-            </li>
-            <li class="has-subnav">
-                <a href="{{url_for('user.index')}}">
-                    <i class="fa fa-user fa-2x"></i>
-                    <span class="nav-text">Account</span>
-                </a>
-            </li>
-            <li class="has-subnav">
-                <a href="{{url_for('store.storepage')}}">
-                    <i class="fa fa-money-bill fa-2x"></i>
-                    <span class="nav-text">Store</span>
-                </a>
-            </li>
-            <li class="has-subnav">
-                <a href="{{url_for('tickets.tickets_index')}}">
-                    <i class="fa fa-solid fa-ticket fa-2x"></i>
-                    <span class="nav-text">Tickets</span>
-                </a>
-            </li>
-            <li class="has-subnav">
-                <a href="https://discord.gg/BAdPPdN97c">
-                    <i class="fa fa-brands fa-discord fa-2x"></i>
-                    <span class="nav-text">Discord</span>
-                </a>
-            </li>
-        </ul>
-
-        <ul class="logout">
-            <li>
-                <a href="{{url_for('user.logout')}}">
-                    <i class="fa fa-power-off fa-2x"></i>
-                    <span class="nav-text">Logout</span>
-                </a>
-            </li>
-        </ul>
-    </nav>
+<body class="bg-base-200 text-base-100">
+    <div class="flex">
+        <nav class="sidebar shadow-lg h-screen">
+            <ul class="menu p-4">
+                <li>
+                    <a href="{{url_for(('index'))}}" class="nav-link">
+                        <i class="fa fa-home fa-lg"></i>
+                        <span class="nav-text">Home</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{url_for('servers.servers_index')}}" class="nav-link">
+                        <i class="fa fa-solid fa-server"></i>
+                        <span class="nav-text">Servers</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{url_for('user.index')}}" class="nav-link">
+                        <i class="fa fa-user fa-lg"></i>
+                        <span class="nav-text">Account</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{url_for('store.storepage')}}" class="nav-link">
+                        <i class="fa fa-money-bill fa-lg"></i>
+                        <span class="nav-text">Store</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{url_for('tickets.tickets_index')}}" class="nav-link">
+                        <i class="fa fa-ticket fa-lg"></i>
+                        <span class="nav-text">Tickets</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="https://discord.gg/BAdPPdN97c" class="nav-link">
+                        <i class="fa fa-brands fa-discord fa-lg"></i>
+                        <span class="nav-text">Discord</span>
+                    </a>
+                </li>
+            </ul>
+            <ul class="logout">
+                <li>
+                    <a href="{{url_for('user.logout')}}" class="nav-link">
+                        <i class="fa fa-power-off fa-lg"></i>
+                        <span class="nav-text">Logout</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
 </body>
 </html>
