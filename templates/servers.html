@@ -11,25 +11,27 @@
 </head>
 <body data-theme="synthwave">
 
+    {% include 'taskbar.html' %}
+
     <!-- Flash Messages -->
     <div id="flash-messages">
         {% with messages = get_flashed_messages() %}
             {% if messages %}
-                {% for message in messages %}
-                <div class="alert alert-info">
+               {% for message in messages %}
+               <div class="alert alert-error">
                     <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20h.01M12 12v4m0-4V8"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span>{{ message }}</span>
                 </div>
-                {% endfor %}
+               {% endfor %}
             {% endif %}
         {% endwith %}
     </div>
-
+    
     <!-- Hero Section -->
-    <div class="hero min-h-screen bg-base-200 flex flex-col justify-center">
-        <div class="hero-content text-center">
+    <section class="hero min-h-screen bg-base-200 text-base-100 py-12 flex flex-col justify-center">
+        <div class="container mx-auto text-center">
             <h1 class="text-4xl md:text-5xl font-bold mb-4">Your Servers</h1>
             <p class="text-lg md:text-xl mb-8">Manage and view all your servers in one place.</p>
             
@@ -39,7 +41,36 @@
             </a>
             {% endif %}
         </div>
-    </div>
+    </section>
+
+    <!-- Alerts & Notifications -->
+    <section class="container mx-auto py-6">
+        {% if not verified %}
+        <div class="alert alert-warning shadow-lg mb-4">
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20h.01M12 12v4m0-4V8"></path>
+                </svg>
+                <span>You must verify your email to create servers. <a href="{{url_for('resend_confirmation_email')}}" class="link link-info">Resend Verification Email</a></span>
+            </div>
+        </div>
+        {% endif %}
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="alert alert-info shadow-lg mb-4">
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20h.01M12 12v4m0-4V8"></path>
+                </svg>
+                {% for message in messages %}
+                <span>{{ message }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+    </section>
 
     <!-- Server Cards -->
     <section class="container mx-auto py-8">
