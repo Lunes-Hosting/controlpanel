@@ -3,61 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lunes Host | Store</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/taskbar.css') }}">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://kit.fontawesome.com/37a0f8002e.js" crossorigin="anonymous"></script>
+    <style>
+        body {
+            background-color: #1e293b;
+            margin-left: 16rem;
+            padding: 0;
+        }
+        .content {
+            padding: 20px;
+        }
+        .store-container {
+            max-width: 100%;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #2d3748;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .product-card {
+            background-color: #374151;
+            color: #fff;
+        }
+        .product-card:hover {
+            background-color: #4b5563;
+        }
+    </style>
 </head>
-<body class="bg-base-200 text-base-100">
-    <div class="flex">
-        <nav class="sidebar shadow-lg h-screen">
-            <ul class="menu p-4">
-                <li>
-                    <a href="{{url_for(('index'))}}" class="nav-link">
-                        <i class="fa fa-home fa-lg"></i>
-                        <span class="nav-text">Home</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{url_for('servers.servers_index')}}" class="nav-link">
-                        <i class="fa fa-solid fa-server"></i>
-                        <span class="nav-text">Servers</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{url_for('user.index')}}" class="nav-link">
-                        <i class="fa fa-user fa-lg"></i>
-                        <span class="nav-text">Account</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{url_for('store.storepage')}}" class="nav-link">
-                        <i class="fa fa-money-bill fa-lg"></i>
-                        <span class="nav-text">Store</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{url_for('tickets.tickets_index')}}" class="nav-link">
-                        <i class="fa fa-ticket fa-lg"></i>
-                        <span class="nav-text">Tickets</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="https://discord.gg/BAdPPdN97c" class="nav-link">
-                        <i class="fa fa-brands fa-discord fa-lg"></i>
-                        <span class="nav-text">Discord</span>
-                    </a>
-                </li>
-            </ul>
-            <ul class="logout">
-                <li>
-                    <a href="{{url_for('user.logout')}}" class="nav-link">
-                        <i class="fa fa-power-off fa-lg"></i>
-                        <span class="nav-text">Logout</span>
-                    </a>
-                </li>
-            </ul>
-        </nav>
+<body data-theme="synthwave">
+    {% include 'taskbar.html' %}
+    <div class="content">
+        <div class="store-container">
+            <h2 class="text-3xl font-bold text-white mb-6 text-center">Store</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {% for product in products %}
+                <div class="card product-card shadow-lg hover:shadow-xl transition-shadow duration-300">
+                    <div class="card-body p-6 text-center">
+                        {% if product['price_link'] %}
+                        <a href="{{ url_for('store.create_checkout_session', price_link=product['price_link']) }}" class="btn btn-info w-full">
+                            Buy {{ product['price'] }} credits
+                        </a>
+                        {% else %}
+                        <p class="text-gray-400">Price not available</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 </body>
 </html>
