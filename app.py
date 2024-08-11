@@ -31,6 +31,8 @@ limiter = Limiter(rate_limit_key, app=app, default_limits=["200 per day", "50 pe
 
 limiter.limit("20/hour", key_func=rate_limit_key)(user)
 limiter.limit("15/hour", key_func=rate_limit_key)(servers)
+limiter.limit("15/hour", key_func=rate_limit_key)(tickets)
+limiter.limit("10/hour", key_func=rate_limit_key)(store)
 
 app.register_blueprint(user)
 app.register_blueprint(servers, url_prefix="/servers")
@@ -115,6 +117,7 @@ def reset_password():
 
 # Route to confirm the password reset using the token
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
+@limiter.limit("5 per day")
 def reset_password_confirm(token):
     print(token)
     if request.method == 'POST':
@@ -242,6 +245,7 @@ def register_user():
 
 
 @app.route("/resend_confirmation_email")
+@limiter.limit("5 per day")
 def resend_confirmation_email():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))

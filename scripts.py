@@ -278,16 +278,7 @@ def check_to_unsuspend():
     """Gets all servers loops through and checks if user has moore credits than required or was last seen for free
     tier to un-suspend it, ignores suspended users"""
     response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
-    cnx = mysql.connector.connect(
-        host=HOST,
-        user=USER,
-        password=PASSWORD,
-        database=DATABASE,
-        charset='utf8mb4',
-        collation='utf8mb4_unicode_ci'
-    )
-
-    cursor = cnx.cursor()
+    
     for server in response['data']:
         user_suspended = check_if_user_suspended(server['attributes']['user'])
         if user_suspended:
@@ -309,15 +300,11 @@ def check_to_unsuspend():
         if product is not None and product['name'] != "Free Tier":
 
             query = f"SELECT email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
-            cursor.execute(query)
-            email = cursor.fetchone()
-            cnx.commit()
-
+            email = use_database(query)
+            
             query = f"SELECT credits FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
-            cursor.execute(query)
-            current_credits = cursor.fetchone()
+            current_credits = use_database(query)
 
-            cnx.commit()
             if email is None or current_credits is None:
                 pass
             if email is not None:
@@ -346,8 +333,8 @@ def check_to_unsuspend():
         elif product is not None:
             if product['name'] == "Free Tier":
                 query = f"SELECT last_seen, email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
-                cursor.execute(query)
-                last_seen, email = cursor.fetchone()
+                last_seen, email = use_database(query)
+                
                 if last_seen is not None:
                     if datetime.datetime.now() - last_seen > datetime.timedelta(days=30):
                         print(
@@ -359,9 +346,7 @@ def check_to_unsuspend():
                 else:
                     update_last_seen(email)
 
-    cnx.commit()
-    cursor.close()
-    cnx.close()
+
 
 
 def get_credits(email: str) -> int:
@@ -385,9 +370,10 @@ def check_if_user_suspended(pterodactyl_id: str) -> bool | None:
 def update_ip(email: str, ip: EnvironHeaders):
     """Updates the ip by getting the header with key "CF-Connecting-IP" default is "localhost"."""
     real_ip = ip.get('CF-Connecting-IP', "localhost")
-    query = f"UPDATE users SET ip = '{real_ip}' where email = %s"
+    if real_ip != "localhost":
+        query = f"UPDATE users SET ip = '{real_ip}' where email = %s"
 
-    use_database(query, (email,))
+        use_database(query, (email,))
 
 
 def update_last_seen(email: str, everyone: bool = False):
