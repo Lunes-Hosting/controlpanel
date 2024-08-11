@@ -10,12 +10,11 @@
     <style>
         body {
             background-color: #1e293b;
+            margin-left: 16rem;
+            padding: 0;
         }
         .content {
-            margin-left: 250px;
             padding: 20px;
-            flex-grow: 1;
-            background-color: #1e293b;
         }
         .store-container {
             max-width: 100%;
@@ -34,10 +33,7 @@
     </style>
 </head>
 <body data-theme="synthwave">
-
     {% include 'taskbar.html' %}
-
-    <!-- Main Content -->
     <div class="content">
         <div class="store-container">
             <h2 class="text-3xl font-bold text-white mb-6 text-center">Store</h2>
@@ -58,16 +54,5 @@
             </div>
         </div>
     </div>
-    
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            var flashMessages = document.getElementById("flash-messages");
-            if (flashMessages) {
-                setTimeout(function() {
-                    flashMessages.style.display = "none";
-                }, 5000);
-            }
-        });
-    </script>
 </body>
 </html>
