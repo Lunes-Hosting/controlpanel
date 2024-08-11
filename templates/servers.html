@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lunes Host | Servers</title>
+    <title>Lunes Host | Your Servers</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,7 +13,22 @@
 
     {% include 'taskbar.html' %}
 
-    <div class="container mx-auto py-8">
+    <!-- Hero Section -->
+    <section class="bg-info text-base-100 py-12">
+        <div class="container mx-auto text-center">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">Your Servers</h1>
+            <p class="text-lg md:text-xl mb-8">Manage and view all your servers in one place.</p>
+            
+            {% if verified %}
+            <a href="{{ url_for('servers.create_server') }}">
+                <button class="btn btn-info text-base-100">Create New Server</button>
+            </a>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Alerts & Notifications -->
+    <section class="container mx-auto py-6">
         {% if not verified %}
         <div class="alert alert-warning shadow-lg mb-4">
             <div>
@@ -39,28 +54,23 @@
         </div>
         {% endif %}
         {% endwith %}
+    </section>
 
-        <h1 class="text-5xl text-center text-info mb-8">Your Servers</h1>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    <!-- Server Cards -->
+    <section class="container mx-auto py-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {% for server in servers %}
             <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}">
-                <div class="card bg-base-100 shadow-xl hover:bg-info hover:text-info-content transition-colors">
-                    <div class="card-body">
-                        <h3 class="card-title">{{ server['attributes']['name'] }}</h3>
+                <div class="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                    <div class="card-body p-6 text-center">
+                        <h3 class="text-xl font-semibold mb-4">{{ server['attributes']['name'] }}</h3>
+                        <p class="text-sm text-gray-600">Click to view details</p>
                     </div>
                 </div>
             </a>
             {% endfor %}
         </div>
+    </section>
 
-        <div class="text-center mt-8">
-            {% if verified %}
-            <a href="{{url_for('servers.create_server')}}">
-                <button class="btn btn-info">Create Server</button>
-            </a>
-            {% endif %}
-        </div>
-    </div>
 </body>
 </html>
