@@ -1,84 +1,46 @@
-{% include 'taskbar.html' %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Account Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #212121;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            margin-top: 50px;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-        }
-        h1 {
-            font-size: 28px;
-            color: #fff;
-            text-align: center;
-        }
-        .user-info {
-            margin-top: 30px;
-            text-align: center;
-        }
-        .user-info p {
-            font-size: 18px;
-            margin: 10px 0;
-            color: #fff;
-        }
-        .button-container {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .account-button {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #3498db;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-        }
-        .account-button:hover {
-            background-color: #2980b9;
+            background-color: #1e293b;
         }
     </style>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230"
-     crossorigin="anonymous"></script>
-    
 </head>
 <body>
+    {% include 'taskbar.html' %}
+    
+    <div class="container mx-auto mt-12 p-6 max-w-lg bg-base-100 rounded-lg shadow-xl">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-info">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6" />
+                </svg>
+                <span>{{ message }}</span>
+            </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
 
-    <div class="container">
-        <h1>Welcome to Your Account</h1>
-        <div class="user-info">
-            <p><strong>Username:</strong> {{username}}</p>
-            <p><strong>Email:</strong> {{email}}</p>
-            <p><strong>Credits:</strong> {{credits}}</p>
-            <p><strong>Server Count:</strong> {{server_count}}</p>
-            <p><strong>Current monthly credit usage:</strong>{{monthly_usage}}</p>
+        <h1 class="text-3xl font-bold text-center text-info">Welcome to Your Account</h1>
+        <div class="user-info mt-8 text-center">
+            <p class="text-lg text-base-content"><strong>Username:</strong> {{username}}</p>
+            <p class="text-lg text-base-content"><strong>Email:</strong> {{email}}</p>
+            <p class="text-lg text-base-content"><strong>Credits:</strong> {{credits}}</p>
+            <p class="text-lg text-base-content"><strong>Server Count:</strong> {{server_count}}</p>
+            <p class="text-lg text-base-content"><strong>Current monthly credit usage:</strong> {{monthly_usage}}</p>
         </div>
-        <div class="button-container">
-            <a href="{{url_for('user.logout')}}" class="account-button">Log out</a>
+        <div class="button-container mt-6 text-center">
+            <a href="{{url_for('user.logout')}}" class="btn btn-info text-white">Log out</a>
         </div>
     </div>
-
-{% with messages = get_flashed_messages() %}
-{% if messages %}
-{% for message in messages %}
-    {{ message }}
-{% endfor %}
-{% endif %}
-{% endwith %}
 </body>
 </html>
