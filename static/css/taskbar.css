@@ -40,10 +40,10 @@ body {
   margin-top: auto;
 }
 .logout .nav-link {
-  color: #ef4444;
+  color: #e5e7eb;
 }
 .logout .nav-link:hover {
-  background-color: #dc2626;
+  background-color: #374151;
 }
 .content {
   margin-left: 16rem;
