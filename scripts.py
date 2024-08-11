@@ -370,9 +370,10 @@ def check_if_user_suspended(pterodactyl_id: str) -> bool | None:
 def update_ip(email: str, ip: EnvironHeaders):
     """Updates the ip by getting the header with key "CF-Connecting-IP" default is "localhost"."""
     real_ip = ip.get('CF-Connecting-IP', "localhost")
-    query = f"UPDATE users SET ip = '{real_ip}' where email = %s"
+    if real_ip != "localhost":
+        query = f"UPDATE users SET ip = '{real_ip}' where email = %s"
 
-    use_database(query, (email,))
+        use_database(query, (email,))
 
 
 def update_last_seen(email: str, everyone: bool = False):
