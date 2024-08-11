@@ -1,66 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lunes Host | Servers</title>
+    <title>Lunes Host | Server {{ info['attributes']['name'] }}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/server_details.css') }}">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230"
+    crossorigin="anonymous"></script>
 </head>
-<body data-theme="synthwave" class="bg-base-200">
-
-    {% include 'taskbar.html' %}
-
-    <div class="container mx-auto py-8">
-        {% if not verified %}
-        <div class="alert alert-warning shadow-lg mb-4">
-            <div>
-                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20h.01M12 12v4m0-4V8"></path>
-                </svg>
-                <span>You must verify your email to create servers. <a href="{{url_for('resend_confirmation_email')}}" class="link link-info">Resend Verification Email</a></span>
-            </div>
-        </div>
-        {% endif %}
-
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-        <div class="alert alert-info shadow-lg mb-4">
-            <div>
-                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20h.01M12 12v4m0-4V8"></path>
-                </svg>
-                {% for message in messages %}
-                <span>{{ message }}</span>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        {% endwith %}
-
-        <h1 class="text-5xl text-center text-info mb-8">Your Servers</h1>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {% for server in servers %}
-            <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}">
-                <div class="card bg-base-100 shadow-xl hover:bg-info hover:text-info-content transition-colors">
-                    <div class="card-body">
-                        <h3 class="card-title">{{ server['attributes']['name'] }}</h3>
-                    </div>
-                </div>
-            </a>
+<body>
+    {% if info['attributes']['limits']['memory'] == 128:  %}
+        <h1> WARNING: FREE SERVERS WILL BE DELETED IF YOU DO NOT LOGIN TO THE DASHBOARD EVERY 30 DAYS </h1>
+    {% endif %}
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="message">{{ message }}</div>
             {% endfor %}
         </div>
-
-        <div class="text-center mt-8">
-            {% if verified %}
-            <a href="{{url_for('servers.create_server')}}">
-                <button class="btn btn-info">Create Server</button>
-            </a>
-            {% endif %}
+    {% endif %}
+    {% endwith %}
+    {% include 'taskbar.html' %}
+    <div class="server-details-container">
+        <h1>{{ info['attributes']['name'] }}</h1>
+        <div class="button-group">
+            <a href="{{ url_for('servers.delete_server', server_id=info['attributes']['id']) }}" class="button delete-button">Delete</a>
+            <a href="https://ctrl.lunes.host/server/{{ info['attributes']['uuid'].split('-')[0] }}" class="button manage-button">Manage</a>
         </div>
+        <h1>Update Plan</h1>
+        <form action="{{ url_for('servers.update_server_submit', server_id=info['attributes']['id']) }}" method="post">
+            <div class="plan-selection">
+                <label for="plan">Select a Plan:</label>
+                <select id="plan" name="plan" class="plan" size="5" required>
+                    {% for product in products %}
+                        <option class="plan-option" value="{{ product['id'] }}">
+                            {{ product['name'] }}: Memory {{ product['limits']['memory'] }}MB, Storage {{ product['limits']['disk'] }}GB, CPU {{ product['limits']['cpu'] }}%
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <br>
+            <input type="submit" value="Submit">
+        </form>
     </div>
 </body>
 </html>
