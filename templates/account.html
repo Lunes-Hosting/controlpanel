@@ -10,36 +10,55 @@
     <style>
         body {
             background-color: #1e293b;
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #2d3748;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            overflow-y: auto;
+        }
+        .content {
+            margin-left: 250px;
+            padding: 20px;
+            flex-grow: 1;
         }
     </style>
 </head>
 <body>
     {% include 'taskbar.html' %}
-    
-    <div class="container mx-auto mt-12 p-6 max-w-lg bg-base-100 rounded-lg shadow-xl">
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-info">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6" />
-                </svg>
-                <span>{{ message }}</span>
-            </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
 
-        <h1 class="text-3xl font-bold text-center text-info">Welcome to Your Account</h1>
-        <div class="user-info mt-8 text-center">
-            <p class="text-lg text-base-content"><strong>Username:</strong> {{username}}</p>
-            <p class="text-lg text-base-content"><strong>Email:</strong> {{email}}</p>
-            <p class="text-lg text-base-content"><strong>Credits:</strong> {{credits}}</p>
-            <p class="text-lg text-base-content"><strong>Server Count:</strong> {{server_count}}</p>
-            <p class="text-lg text-base-content"><strong>Current monthly credit usage:</strong> {{monthly_usage}}</p>
-        </div>
-        <div class="button-container mt-6 text-center">
-            <a href="{{url_for('user.logout')}}" class="btn btn-info text-white">Log out</a>
+    <div class="content">
+        <div class="container mx-auto mt-12 p-6 max-w-lg bg-base-100 rounded-lg shadow-xl">
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-info">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6" />
+                    </svg>
+                    <span>{{ message }}</span>
+                </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <h1 class="text-3xl font-bold text-center text-info">Welcome to Your Account</h1>
+            <div class="user-info mt-8 text-center">
+                <p class="text-lg text-base-content"><strong>Username:</strong> {{username}}</p>
+                <p class="text-lg text-base-content"><strong>Email:</strong> {{email}}</p>
+                <p class="text-lg text-base-content"><strong>Credits:</strong> {{credits}}</p>
+                <p class="text-lg text-base-content"><strong>Server Count:</strong> {{server_count}}</p>
+                <p class="text-lg text-base-content"><strong>Current monthly credit usage:</strong> {{monthly_usage}}</p>
+            </div>
+            <div class="button-container mt-6 text-center">
+                <a href="{{url_for('user.logout')}}" class="btn btn-info text-white">Log out</a>
+            </div>
         </div>
     </div>
 </body>
