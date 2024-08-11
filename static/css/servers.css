@@ -1,9 +1,15 @@
 body {
-    background-image: url("https://images.unsplash.com/photo-1475727946784-2890c8fdb9c8?ixid=M3wyMDkyMnwwfDF8c2VhcmNofDQ2fHx3YWxscGFwZXJ8ZW58MHx8fHwxNjkwNjE2NjA0fDA&ixlib=rb-4.0.3q=85&fm=jpg&crop=faces&cs=srgb&w=1200&fit=max");
     background-size: cover;
     background-position: center;
     font-family: Arial, sans-serif;
-    background-color: #f9f9f9;
+    background-color: #212121;
+    text-align: center;
+}
+
+.title {
+    color: #fff;
+    font-size: 30px;
+    margin-top: 20px;
     text-align: center;
 }
 

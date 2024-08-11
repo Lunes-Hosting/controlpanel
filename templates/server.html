@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Server {{ info['attributes']['name'] }}</title>
+    <title>Lunes Host | Server {{ info['attributes']['name'] }}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/server_details.css') }}">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230"
@@ -9,27 +9,36 @@
 </head>
 <body>
     {% if info['attributes']['limits']['memory'] == 128:  %}
-        <h1> WARNING: FREE SERVERS WILL BE DELETED IF YOU DO NOT LOGIN TO THE DASHBOARD EVERY 30 DAYS </h1>
+        <h1 class="warning"> WARNING: FREE SERVERS WILL BE DELETED IF YOU DO NOT LOGIN TO THE DASHBOARD EVERY 30 DAYS </h1>
     {% endif %}
     {% with messages = get_flashed_messages() %}
     {% if messages %}
-    {% for message in messages %}
-        {{ message }}
-    {% endfor %}
-{% endif %}
-{% endwith %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="message">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% endwith %}
     {% include 'taskbar.html' %}
     <div class="server-details-container">
         <h1>{{ info['attributes']['name'] }}</h1>
-        <a href="{{ url_for('servers.delete_server', server_id=info['attributes']['id']) }}" class="button delete-button">Delete</a>
-        <a href="https://ctrl.lunes.host/server/{{ info['attributes']['uuid'].split('-')[0] }}" class="button manage-button">Manage</a>
+        <div class="button-group">
+            <a href="{{ url_for('servers.delete_server', server_id=info['attributes']['id']) }}" class="button delete-button">Delete</a>
+            <a href="https://ctrl.lunes.host/server/{{ info['attributes']['uuid'].split('-')[0] }}" class="button manage-button">Manage</a>
+        </div>
         <h1>Update Plan</h1>
         <form action="{{ url_for('servers.update_server_submit', server_id=info['attributes']['id']) }}" method="post">
-            <select id="plan" name="plan" class="plan" size="3" required>
-                {% for product in products %}
-                    <option class="plan-option" value="{{product['id']}}">{{product['name']}} Memory {{product['limits']['memory']}}, Storage {{product['limits']['disk']}}, CPU%(0=Unlimited) {{product['limits']['cpu']}}</option>
-                {% endfor %}
-            </select>
+            <div class="plan-selection">
+                <label for="plan">Select a Plan:</label>
+                <select id="plan" name="plan" class="plan" size="5" required>
+                    {% for product in products %}
+                        <option class="plan-option" value="{{ product['id'] }}">
+                            {{ product['name'] }}: Memory {{ product['limits']['memory'] }}MB, Storage {{ product['limits']['disk'] }}GB, CPU {{ product['limits']['cpu'] }}%
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
             <br>
             <input type="submit" value="Submit">
         </form>

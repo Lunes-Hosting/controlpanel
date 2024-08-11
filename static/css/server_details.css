@@ -1,14 +1,15 @@
 body {
-    background-image: url("https://images.unsplash.com/photo-1475727946784-2890c8fdb9c8?ixid=M3wyMDkyMnwwfDF8c2VhcmNofDQ2fHx3YWxscGFwZXJ8ZW58MHx8fHwxNjkwNjE2NjA0fDA&ixlib=rb-4.0.3q=85&fm=jpg&crop=faces&cs=srgb&w=1200&fit=max");
     background-size: cover;
     background-color: #f9f9f9;
     font-family: Arial, sans-serif;
     text-align: center;
+    margin: 0;
+    padding: 0;
 }
 
 .server-details-container {
-    max-width: 500px;
-    margin: 0 auto;
+    max-width: 600px;
+    margin: 50px auto;
     padding: 20px;
     background-color: #fff;
     border-radius: 10px;
@@ -17,16 +18,43 @@ body {
 
 h1 {
     margin-top: 20px;
+    color: #00adef;
+}
+
+.warning {
+    color: #ff4040;
+    font-size: 18px;
+    margin: 20px 0;
+}
+
+.messages {
+    margin: 20px auto;
+    padding: 10px;
+    background-color: #ffefd5;
+    border: 1px solid #ffdd99;
+    border-radius: 5px;
+    width: 80%;
+}
+
+.message {
+    color: #ff4040;
+    font-weight: bold;
+}
+
+.button-group {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
 }
 
 .button {
     display: inline-block;
     padding: 10px 20px;
-    margin-top: 10px;
     color: #fff;
     text-decoration: none;
     border-radius: 5px;
     transition: background-color 0.2s ease;
+    cursor: pointer;
 }
 
 .delete-button {
@@ -42,21 +70,21 @@ h1 {
 }
 
 form {
-    max-width: 500px;
-    margin: 0 auto;
+    max-width: 600px;
+    margin: 20px auto;
     padding: 20px;
     background-color: #fff;
     border-radius: 10px;
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
 }
 
-
 label {
     display: block;
     margin-bottom: 8px;
+    font-weight: bold;
+    color: #333;
 }
 
-input[type="text"],
 select {
     width: 100%;
     padding: 10px;
@@ -81,37 +109,10 @@ input[type="submit"]:hover {
     background-color: #00a2db;
 }
 
-/* buttons */
-.options {
-    display: none;
-    margin-top: 20px;
-}
-
-.button-group {
-    display: flex;
-    justify-content: space-around;
+.plan-selection {
     margin-bottom: 20px;
 }
 
-.button {
-    background-color: #00adef;
-    color: #fff;
-    border: none;
-    padding: 10px 20px;
-    font-size: 16px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.button:hover {
-    background-color: #00a2db;
-}
-
-.button.active {
-    background-color: #00a2db;
-}
-h1 {
-    color: #00adef;
-    margin-top: 20px;
+.plan-option {
+    padding: 10px;
 }
