@@ -1,27 +1,73 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Store</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/store.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #1e293b;
+        }
+        .content {
+            margin-left: 250px;
+            padding: 20px;
+            flex-grow: 1;
+            background-color: #1e293b;
+        }
+        .store-container {
+            max-width: 100%;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #2d3748;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .product-card {
+            background-color: #374151;
+            color: #fff;
+        }
+        .product-card:hover {
+            background-color: #4b5563;
+        }
+    </style>
 </head>
-<body>
+<body data-theme="synthwave">
+
     {% include 'taskbar.html' %}
-    <div class="store-container">
-        <h2>Store</h2>
-        <div class="product-list">
-            {% for product in products %}
-            <div class="product">
-                {% if product['price_link'] %}
-                    <a href="{{ url_for('store.create_checkout_session', price_link=product['price_link']) }}">
-                        Buy {{ product['price'] }} credits
-                    </a>
-                {% else %}
-                   
-                {% endif %}
+
+    <!-- Main Content -->
+    <div class="content">
+        <div class="store-container">
+            <h2 class="text-3xl font-bold text-white mb-6 text-center">Store</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {% for product in products %}
+                <div class="card product-card shadow-lg hover:shadow-xl transition-shadow duration-300">
+                    <div class="card-body p-6 text-center">
+                        {% if product['price_link'] %}
+                        <a href="{{ url_for('store.create_checkout_session', price_link=product['price_link']) }}" class="btn btn-info w-full">
+                            Buy {{ product['price'] }} credits
+                        </a>
+                        {% else %}
+                        <p class="text-gray-400">Price not available</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
     </div>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var flashMessages = document.getElementById("flash-messages");
+            if (flashMessages) {
+                setTimeout(function() {
+                    flashMessages.style.display = "none";
+                }, 5000);
+            }
+        });
+    </script>
 </body>
 </html>
