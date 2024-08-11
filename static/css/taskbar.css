@@ -1,7 +1,7 @@
 body {
+  background-color: #212121;
   margin: 0;
   padding: 0;
-  background-color: #1e293b;
 }
 .sidebar {
   position: fixed;
@@ -9,18 +9,17 @@ body {
   left: 0;
   height: 100vh;
   width: 16rem;
-  background-color: #2d3748;
-  color: #edf2f7;
+  background-color: #1f2937;
+  color: #e5e7eb;
   display: flex;
   flex-direction: column;
-  padding-top: 2rem;
+  padding: 1rem;
+  box-shadow: 4px 0 8px rgba(0, 0, 0, 0.2);
 }
-.menu {
+.sidebar .menu {
   flex: 1;
-  display: flex;
-  flex-direction: column;
 }
-.menu li {
+.sidebar .menu li {
   margin-bottom: 1rem;
 }
 .nav-link {
@@ -28,23 +27,23 @@ body {
   align-items: center;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
-  color: #edf2f7;
+  color: #e5e7eb;
   transition: background-color 0.3s;
 }
 .nav-link:hover {
-  background-color: #4a5568;
+  background-color: #374151;
 }
 .nav-link i {
   margin-right: 0.75rem;
 }
 .logout {
-  margin-bottom: 2rem;
+  margin-top: auto;
 }
 .logout .nav-link {
-  color: #f56565;
+  color: #ef4444;
 }
 .logout .nav-link:hover {
-  background-color: #c53030;
+  background-color: #dc2626;
 }
 .content {
   margin-left: 16rem;
