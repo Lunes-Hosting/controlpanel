@@ -35,11 +35,14 @@
             background-color: #1e293b;
         }
         .container {
-            max-width: 100%; /* Full width to fit content area */
+            max-width: 100%;
             padding: 20px;
             border-radius: 10px;
             background-color: #2d3748;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .card-body {
+            color: #fff; /* Ensures the text is white for visibility */
         }
     </style>
 </head>
@@ -81,8 +84,8 @@
                     <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}">
                         <div class="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow duration-300">
                             <div class="card-body p-6 text-center">
-                                <h3 class="text-xl font-semibold mb-4">{{ server['attributes']['name'] }}</h3>
-                                <p class="text-sm text-gray-600">Click to view details</p>
+                                <h3 class="text-xl font-semibold mb-4 text-white">{{ server['attributes']['name'] }}</h3>
+                                <p class="text-sm text-gray-300">Click to view details</p>
                             </div>
                         </div>
                     </a>
