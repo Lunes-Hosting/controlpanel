@@ -1,42 +1,66 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Servers</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/servers.css') }}">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230"
-    crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
 </head>
-<body>
+<body data-theme="synthwave" class="bg-base-200">
 
-    {%if not verified%}
-        <h2>You must verify email to create servers <a href={{url_for('resend_confirmation_email')}}>Resend Verification email</a></h2>
-    {% endif %}
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    {% for message in messages %}
-        {{ message }}
-    {% endfor %}
-    {% endif %}
-    {% endwith %}
     {% include 'taskbar.html' %}
 
-    <div class="grid-container">
-        {% for server in servers %}
+    <div class="container mx-auto py-8">
+        {% if not verified %}
+        <div class="alert alert-warning shadow-lg mb-4">
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20h.01M12 12v4m0-4V8"></path>
+                </svg>
+                <span>You must verify your email to create servers. <a href="{{url_for('resend_confirmation_email')}}" class="link link-info">Resend Verification Email</a></span>
+            </div>
+        </div>
+        {% endif %}
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="alert alert-info shadow-lg mb-4">
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20h.01M12 12v4m0-4V8"></path>
+                </svg>
+                {% for message in messages %}
+                <span>{{ message }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <h1 class="text-5xl text-center text-info mb-8">Your Servers</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for server in servers %}
             <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}">
-                <div class="server-box">
-                    <h3>{{ server['attributes']['name'] }}</h3>
+                <div class="card bg-base-100 shadow-xl hover:bg-info hover:text-info-content transition-colors">
+                    <div class="card-body">
+                        <h3 class="card-title">{{ server['attributes']['name'] }}</h3>
+                    </div>
                 </div>
             </a>
-        {% endfor %}
-    </div>
-    
-    <h1 class="title">Your Servers</h1>
-    <div class="centered-button">
-        
-        {%if verified%}
-        <a href="{{url_for('servers.create_server')}}"><button>Server create</button></a>
-        {% endif %}
+            {% endfor %}
+        </div>
+
+        <div class="text-center mt-8">
+            {% if verified %}
+            <a href="{{url_for('servers.create_server')}}">
+                <button class="btn btn-info">Create Server</button>
+            </a>
+            {% endif %}
+        </div>
     </div>
 </body>
 </html>
