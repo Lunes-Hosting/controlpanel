@@ -7,60 +7,6 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/taskbar.css') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://kit.fontawesome.com/37a0f8002e.js" crossorigin="anonymous"></script>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #1e293b;
-        }
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            width: 16rem;
-            background-color: #2d3748;
-            color: #edf2f7;
-            display: flex;
-            flex-direction: column;
-            padding-top: 2rem;
-        }
-        .menu {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        .menu li {
-            margin-bottom: 1rem;
-        }
-        .nav-link {
-            display: flex;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            color: #edf2f7;
-            transition: background-color 0.3s;
-        }
-        .nav-link:hover {
-            background-color: #4a5568;
-        }
-        .nav-link i {
-            margin-right: 0.75rem;
-        }
-        .logout {
-            margin-bottom: 2rem;
-        }
-        .logout .nav-link {
-            color: #f56565;
-        }
-        .logout .nav-link:hover {
-            background-color: #c53030;
-        }
-        .content {
-            margin-left: 16rem;
-            padding: 2rem;
-        }
-    </style>
 </head>
 <body class="bg-base-200 text-base-100">
     <nav class="sidebar shadow-lg">
