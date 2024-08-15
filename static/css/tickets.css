@@ -1,0 +1,122 @@
+body {
+    background-color: #212121;
+    margin: 0;
+    padding: 70px 0 0; /*top padding */
+    color: #e5e7eb;
+    font-family: Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+
+h1, h2 {
+    text-align: center;
+    color: #e5e7eb;
+}
+
+h1 {
+    font-size: 36px;
+    margin: 40px 0;
+}
+
+h2 {
+    font-size: 24px;
+    color: #ff4040;
+    margin: 60px 0 20px; /*top margin */
+}
+
+/* Form Styling */
+form {
+    max-width: 500px;
+    width: 90%;
+    margin: 40px auto 0; /*top margin */
+    padding: 20px;
+    background-color: #1f2937;
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #e5e7eb;
+}
+
+input[type="text"], input[type="submit"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    border: 1px solid #4b5563;
+    background-color: #2c2f33;
+    color: #e5e7eb;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+input[type="text"]::placeholder {
+    color: #9ca3af;
+}
+
+input[type="submit"] {
+    background-color: #3b82f6;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+input[type="submit"]:hover {
+    background-color: #2563eb;
+}
+
+/* Message Box Styling */
+.messages {
+    max-width: 500px;
+    width: 90%;
+    margin: 20px auto;
+    padding: 10px;
+    background-color: #374151;
+    border: 1px solid #4b5563;
+    border-radius: 5px;
+    text-align: center;
+    color: #ff4040;
+    font-weight: bold;
+}
+
+/* Grid Container for Tickets */
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+    width: 90%;
+    margin: 60px auto 0; /*top margin */
+    flex-grow: 1;
+}
+
+/*Ticket Box Styling */
+.server-box {
+    background-color: #1f2937;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+    color: #e5e7eb;
+    text-align: left;
+}
+
+.server-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.server-box h3 {
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.server-box p {
+    font-size: 14px;
+}
