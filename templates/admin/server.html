@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Server {{ info['attributes']['name'] }}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/server_details.css') }}">
+</head>
+<body>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    {% for message in messages %}
+        {{ message }}
+    {% endfor %}
+{% endif %}
+{% endwith %}
+    {% include 'admin/admin_taskbar.html' %}
+    <div class="server-details-container">
+        <h1>{{ info['attributes']['name'] }}</h1>
+        <a href="{{ url_for('servers.delete_server', server_id=info['attributes']['id']) }}" class="button delete-button">Delete</a>
+        <a href="https://ctrl.lunes.host/server/{{ info['attributes']['uuid'].split('-')[0] }}" class="button manage-button">Manage</a>
+        <h2>Current plan</h2>
+        <p>{{product['name']}} Memory {{product['limits']['memory']}}, Storage {{product['limits']['disk']}}, CPU%(0=Unlimited) {{product['limits']['cpu']}}</p>
+        <h1>Update Plan</h1>
+        <form action="{{ url_for('servers.admin_update_server_submit', server_id=info['attributes']['id']) }}" method="post">
+            <select id="plan" name="plan" class="plan" size="3" required>
+                {% for product_inc in products %}
+                    <option class="plan-option" value="{{product_inc['id']}}">{{product_inc['name']}} Memory {{product_inc['limits']['memory']}}, Storage {{product_inc['limits']['disk']}}, CPU%(0=Unlimited) {{product_inc['limits']['cpu']}}</option>
+                {% endfor %}
+            </select>
+            <br>
+            <input type="submit" value="Submit">
+        </form>
+    </div>
+</body>
+</html>

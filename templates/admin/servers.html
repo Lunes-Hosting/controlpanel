@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Servers</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/servers.css') }}">
+</head>
+<body>
+    {% include 'admin/admin_taskbar.html' %}
+    <div class="grid-container">
+        {% for server in servers %}
+            <a href="{{ url_for('admin.admin_server', server_id=server['attributes']['id']) }}">
+                <div class="server-box">
+                    <h3>{{ server['attributes']['name'] }}</h3>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+
+</body>
+</html>

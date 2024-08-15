@@ -1,0 +1,20 @@
+{% include 'taskbar.html' %}
+<head>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/index.css') }}">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230"
+    crossorigin="anonymous"></script>
+</head>
+<body>
+
+    <div class="centered-content">
+        <!-- Add your desired text here -->
+        <p>This dashboard is in early beta if you find any issues with it join the <a href='https://discord.gg/MHEAwNjKb2'>discord</a> or email owner@lunes.host.</p>
+    </div>
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+{% for message in messages %}
+    {{ message }}
+{% endfor %}
+{% endif %}
+{% endwith %}
+</body>

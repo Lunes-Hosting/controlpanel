@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Servers</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/admin_users.css') }}">
+</head>
+<body>
+<style>
+    table, th, td {
+      border:1px solid black;
+    }
+</style>
+{% include 'admin/admin_taskbar.html' %}
+
+    <div class="users-container">
+        <table style="width:100%">
+            <tr>
+              <th>Id</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Credits</th>
+              <th>Suspended</th>
+            </tr>
+        {% for user in users %}
+
+                <tr>
+                    <td>{{ user['id'] }}</td>
+                    <td><a href="{{ url_for('admin.admin_user', user_id=user['panel_id']) }}">{{ user['name'] }}</a></td>
+                    <td>{{ user['email'] }}</td>
+                    <td>{{ user['role'] }}</td>
+                    <td>{{ user['credits'] }}</td>
+                    {% if user['suspended'] == 1 %}
+                        <td>True</td>
+                    {% else %}
+                        <td>False</td>
+                    {% endif %}
+                </tr>
+
+
+        {% endfor %}
+    </table>
+    </div>
+
+</body>
+</html>
