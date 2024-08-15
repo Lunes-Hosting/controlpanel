@@ -1,37 +1,41 @@
+/* Body and HTML Styles */
 body, html {
     height: 100%;
     margin: 0;
     padding: 0;
     font-family: Arial, sans-serif;
-    background-color: #212121;
-    color: #e5e7eb;
+    background-color: #212121; /* Dark background */
+    color: #e5e7eb; /* Light text color for readability */
+    box-sizing: border-box; 
 }
 
+/* Container for Grid Layout */
 .grid-container {
+    background-color: #212121;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 60px);
+    height: 100vh;
     padding: 20px;
     box-sizing: border-box;
 }
 
-/* Server Box Styling (for the title) */
+/* Server Box Title Styles */
 .server-box-title {
-    background-color: #1f2937;
+    background-color: #1f2937; /* Dark background */
     border-radius: 10px;
     padding: 20px;
     margin-bottom: 15px;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    position: sticky; /*title sticky */
-    top: 0; /* Stick to the top of the container i think i did it right --GuestedKun-- */
-    z-index: 10; /* Ensure it stays above other content */
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .server-box-title h3 {
     margin: 0 0 5px 0;
     font-size: 1.1em;
-    color: #3b82f6;
+    color: #3b82f6; /* Bright text color */
 }
 
 .server-box-title h4 {
@@ -46,7 +50,7 @@ body, html {
     color: #9ca3af;
 }
 
-/* Normal response styling  discord style haha*/
+/* Normal Response */
 .server-box h3 {
     margin: 0 0 5px 0;
     font-size: 1.1em;
@@ -69,16 +73,16 @@ body, html {
 .messages-container {
     flex-grow: 1;
     overflow-y: auto;
-    margin-bottom: 20px;
-    padding-top: 15px; /* sticky title */
+    padding-top: 15px;
 }
 
-/* Form style */
+/* Form Style */
 form {
     background-color: #1f2937;
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    margin: 0; /* Remove any default margin */
 }
 
 label {
