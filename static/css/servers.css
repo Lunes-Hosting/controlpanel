@@ -1,26 +1,22 @@
 body {
-    background-size: cover;
-    background-position: center;
     font-family: Arial, sans-serif;
     background-color: #212121;
-    text-align: center;
+    color: #fff;
 }
 
 .title {
-    color: #fff;
     font-size: 30px;
-    margin-top: 20px;
+    margin: 20px 0;
     text-align: center;
 }
 
-/* Grid styles for server boxes */
 .grid-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    grid-gap: 20px;
-    justify-items: center;
-    align-items: center;
-    margin-top: 20px;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .server-box {
@@ -28,31 +24,23 @@ body {
     border-radius: 10px;
     padding: 20px;
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-    max-width: 200px;
-    width: 100%;
     cursor: pointer;
     transition: transform 0.2s ease;
 }
 
 .server-box h3 {
-    margin: 0;
+    margin: 0 0 10px 0;
     font-size: 16px;
-    margin-bottom: 10px;
+    color: #000;
 }
 
 .server-box:hover {
     transform: scale(1.05);
 }
 
-/* Centered Server Create button */
 .centered-button {
     margin-top: 20px;
-    display: flex;
-    justify-content: center;
-}
-
-.centered-button a {
-    text-decoration: none;
+    text-align: center;
 }
 
 .centered-button button {
@@ -68,4 +56,19 @@ body {
 
 .centered-button button:hover {
     background-color: #00a2db;
+}
+
+@media (max-width: 768px) {
+    .title {
+        font-size: 24px;
+    }
+
+    .grid-container {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+
+    .centered-button button {
+        padding: 10px 16px;
+        font-size: 14px;
+    }
 }

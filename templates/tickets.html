@@ -1,36 +1,39 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Create Ticket</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/servers.css') }}">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230"
-    crossorigin="anonymous"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/tickets.css') }}">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
+
 </head>
 <body>
     <h2>THIS IS NOT COMPLETE</h2>
     <h1>Create a ticket</h1>
     <form action="{{ url_for('tickets.create_ticket_submit') }}" method="post">
-        <label for="name">Title</label>
+        <label for="title">Title</label>
         <input type="text" id="title" name="title" required>
-        <br>
+        
         <label for="message">Your message</label>
         <input type="text" id="message" name="message">
         
-        <br>
         <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
         
         <input type="submit" value="Submit">
     </form>
 
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    {{ message }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
 
-{% with messages = get_flashed_messages() %}
-    {% if messages %}
-        {% for message in messages %}
-            {{ message }}
-        {% endfor %}
-    {% endif %}
-{% endwith %}
     {% include 'taskbar.html' %}
 
     <div class="grid-container">
@@ -43,6 +46,5 @@
             </a>
         {% endfor %}
     </div>
-
 </body>
 </html>

@@ -1,0 +1,120 @@
+body, html {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #212121;
+    color: #e5e7eb;
+}
+
+.grid-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 60px);
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Server Box Styling (for the title) */
+.server-box-title {
+    background-color: #1f2937;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    position: sticky; /*title sticky */
+    top: 0; /* Stick to the top of the container i think i did it right --GuestedKun-- */
+    z-index: 10; /* Ensure it stays above other content */
+}
+
+.server-box-title h3 {
+    margin: 0 0 5px 0;
+    font-size: 1.1em;
+    color: #3b82f6;
+}
+
+.server-box-title h4 {
+    margin: 0 0 5px 0;
+    font-size: 1em;
+    color: #f7f7f7;
+}
+
+.server-box-title p {
+    margin: 0;
+    font-size: 0.8em;
+    color: #9ca3af;
+}
+
+/* Normal response styling  discord style haha*/
+.server-box h3 {
+    margin: 0 0 5px 0;
+    font-size: 1.1em;
+    color: #3b82f6;
+}
+
+.server-box h4 {
+    margin: 0 0 5px 0;
+    font-size: 1em;
+    color: #f7f7f7;
+}
+
+.server-box p {
+    margin: 0;
+    font-size: 0.8em;
+    color: #9ca3af;
+}
+
+/* Chat Area */
+.messages-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    padding-top: 15px; /* sticky title */
+}
+
+/* Form style */
+form {
+    background-color: #1f2937;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    color: #e5e7eb;
+    font-weight: bold;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #4b5563;
+    border-radius: 5px;
+    background-color: #2c2f33;
+    color: #e5e7eb;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+input[type="text"]::placeholder {
+    color: #9ca3af;
+}
+
+input[type="submit"] {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background-color: #3b82f6;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 16px;
+}
+
+input[type="submit"]:hover {
+    background-color: #2563eb;
+}

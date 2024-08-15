@@ -9,7 +9,10 @@
     <script src="https://kit.fontawesome.com/37a0f8002e.js" crossorigin="anonymous"></script>
 </head>
 <body class="bg-base-200 text-base-100">
-    <nav class="sidebar">
+    <button class="toggle-btn" id="toggleSidebar">
+        <i class="fa fa-bars"></i>
+    </button>
+    <nav class="sidebar" id="sidebar">
         <ul class="menu">
             <li>
                 <a href="{{ url_for('index') }}" class="nav-link">
@@ -57,5 +60,16 @@
             </li>
         </ul>
     </nav>
+    <script>
+        const toggleBtn = document.getElementById('toggleSidebar');
+        const sidebar = document.getElementById('sidebar');
+        const body = document.body;  
+
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('hidden');
+            body.classList.toggle('sidebar-hidden');  
+            toggleBtn.classList.toggle('moved');
+        });
+    </script>
 </body>
 </html>

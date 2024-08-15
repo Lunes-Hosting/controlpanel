@@ -1,22 +1,32 @@
 body {
   background-color: #1e293b;
-  margin-left: 16rem;
-  padding: 0;
 }
-.content {
-  padding: 20px;
-}
+
 .store-container {
-  max-width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 20px;
-  border-radius: 10px;
-  background-color: #2d3748;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
+
 .product-card {
   background-color: #374151;
   color: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  transition: background-color 0.2s ease;
 }
+
 .product-card:hover {
   background-color: #4b5563;
+}
+
+@media (max-width: 768px) {
+  .store-container {
+      padding: 15px;
+  }
+
+  .product-card {
+      padding: 10px;
+  }
 }

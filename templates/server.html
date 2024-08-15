@@ -3,13 +3,14 @@
 <head>
     <title>Lunes Host | Server {{ info['attributes']['name'] }}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/server_details.css') }}">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230"
     crossorigin="anonymous"></script>
 </head>
 <body>
     {% if info['attributes']['limits']['memory'] == 128:  %}
-        <h1> WARNING: FREE SERVERS WILL BE DELETED IF YOU DO NOT LOGIN TO THE DASHBOARD EVERY 30 DAYS </h1>
+        <h1 id="warning-title"> WARNING: FREE SERVERS WILL BE DELETED IF YOU DO NOT LOGIN TO THE DASHBOARD EVERY 30 DAYS </h1>
     {% endif %}
     {% with messages = get_flashed_messages() %}
     {% if messages %}
@@ -22,12 +23,12 @@
     {% endwith %}
     {% include 'taskbar.html' %}
     <div class="server-details-container">
-        <h1>{{ info['attributes']['name'] }}</h1>
+        <h1 id="server-name">{{ info['attributes']['name'] }}</h1>
         <div class="button-group">
             <a href="{{ url_for('servers.delete_server', server_id=info['attributes']['id']) }}" class="button delete-button">Delete</a>
             <a href="https://ctrl.lunes.host/server/{{ info['attributes']['uuid'].split('-')[0] }}" class="button manage-button">Manage</a>
         </div>
-        <h1>Update Plan</h1>
+        <h1 id="update-plan">Update Plan</h1>
         <form action="{{ url_for('servers.update_server_submit', server_id=info['attributes']['id']) }}" method="post">
             <div class="plan-selection">
                 <label for="plan">Select a Plan:</label>
@@ -43,5 +44,21 @@
             <input type="submit" value="Submit">
         </form>
     </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const titles = ['warning-title', 'server-name', 'update-plan'];
+        titles.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                console.log(`${id} font size:`, window.getComputedStyle(element).fontSize);
+                console.log(`${id} color:`, window.getComputedStyle(element).color);
+                console.log(`${id} font weight:`, window.getComputedStyle(element).fontWeight);
+            } else {
+                console.log(`${id} not found`);
+            }
+        });
+    });
+    </script>
 </body>
 </html>
