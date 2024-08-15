@@ -8,47 +8,37 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/account.css') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
-    
 </head>
 <body>
     {% include 'taskbar.html' %}
 
-    <div class="container mx-auto mt-12 p-6">
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-info mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6" />
-                </svg>
-                <span>{{ message }}</span>
-            </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
+    <div class="content">
+        <div class="container mx-auto mt-12 p-6">
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-info mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6" />
+                    </svg>
+                    <span>{{ message }}</span>
+                </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
 
-        <h1 class="text-3xl font-bold text-center text-info">Welcome to Your Account</h1>
-        <div class="user-info mt-8 text-center text-white">
-            <p class="text-lg"><strong>Username:</strong> {{username}}</p>
-            <p class="text-lg"><strong>Email:</strong> {{email}}</p>
-            <p class="text-lg"><strong>Credits:</strong> {{credits}}</p>
-            <p class="text-lg"><strong>Server Count:</strong> {{server_count}}</p>
-            <p class="text-lg"><strong>Current monthly credit usage:</strong> {{monthly_usage}}</p>
-        </div>
-        <div class="button-container mt-6 text-center">
-            <a href="{{url_for('user.logout')}}" class="btn btn-info text-white">Log out</a>
+            <h1 class="text-3xl font-bold text-center text-info">Welcome to Your Account</h1>
+            <div class="user-info mt-8 text-center text-white">
+                <p class="text-lg"><strong>Username:</strong> {{username}}</p>
+                <p class="text-lg"><strong>Email:</strong> {{email}}</p>
+                <p class="text-lg"><strong>Credits:</strong> {{credits}}</p>
+                <p class="text-lg"><strong>Server Count:</strong> {{server_count}}</p>
+                <p class="text-lg"><strong>Current monthly credit usage:</strong> {{monthly_usage}}</p>
+            </div>
+            <div class="button-container mt-6 text-center">
+                <a href="{{url_for('user.logout')}}" class="btn btn-info text-white">Log out</a>
+            </div>
         </div>
     </div>
-
-    <script>
-        const toggleBtn = document.getElementById('toggleSidebar');
-        const sidebar = document.getElementById('sidebar');
-        const body = document.body;
-
-        toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('hidden');
-            body.classList.toggle('sidebar-hidden');
-        });
-    </script>
 </body>
 </html>
