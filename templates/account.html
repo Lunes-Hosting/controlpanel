@@ -5,50 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Account Page</title>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/account.css') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
-    <style>
-        body {
-            background-color: #1e293b;
-            margin: 0;
-            padding: 0;
-            margin-left: 250px;
-            transition: margin-left 0.3s ease-in-out;
-        }
-        .sidebar {
-            width: 250px;
-            background-color: #2d3748;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            overflow-y: auto;
-            transition: transform 0.3s ease-in-out;
-        }
-        .sidebar.hidden {
-            transform: translateX(-100%);
-        }
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            background-color: #2d3748;
-        }
-        @media (max-width: 768px) {
-            body {
-                margin-left: 0;
-            }
-            .sidebar {
-                width: 100%;
-                transform: translateX(-100%);
-            }
-            .sidebar.hidden {
-                transform: translateX(0);
-            }
-        }
-    </style>
+    
 </head>
 <body>
     {% include 'taskbar.html' %}
