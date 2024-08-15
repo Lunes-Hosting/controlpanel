@@ -351,7 +351,7 @@ def index():
 if __name__ == '__main__':
     # Create separate processes for Flask and the Discord bot
     app.run(debug=False, host="0.0.0.0", port=1137)
-    webhook_log("dashboard has started up")
+    webhook_log("**----------------DASHBOARD HAS STARTED UP----------------**")
 
 def webhook_log(message: str):
     resp = requests.post(WEBHOOK_URL,
