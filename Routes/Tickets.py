@@ -91,8 +91,10 @@ def add_message_submit(ticket_id):
         comment_id = comment_id[0] + 1
     query_message = ("INSERT INTO ticket_comments (id, ticket_id, user_id, ticketcomment, created_at) VALUES (%s, %s, %s, %s, %s)")
     use_database(query_message, (comment_id, ticket_id, user_id, message, timestamp))
-    
-    webhook_log(f"Ticket comment added by `{session['email']}` with message `{message}` <@&1024761808428466257> https://betadash.lunes.host/tickets/{ticket_id}")
+    if not is_admin(session['email']):
+        webhook_log(f"Ticket comment added by `{session['email']}` with message `{message}` <@&1024761808428466257> https://betadash.lunes.host/tickets/{ticket_id}")
+    if is_admin(session['email']):
+        webhook_log(f"Ticket comment added by staff member `{session['email']}` with message `{message}` https://betadash.lunes.host/tickets/{ticket_id}")
     return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
 
 @tickets.route('/<ticket_id>')
