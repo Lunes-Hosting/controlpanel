@@ -81,6 +81,7 @@ def list_servers(pterodactyl_id: int) -> list[dict]:
     response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS)
     users_server = []
     data = response.json()
+    print(data)
     for server in data['data']:
         if server['attributes']['user'] == pterodactyl_id:
             users_server.append(server)
