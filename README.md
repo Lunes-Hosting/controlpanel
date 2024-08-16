@@ -21,6 +21,7 @@
 * [Getting Started](#getting-started)
   * [Prerequisites](#prerequisites)
   * [Installation](#installation)
+  * [Customization](#customization)
 * [License](#license)
 * [Authors](#authors)
 
@@ -59,6 +60,9 @@ pip install -r requirements.txt
 ```Py
 python app.py
 ```
+
+### Customization
+Our design leverages the [DaisyUI](https://daisyui.com) CSS framework, enabling seamless theme customization. The default theme is "SynthWave." If you wish to modify the theme, please consult the [DaisyUI Themes](https://daisyui.com/docs/themes/) documentation. You can easily switch themes by using the `data-theme` attribute within the `<body>` element of your pages.
 
 ### Creating A Pull Request
 
