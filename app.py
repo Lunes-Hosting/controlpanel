@@ -18,7 +18,7 @@ import random
 
 
 app = Flask(__name__, "/static")
-
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # Limit to 16 MB
 
 def rate_limit_key():
     # Replace 'user_id' with the actual key used to store the user identifier in the session
