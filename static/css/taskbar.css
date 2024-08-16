@@ -2,8 +2,11 @@ body {
   background-color: #212121;
   margin: 0;
   padding: 0;
-  margin-left: 16rem;
   transition: margin-left 0.3s ease-in-out;
+}
+
+body.sidebar-visible {
+  margin-left: 16rem;
 }
 
 body.sidebar-hidden {
@@ -84,80 +87,55 @@ body.sidebar-hidden {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: background-color 0.3s, left 0.3s;
 }
 
 .toggle-btn:hover {
   background-color: #374151;
 }
 
-/* Mobile styles remastered */
-@media (max-width: 900px) {
-  body {
-    margin-left: 0;
-  }
+body.sidebar-hidden .toggle-btn.moved {
+  left: calc(100% - 4rem);
+}
 
+/* Responsive Styles */
+@media (max-width: 900px) {
   .sidebar {
     width: 100%;
     transform: translateX(-100%);
-    padding: 0.5rem;
+  }
+
+  body.sidebar-visible {
+    margin-left: 0;
   }
 
   .sidebar.hidden {
     transform: translateX(0);
   }
 
-  .toggle-btn {
+  .toggle-btn.moved {
     left: 1rem;
   }
+}
 
-  .sidebar .menu {
-    padding-top: 1rem;
+@media (max-width: 400px) {
+  .nav-link {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.9em;
   }
 
   .sidebar .menu li {
     margin-bottom: 0.5rem;
   }
-
-  .nav-link {
-    padding: 0.4rem 0.6rem;
-  }
-
-  .logout {
-    position: sticky;
-    bottom: 0.5rem;
-    background-color: #1f2937;
-    padding-top: 0.5rem;
-    margin-top: 0.5rem;
-  }
 }
 
-@media (max-width: 400px) {
-  .sidebar {
-    padding: 0.3rem;
-  }
-
-  .nav-link {
-    padding: 0.3rem 0.4rem;
-    font-size: 0.9em;
-  }
-
-  .sidebar .menu li {
-    margin-bottom: 0.3rem;
-  }
-}
-
-/* Adjustments for larger phones ... ig they work? just quick fix i'll investigate later..*/
 @media (min-width: 401px) and (max-width: 900px) {
-  .sidebar {
-    padding: 0.4rem;
-  }
-
   .nav-link {
-    padding: 0.35rem 0.5rem;
+    padding: 0.4rem 0.7rem;
     font-size: 0.95em;
   }
 
   .sidebar .menu li {
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.7rem;
   }
 }
