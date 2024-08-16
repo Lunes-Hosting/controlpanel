@@ -1,3 +1,4 @@
+/* Base Styles */
 body {
   background-color: #212121;
   margin: 0;
@@ -88,6 +89,7 @@ body.sidebar-hidden {
   justify-content: center;
   cursor: pointer;
   transition: background-color 0.3s, left 0.3s;
+  display: none; /* Hide by default */
 }
 
 .toggle-btn:hover {
@@ -111,6 +113,10 @@ body.sidebar-hidden .toggle-btn.moved {
 
   .sidebar.hidden {
     transform: translateX(0);
+  }
+
+  .toggle-btn {
+    display: flex; /* Show the sidebar icon only on mobile */
   }
 
   .toggle-btn.moved {
