@@ -332,7 +332,7 @@ def run_job():
 
 
 
-@scheduler.task('interval', id='do_sync_users', seconds=30, misfire_grace_time=900)
+@scheduler.task('interval', id='do_sync_users', seconds=1000, misfire_grace_time=900)
 def sync_users():
     print("started users sync")
     sync_users_script()
