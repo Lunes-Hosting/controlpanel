@@ -78,14 +78,17 @@ def get_eggs() -> list[dict]:
 
 def list_servers(pterodactyl_id: int) -> list[dict]:
     """Returns list of dictionaries of servers with owner of that pterodactyl id"""
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS)
-    users_server = []
-    data = response.json()
-    for server in data['data']:
-        if server['attributes']['user'] == pterodactyl_id:
-            users_server.append(server)
-    return users_server
-
+    try:
+        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS)
+        users_server = []
+        data = response.json()
+        for server in data['data']:
+            if server['attributes']['user'] == pterodactyl_id:
+                users_server.append(server)
+        return users_server
+    except Exception as e:
+        print(e)
+        return None
 
 def get_server_information(server_id: int) -> dict:
     """Returns dictionary of server information from pterodactyl api"""
