@@ -44,7 +44,7 @@ def sync_users_script():
                     25)
                 use_database(query, values)
     except KeyError:
-        print(data)
+        print(data, "ptero user data")
 
 def get_nodes() -> list[dict]:
     """Returns list of dictionaries with node information in format:
