@@ -24,25 +24,27 @@ CLIENT_HEADERS = {"Authorization": f"Bearer {PTERODACTYL_ADMIN_USER_KEY}",
 
 def sync_users_script():
     """Adds any users to panel that was added using pterodactyl"""
-    data = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
-    for user in data['data']:
+    try:
+        data = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
+        for user in data['data']:
+            
+            query = f"SELECT * FROM users WHERE email = %s"
+            user_controlpanel = use_database(query, (user['attributes']['email'],))
+
+            if user_controlpanel is None:
+                user_id = use_database("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
+                password = use_database(f"select password from users where email = %s", (user['attributes']['email'],),
+                                        "panel")
+                query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, "
+                        "%s, %s)")
+
+                values = (
+                    user['attributes']['username'], user['attributes']['email'], password[0], user_id,
+                    user['attributes']['id'],
+                    25)
+                use_database(query, values)
+    except KeyError:
         print(data)
-        query = f"SELECT * FROM users WHERE email = %s"
-        user_controlpanel = use_database(query, (user['attributes']['email'],))
-
-        if user_controlpanel is None:
-            user_id = use_database("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
-            password = use_database(f"select password from users where email = %s", (user['attributes']['email'],),
-                                    "panel")
-            query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, "
-                     "%s, %s)")
-
-            values = (
-                user['attributes']['username'], user['attributes']['email'], password[0], user_id,
-                user['attributes']['id'],
-                25)
-            use_database(query, values)
-
 
 def get_nodes() -> list[dict]:
     """Returns list of dictionaries with node information in format:
