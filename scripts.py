@@ -87,7 +87,7 @@ def list_servers(pterodactyl_id: int) -> list[dict]:
                 users_server.append(server)
         return users_server
     except Exception as e:
-        print(e)
+        print(e, pterodactyl_id)
         return None
 
 def get_server_information(server_id: int) -> dict:
