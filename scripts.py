@@ -26,7 +26,7 @@ def sync_users_script():
     """Adds any users to panel that was added using pterodactyl"""
     data = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
     for user in data['data']:
-
+        print(data)
         query = f"SELECT * FROM users WHERE email = %s"
         user_controlpanel = use_database(query, (user['attributes']['email'],))
 
