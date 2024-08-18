@@ -60,21 +60,24 @@ def get_eggs() -> list[dict]:
     {"egg_id": attributes['id'], "name": attributes['name'], "docker_image": attributes['docker_image'],
      "startup": attributes['startup']}
     """
-    available_eggs = []
-    nests = requests.get(f"{PTERODACTYL_URL}api/application/nests", headers=HEADERS)
+    try:
+        available_eggs = []
+        nests = requests.get(f"{PTERODACTYL_URL}api/application/nests", headers=HEADERS)
 
-    nests_data = nests.json()
-    for nest in nests_data['data']:
-        resp = requests.get(f"{PTERODACTYL_URL}api/application/nests/{nest['attributes']['id']}/eggs", headers=HEADERS)
-        data = resp.json()
-        for egg in data['data']:
-            attributes = egg['attributes']
-            available_eggs.append(
-                {"egg_id": attributes['id'], "name": attributes['name'], "docker_image": attributes['docker_image'],
-                 "startup": attributes['startup']}
-            )
-    return available_eggs
-
+        nests_data = nests.json()
+        for nest in nests_data['data']:
+            resp = requests.get(f"{PTERODACTYL_URL}api/application/nests/{nest['attributes']['id']}/eggs", headers=HEADERS)
+            data = resp.json()
+            for egg in data['data']:
+                attributes = egg['attributes']
+                available_eggs.append(
+                    {"egg_id": attributes['id'], "name": attributes['name'], "docker_image": attributes['docker_image'],
+                    "startup": attributes['startup']}
+                )
+        return available_eggs
+    except KeyError as e:
+        print(e, data, resp)
+        return None
 
 def list_servers(pterodactyl_id: int) -> list[dict]:
     """Returns list of dictionaries of servers with owner of that pterodactyl id"""
@@ -86,8 +89,8 @@ def list_servers(pterodactyl_id: int) -> list[dict]:
             if server['attributes']['user'] == pterodactyl_id:
                 users_server.append(server)
         return users_server
-    except Exception as e:
-        print(e, pterodactyl_id)
+    except KeyError as e:
+        print(e, pterodactyl_id, data)
         return None
 
 def get_server_information(server_id: int) -> dict:
