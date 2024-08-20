@@ -62,12 +62,16 @@
     </nav>
     <script>
         const toggleBtn = document.getElementById('toggleSidebar');
-        const sidebar = document.getElementById('sidebar');
-        const body = document.body;  
+        const body = document.body;
     
         toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('hidden');
-            body.classList.toggle('sidebar-hidden');  
+            if (body.classList.contains('sidebar-hidden')) {
+                body.classList.remove('sidebar-hidden');
+                body.classList.add('sidebar-visible');
+            } else {
+                body.classList.remove('sidebar-visible');
+                body.classList.add('sidebar-hidden');
+            }
             toggleBtn.classList.toggle('moved');
         });
     </script>
