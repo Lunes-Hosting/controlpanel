@@ -29,6 +29,7 @@ body.sidebar-hidden {
   transition: transform 0.3s ease-in-out;
   z-index: 9999;
   overflow-y: auto;
+  transform: translateX(-100%); /* Start hidden */
 }
 
 .sidebar.hidden {
@@ -89,7 +90,6 @@ body.sidebar-hidden {
   justify-content: center;
   cursor: pointer;
   transition: background-color 0.3s, left 0.3s;
-  display: none; /* Hide by default */
 }
 
 .toggle-btn:hover {
@@ -104,19 +104,10 @@ body.sidebar-hidden .toggle-btn.moved {
 @media (max-width: 900px) {
   .sidebar {
     width: 100%;
-    transform: translateX(-100%);
   }
 
   body.sidebar-visible {
     margin-left: 0;
-  }
-
-  .sidebar.hidden {
-    transform: translateX(0);
-  }
-
-  .toggle-btn {
-    display: flex; /* Show the sidebar icon only on mobile */
   }
 
   .toggle-btn.moved {
