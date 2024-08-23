@@ -318,7 +318,6 @@ job_has_run = False
 @scheduler.task('interval', id='do_run_job', seconds=5, misfire_grace_time=900)
 def run_job():
     global job_has_run
-    print(job_has_run)
     if not job_has_run:
         
     
