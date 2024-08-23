@@ -1,6 +1,6 @@
 from flask import Blueprint, request, render_template, session, flash
 import sys
-
+from threadedreturn import ThreadWithReturnValue
 sys.path.append("..")
 from scripts import *
 import json
@@ -54,7 +54,7 @@ def login_user():
 def index():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    after_request(session=session, request=request.environ, require_login=True)
+    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
     current_credits = get_credits(session['email'])
     servers = list_servers(get_ptero_id(session['email'])[0])
     server_count = len(servers)

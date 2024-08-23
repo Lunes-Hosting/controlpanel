@@ -1,6 +1,6 @@
 from flask import Blueprint, request, render_template, session, flash
 import sys
-
+from threadedreturn import ThreadWithReturnValue
 sys.path.append("..")
 from scripts import *
 from products import products
@@ -12,7 +12,7 @@ servers = Blueprint('servers', __name__)
 def servers_index():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    after_request(session=session, request=request.environ, require_login=True)
+    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
     else:
@@ -47,7 +47,7 @@ def servers_index():
 def server(server_id):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    after_request(session=session, request=request.environ, require_login=True)
+    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     cnx = mysql.connector.connect(
         host=HOST,
@@ -95,7 +95,7 @@ def server(server_id):
 def create_server():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    after_request(session=session, request=request.environ, require_login=True)
+    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
 
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
@@ -110,6 +110,7 @@ def create_server():
 
 
     servers_list = list_servers(ptero_id[0])
+    
     nodes = get_nodes()
     eggs = get_eggs()
     products_local = list(products)
@@ -129,8 +130,8 @@ def create_server():
 def delete_server(server_id):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    webhook_log(f"Server with id: {server_id} was deleted by user")
-    after_request(session=session, request=request.environ, require_login=True)
+    ThreadWithReturnValue(target=webhook_log, args=(f"Server with id: {server_id} was deleted by user")).start()
+    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
 
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     cnx = mysql.connector.connect(
@@ -171,7 +172,7 @@ def create_server_submit():
     if not result['success']:
         flash("Failed captcha please try again")
         return redirect(url_for("servers.create_server"))
-    after_request(session=session, request=request.environ, require_login=True)
+    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
     node_id = request.form['node_id']
     egg_id = request.form['egg_id']
     eggs = get_eggs()
@@ -237,7 +238,7 @@ def create_server_submit():
 
     res = requests.post(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, json=body)
 
-    webhook_log(f"Server was just created: ```{res.json()}```")
+    ThreadWithReturnValue(target=webhook_log, args=(f"Server was just created: ```{res.json()}```")).start()
     return redirect(url_for('servers.servers_index'))
 
 
@@ -256,8 +257,8 @@ def admin_update_server_submit(server_id):
 def update_server_submit(server_id, bypass_owner_only: bool = False):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    after_request(session=session, request=request.environ, require_login=True)
-    webhook_log(f"Server update with id: {server_id} was attempted")
+    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
+    ThreadWithReturnValue(target=webhook_log, args=(f"Server update with id: {server_id} was attempted")).start()
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     if check_if_user_suspended(str(get_ptero_id(session['email'])[0])):
         return ("Your Account has been suspended for breaking our TOS, if you believe this is a mistake you can submit "

@@ -1,7 +1,7 @@
 import datetime
 import string
 import threading
-
+from cache import *
 import bcrypt
 import mysql.connector
 # Establish a connection to the database
@@ -14,6 +14,7 @@ from config import *
 from products import products
 import secrets
 
+cache = PteroCache()
 HEADERS = {"Authorization": f"Bearer {PTERODACTYL_ADMIN_KEY}",
            'Accept': 'application/json',
            'Content-Type': 'application/json'}
@@ -49,12 +50,8 @@ def sync_users_script():
 def get_nodes() -> list[dict]:
     """Returns list of dictionaries with node information in format:
     {"node_id": node['attributes']['id'], "name": node['attributes']['name']}"""
-    available_nodes = []
-    nodes = requests.get(f"{PTERODACTYL_URL}api/application/nodes", headers=HEADERS).json()
-    for node in nodes['data']:
-        if "full" not in node['attributes']['name'].lower():
-            available_nodes.append({"node_id": node['attributes']['id'], "name": node['attributes']['name']})
-    return available_nodes
+    
+    return cache.available_nodes
 
 
 def get_eggs() -> list[dict]:
@@ -62,29 +59,12 @@ def get_eggs() -> list[dict]:
     {"egg_id": attributes['id'], "name": attributes['name'], "docker_image": attributes['docker_image'],
      "startup": attributes['startup']}
     """
-    try:
-        available_eggs = []
-        nests = requests.get(f"{PTERODACTYL_URL}api/application/nests", headers=HEADERS)
-
-        nests_data = nests.json()
-        for nest in nests_data['data']:
-            resp = requests.get(f"{PTERODACTYL_URL}api/application/nests/{nest['attributes']['id']}/eggs", headers=HEADERS)
-            data = resp.json()
-            for egg in data['data']:
-                attributes = egg['attributes']
-                available_eggs.append(
-                    {"egg_id": attributes['id'], "name": attributes['name'], "docker_image": attributes['docker_image'],
-                    "startup": attributes['startup']}
-                )
-        return available_eggs
-    except KeyError as e:
-        print(e, data, resp)
-        return None
+    return cache.egg_cache
 
 def list_servers(pterodactyl_id: int) -> list[dict]:
     """Returns list of dictionaries of servers with owner of that pterodactyl id"""
     try:
-        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=1000", headers=HEADERS)
+        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS)
         users_server = []
         data = response.json()
         for server in data['data']:

@@ -1,6 +1,6 @@
 from flask import Blueprint, request, render_template, session, flash
 import sys
-
+from threadedreturn import ThreadWithReturnValue
 sys.path.append("..")
 from scripts import *
 from products import products
@@ -15,7 +15,7 @@ active_payments = []
 def storepage():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    after_request(session=session, request=request.environ, require_login=True)
+    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
 
     if 'pterodactyl_id' in session:
         pass
@@ -34,7 +34,7 @@ def storepage():
 def create_checkout_session(price_link: str):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    after_request(session=session, request=request.environ, require_login=True)
+    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
 
     if 'pterodactyl_id' in session:
         pass

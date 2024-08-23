@@ -72,7 +72,7 @@ mail = Mail(app)
 
 # Configuration for Flask-Caching
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
-
+pterocache = PteroCache()
 # Placeholder for the password reset token expiration time (in seconds)
 TOKEN_EXPIRATION_TIME = 1800  # 30 minutes
 
@@ -320,7 +320,6 @@ def run_job():
     global job_has_run
     if not job_has_run:
         
-    
 
         asyncio.run(enable_bot())
 
@@ -335,7 +334,9 @@ def run_job():
 def sync_users():
     print("started users sync")
     sync_users_script()
+    pterocache.update_all()
     print("finished job 2")
+    
 
 scheduler.start()
 @app.route('/')
