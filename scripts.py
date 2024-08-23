@@ -1,6 +1,8 @@
 import datetime
 import string
 import threading
+import sys
+sys.path.append(".")
 from pterocache import *
 import bcrypt
 import mysql.connector
