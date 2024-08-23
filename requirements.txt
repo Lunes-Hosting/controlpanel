@@ -12,3 +12,4 @@ flask_caching
 flask_mail
 py-cord
 flask_session
+threadedreturn
