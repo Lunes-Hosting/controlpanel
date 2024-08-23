@@ -219,7 +219,7 @@ def register_user():
         ip = request.headers.get('Cf-Connecting-Ip', request.remote_addr)
         res = register(email, password, name, ip)
         if type(res) == str:
-            flash(res + " If this in error please contact support at owner@lunes.host")
+            flash(res + " If this in error please contact support at panel@lunes.host")
             return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
         # Generate a verification token
         verification_token = generate_verification_token()
