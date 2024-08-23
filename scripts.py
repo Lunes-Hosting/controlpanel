@@ -1,7 +1,7 @@
 import datetime
 import string
 import threading
-from cache import *
+from pterocache import *
 import bcrypt
 import mysql.connector
 # Establish a connection to the database
