@@ -15,7 +15,7 @@ active_payments = []
 def storepage():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
+    after_request(session, request.environ, True)
 
     if 'pterodactyl_id' in session:
         pass
@@ -34,7 +34,7 @@ def storepage():
 def create_checkout_session(price_link: str):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
+    after_request(session, request.environ, True)
 
     if 'pterodactyl_id' in session:
         pass

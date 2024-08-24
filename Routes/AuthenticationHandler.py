@@ -54,7 +54,7 @@ def login_user():
 def index():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
+    after_request(session, request.environ, True)
     current_credits = get_credits(session['email'])
     servers = list_servers(get_ptero_id(session['email'])[0])
     server_count = len(servers)

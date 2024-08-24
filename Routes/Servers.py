@@ -12,7 +12,7 @@ servers = Blueprint('servers', __name__)
 def servers_index():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
+    after_request(session, request.environ, True)
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
     else:
@@ -47,7 +47,7 @@ def servers_index():
 def server(server_id):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
+    after_request(session, request.environ, True)
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     cnx = mysql.connector.connect(
         host=HOST,
@@ -95,7 +95,7 @@ def server(server_id):
 def create_server():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
+    after_request(session, request.environ, True)
 
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
@@ -131,7 +131,7 @@ def delete_server(server_id):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     ThreadWithReturnValue(target=webhook_log, args=(f"Server with id: {server_id} was deleted by user")).start()
-    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
+    after_request(session, request.environ, True)
 
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     cnx = mysql.connector.connect(
@@ -172,7 +172,7 @@ def create_server_submit():
     if not result['success']:
         flash("Failed captcha please try again")
         return redirect(url_for("servers.create_server"))
-    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
+    after_request(session, request.environ, True)
     node_id = request.form['node_id']
     egg_id = request.form['egg_id']
     eggs = get_eggs()
@@ -257,7 +257,7 @@ def admin_update_server_submit(server_id):
 def update_server_submit(server_id, bypass_owner_only: bool = False):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    ThreadWithReturnValue(target=after_request, args=(session, request.environ, True)).start()
+    after_request(session, request.environ, True)
     ThreadWithReturnValue(target=webhook_log, args=(f"Server update with id: {server_id} was attempted")).start()
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     if check_if_user_suspended(str(get_ptero_id(session['email'])[0])):
