@@ -97,7 +97,11 @@ def add_message_submit(ticket_id):
         webhook_log(f"Ticket comment added by `{session['email']}` with message `{message}` <@&1024761808428466257> https://betadash.lunes.host/tickets/{ticket_id}")
     if is_admin(session['email']):
         with current_app.app_context():
-            msg = Message('New ticket comment!', recipients=[{session['email']}])
+            msg = Message(
+                subject="New Ticket Comment Added!",
+                sender="panel@lunes.host",
+                recipients=[{session['email']}],
+            )
             msg.body = f'New message added to ticket:\n\n {message}'
             mail.send(msg)
         webhook_log(f"Ticket comment added by staff member `{session['email']}` with message `{message}` https://betadash.lunes.host/tickets/{ticket_id}")
