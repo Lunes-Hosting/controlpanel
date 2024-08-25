@@ -126,6 +126,7 @@ def reset_password_confirm(token):
         tokendone = request.form.get("token")
 
         reset_token = cache.get(email)
+        print(cache, token)
 
         if reset_token and reset_token == tokendone:
             if password == confirm_password:
