@@ -14,7 +14,7 @@ from bot import enable_bot
 import asyncio
 import random
 from scripts import *
-from .cacheext import cache
+from cacheext import cache
 #This imports the bot's code ONLY if the user wishes to use it
 
 
