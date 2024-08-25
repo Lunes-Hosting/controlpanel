@@ -9,7 +9,8 @@ from flask_limiter import Limiter
 
 # Create a blueprint for the user routes
 user = Blueprint('user', __name__)
-cache = Cache(current_app, config={'CACHE_TYPE': 'simple'})
+with current_app.app_context:
+    cache = Cache(current_app, config={'CACHE_TYPE': 'simple'})
 pterocache = PteroCache()
 # Placeholder for the password reset token expiration time (in seconds)
 TOKEN_EXPIRATION_TIME = 1800  # 30 minutes
