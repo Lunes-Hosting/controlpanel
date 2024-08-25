@@ -2,7 +2,7 @@ from flask import Blueprint, request, render_template, session, flash
 from flask import current_app
 from flask_mail import Message, Mail
 import sys, time
-
+mail = Mail(app)
 sys.path.append("..")
 from scripts import *
 from products import products
