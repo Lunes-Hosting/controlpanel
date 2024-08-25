@@ -6,7 +6,7 @@ import datetime
 import requests
 import bcrypt
 import mysql.connector
-from cache import cache
+from cacheext import cache
 from flask_limiter import Limiter
 sys.path.append("..")
 from pterocache import *

@@ -14,13 +14,13 @@ from bot import enable_bot
 import asyncio
 import random
 from scripts import *
-from cache import cache
+from cacheext import cache
 #This imports the bot's code ONLY if the user wishes to use it
 
 
 app = Flask(__name__, "/static")
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # Limit to 16 MB
-
+cache.cache.init_app(app)
 def rate_limit_key():
     # Replace 'user_id' with the actual key used to store the user identifier in the session
     user_identifier = session.get('random_id', None)
