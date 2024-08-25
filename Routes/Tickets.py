@@ -19,7 +19,7 @@ def tickets_index():
         session['pterodactyl_id'] = ptero_id
 
     user_id = get_id(session['email'])
-    tickets_list = use_database("SELECT * FROM tickets WHERE user_id = %s", (user_id[0],), all=True)
+    tickets_list = use_database("SELECT * FROM tickets WHERE user_id = %s AND status = open", (user_id[0],), all=True)
 
     return render_template('tickets.html', tickets=tickets_list)
 
