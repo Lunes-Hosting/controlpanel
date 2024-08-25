@@ -109,7 +109,7 @@ def ticket(ticket_id):
     query = "SELECT * FROM tickets where id = %s"
     # info will be (id, user_id, title, status, created_at)
     info = use_database(query, (ticket_id,))
-    if info[3] == "closed":
+    if info[3] == "closed" and not is_admin(session['email']):
         return redirect(url_for('tickets.tickets_index'))
     if user_info[2] != "admin" and info[1] != user_info[0]:
         return redirect(url_for('tickets.tickets_index'))
