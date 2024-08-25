@@ -4,6 +4,7 @@ import threading
 import sys
 from pterocache import *
 import bcrypt
+import random
 import mysql.connector
 # Establish a connection to the database
 import mysql.connector
@@ -14,6 +15,8 @@ from werkzeug.datastructures.headers import EnvironHeaders
 from config import *
 from products import products
 import secrets
+from flask_mail import Mail, Message
+
 
 cache = PteroCache()
 HEADERS = {"Authorization": f"Bearer {PTERODACTYL_ADMIN_KEY}",
@@ -444,3 +447,32 @@ def webhook_log(message: str):
     resp = requests.post(WEBHOOK_URL,
                          json={"username": "Web Logs", "content": message})
     print(resp.text)
+
+def send_email(email: str, title:str, message: str, inner_app):
+    with inner_app.app_context():
+        mail = Mail(inner_app)
+        print("started emails")
+        msg = Message(title, recipients=[email])
+        msg.body = message
+        mail.send(msg)
+        print(f"sent email to {email}")
+
+# Function to generate a verification token
+def generate_verification_token():
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
+
+
+# Function to send a verification email
+def send_verification_email(email: str, verification_token: str, inner_app):
+    with inner_app.app_context():
+        mail = Mail(inner_app)
+        print("started emails")
+        msg = Message('Email Verification', recipients=[email])
+        msg.body = f'Please click the link below to verify your email:\n\n {HOSTED_URL}verify_email/{verification_token}'
+        mail.send(msg)
+        print(f"sent email to {email}")
+
+# Function to generate a random reset token
+def generate_reset_token():
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
+

@@ -130,7 +130,7 @@ def create_server():
 def delete_server(server_id):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    ThreadWithReturnValue(target=webhook_log, args=(f"Server with id: {server_id} was deleted by user")).start()
+    webhook_log(f"Server with id: {server_id} was deleted by user")
     after_request(session, request.environ, True)
 
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
@@ -238,7 +238,7 @@ def create_server_submit():
 
     res = requests.post(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, json=body)
 
-    ThreadWithReturnValue(target=webhook_log, args=(f"Server was just created: ```{res.json()}```")).start()
+    webhook_log(f"Server was just created: ```{res.json()}```")
     return redirect(url_for('servers.servers_index'))
 
 
@@ -258,7 +258,7 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     after_request(session, request.environ, True)
-    ThreadWithReturnValue(target=webhook_log, args=(f"Server update with id: {server_id} was attempted")).start()
+    webhook_log(f"Server update with id: {server_id} was attempted")
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     if check_if_user_suspended(str(get_ptero_id(session['email'])[0])):
         return ("Your Account has been suspended for breaking our TOS, if you believe this is a mistake you can submit "

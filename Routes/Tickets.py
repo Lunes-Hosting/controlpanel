@@ -1,6 +1,6 @@
-from flask import Blueprint, request, render_template, session, flash
+from flask import Blueprint, request, render_template, session, flash, current_app
 import sys, time
-
+from threadedreturn import ThreadWithReturnValue
 sys.path.append("..")
 from scripts import *
 from products import products
@@ -82,6 +82,8 @@ def add_message_submit(ticket_id):
     ts = time.time()
     timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
+    #get ticket info
+    tick_info =use_database("SELECT user_id, title FROM tickets WHERE (id = %s)", (ticket_id,))
 
     #add message
     comment_id = use_database("SELECT * FROM ticket_comments ORDER BY id DESC LIMIT 0, 1")
@@ -94,6 +96,8 @@ def add_message_submit(ticket_id):
     if not is_admin(session['email']):
         webhook_log(f"Ticket comment added by `{session['email']}` with message `{message}` <@&1024761808428466257> https://betadash.lunes.host/tickets/{ticket_id}")
     if is_admin(session['email']):
+        email = use_database("SELECT email FROM users WHERE (id = %s)", (tick_info[0],))[0]
+        ThreadWithReturnValue(target=send_email, args=(email, f"Ticket comment added by staff member", f"Ticket comment added by staff member with message `{message}` https://betadash.lunes.host/tickets/{ticket_id}", current_app._get_current_object())).start()
         webhook_log(f"Ticket comment added by staff member `{session['email']}` with message `{message}` https://betadash.lunes.host/tickets/{ticket_id}")
     return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
 
