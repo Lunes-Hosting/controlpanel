@@ -122,3 +122,21 @@ def ticket(ticket_id):
         messages.append({"author": get_name(message[2])[0], "message": message[3], "created_at": message[4]})
     real_info = {"author": get_name(info[1])[0], "title": info[2], "created_at": info[4], "id": info[0]}
     return render_template("ticket.html", messages=messages, info=real_info)
+
+@tickets.route('/close/<ticket_id>')
+def close_ticket(ticket_id):
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    
+    user_query = "SELECT * from users where email = %s"
+    user_info = use_database(user_query, (session['email'],))
+    query = "SELECT * FROM tickets where id = %s"
+    # info will be (id, user_id, title, status, created_at)
+    info = use_database(query, (ticket_id,))
+    if info[3] == "closed":
+        return redirect(url_for('tickets.tickets_index'))
+    if user_info[2] != "admin" and info[1] != user_info[0]:
+        return redirect(url_for('tickets.tickets_index'))
+    queryy = "UPDATE tickets set status = 'closed' where id = %s"
+    use_database(queryy, (ticket_id,))
+    return redirect(url_for('tickets.tickets_index'))
