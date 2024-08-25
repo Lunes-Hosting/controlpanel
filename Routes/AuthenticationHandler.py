@@ -23,7 +23,7 @@ TOKEN_EXPIRATION_TIME = 1800  # 30 minutes
 
 pterocache = PteroCache()
 
-@user.before_app_first_request
+@user.before_app_request
 def init_cache():
     cache.init_app(current_app)
 
