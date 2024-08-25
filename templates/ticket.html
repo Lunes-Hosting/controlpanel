@@ -32,6 +32,10 @@
             <input type="text" id="message" name="message">
             <input type="submit" value="Submit">
         </form>
+
+        <form action="{{ url_for('tickets.close_ticket', ticket_id=info['id']) }}" method="post">
+            <input type="submit" value="Close Ticket">
+        </form>
     </div>    
 </body>
 </html>
