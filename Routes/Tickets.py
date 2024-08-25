@@ -123,7 +123,7 @@ def ticket(ticket_id):
     real_info = {"author": get_name(info[1])[0], "title": info[2], "created_at": info[4], "id": info[0]}
     return render_template("ticket.html", messages=messages, info=real_info)
 
-@tickets.route('/close/<ticket_id>')
+@tickets.route('/close/<ticket_id>', methods=['POST'])
 def close_ticket(ticket_id):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
