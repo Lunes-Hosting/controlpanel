@@ -6,11 +6,12 @@ import datetime
 import requests
 import bcrypt
 import mysql.connector
-from cacheext import cache
+
 from flask_limiter import Limiter
 sys.path.append("..")
 from pterocache import *
 from scripts import *
+from cacheext import cache
 
 # Create a blueprint for the user routes
 user = Blueprint('user', __name__)
