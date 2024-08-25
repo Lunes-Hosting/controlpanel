@@ -471,6 +471,14 @@ def send_verification_email(email: str, verification_token: str, inner_app):
         msg.body = f'Please click the link below to verify your email:\n\n {HOSTED_URL}verify_email/{verification_token}'
         mail.send(msg)
         print(f"sent email to {email}")
+        
+def send_reset_email(email: str, reset_token: str, inner_app):
+    with inner_app.app_context():
+        mail = Mail(inner_app)
+        msg = Message('Password Reset Request', recipients=[email])
+        msg.body = f'Please click the link below to reset your password:\n\n {HOSTED_URL}reset_password/{reset_token}'
+        mail.send(msg)
+
 
 # Function to generate a random reset token
 def generate_reset_token():

@@ -93,23 +93,28 @@ def index():
     return render_template("account.html", credits=int(current_credits), server_count=server_count,
                            username=username[0], email=session['email'], monthly_usage=monthly_usage)
 
-
+# Route to request a password reset (via email)
 @user.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
     if request.method == 'POST':
         email = request.form.get('email')
 
+        # Check if the email exists in your user database
+        # Replace this with your own logic to validate the email
+
+        # Generate a reset token
         reset_token = generate_reset_token()
 
+        # Store the reset token in the cache with the email as the key
         cache.set(email, reset_token, timeout=TOKEN_EXPIRATION_TIME)
-
-        email_thread = threading.Thread(target=send_email, args=(email, reset_token, current_app._get_current_object()), daemon=True)
+        # Compose and send the reset email
+        email_thread = threading.Thread(target=send_reset_email, args=(str(email), reset_token, current_app._get_current_object()), daemon=True)
         email_thread.start()
-
         flash('An email with instructions to reset your password has been sent.')
         return redirect(url_for('user.login_user'))
 
     return render_template('reset_password.html')
+
 
 
 @user.route('/reset_password/<token>', methods=['GET', 'POST'])
