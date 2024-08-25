@@ -1,4 +1,6 @@
 from flask import Blueprint, request, render_template, session, flash
+from flask import current_app
+from flask_mail import Message, Mail
 import sys, time
 
 sys.path.append("..")
@@ -94,6 +96,10 @@ def add_message_submit(ticket_id):
     if not is_admin(session['email']):
         webhook_log(f"Ticket comment added by `{session['email']}` with message `{message}` <@&1024761808428466257> https://betadash.lunes.host/tickets/{ticket_id}")
     if is_admin(session['email']):
+        with current_app.app_context():
+            msg = Message('New ticket comment!', recipients=[{session['email']}])
+            msg.body = f'New message added to ticket:\n\n {message}'
+            mail.send(msg)
         webhook_log(f"Ticket comment added by staff member `{session['email']}` with message `{message}` https://betadash.lunes.host/tickets/{ticket_id}")
     return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
 
