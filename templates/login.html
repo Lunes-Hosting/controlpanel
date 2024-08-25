@@ -43,8 +43,8 @@
                                 <span class="label-text">Password</span>
                             </label>
                             <input type="password" class="input input-bordered" name="password" />
-                            <label class="label"><a href="{{ url_for('reset_password') }}" class="label-text-alt link link-hover">Forgot password?</a></label>
-                            <label class="label"><a href="{{ url_for('register_user') }}" class="label-text-alt link link-hover">Create account</a></label>
+                            <label class="label"><a href="{{ url_for('user.reset_password') }}" class="label-text-alt link link-hover">Forgot password?</a></label>
+                            <label class="label"><a href="{{ url_for('user.register_user') }}" class="label-text-alt link link-hover">Create account</a></label>
                         </div>
                         <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
                         <div class="form-control mt-4">
