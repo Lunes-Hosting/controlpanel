@@ -8,6 +8,9 @@ import bcrypt
 import mysql.connector
 from flask_caching import Cache
 from flask_limiter import Limiter
+sys.path.append("..")
+from pterocache import *
+from scripts import *
 
 # Create a blueprint for the user routes
 user = Blueprint('user', __name__)
