@@ -86,7 +86,7 @@
                               <p>Storage: {{ product['limits']['disk'] }}GB</p>
                               <p>CPU: 
                                   {% if product['limits']['cpu'] == 0 %}
-                                  Unlimited
+                                  Unmetered (Fair use*)
                                   {% else %}
                                   {{ product['limits']['cpu'] }}%
                                   {% endif %}
