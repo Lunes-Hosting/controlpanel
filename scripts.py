@@ -137,6 +137,7 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
     banned_emails = ["@nowni.com"]
     for text in banned_emails:
         if text in email:
+            webhook_log("Failed to register do to email blacklist <@491266830674034699>")
             return "Failed to register! contact panel@lunes.host if this is a mistake"
     salt = bcrypt.gensalt(rounds=10)
     password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
