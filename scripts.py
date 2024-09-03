@@ -133,6 +133,11 @@ def login(email: str, password: str):
 def register(email: str, password: str, name: str, ip: str) -> str | dict:
     """Attempts to register user if it fails it returns error in string otherwise returns user object json"""
     webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered")
+    
+    banned_emails = ["@nowni.com"]
+    for text in banned_emails:
+        if text in email:
+            return "Failed to register! contact panel@lunes.host if this is a mistake"
     salt = bcrypt.gensalt(rounds=10)
     password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
 
