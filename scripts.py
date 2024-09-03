@@ -139,8 +139,8 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
     query = f"SELECT * FROM users WHERE ip = %s"
     results = use_database(query, (ip,))
 
-    # if results is not None:
-    #     return "Ip is already registered"
+    if results is not None:
+        return "Ip is already registered"
 
     body = {
         "email": email,
