@@ -335,7 +335,7 @@ def check_to_unsuspend():
                 
                 if last_seen is not None:
                     if datetime.datetime.now() - last_seen > datetime.timedelta(days=30):
-                        print(
+                        webhook_log(
                             f"Deleting server {server['attributes']['name']} due to inactivity for more than 30 days.")
                         delete_server(server['attributes']['id'])
                     else:

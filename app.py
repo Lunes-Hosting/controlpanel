@@ -78,14 +78,14 @@ mail = Mail(app)
 
 @scheduler.task('interval', id='do_job_1', seconds=3600, misfire_grace_time=900)
 def job1():
-    print("started job1")
+    print("started using credits")
     use_credits()
-    print("finished job 2")
+    print("finished job 1")
 
 
 @scheduler.task('interval', id='do_job_2', seconds=120, misfire_grace_time=900)
 def job2():
-    print("started job2")
+    print("started job2 (check to unsuspend)")
     check_to_unsuspend()
     print("finished job 2")
 
