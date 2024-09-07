@@ -22,6 +22,7 @@ class PteroCache():
     
     def update_egg_cache(self):
         disabled_nests = [15]
+        disabled_eggs = [55, 3]
         try:
             available_eggs = []
             nests = requests.get(f"{PTERODACTYL_URL}api/application/nests", headers=self.HEADERS)
@@ -33,10 +34,11 @@ class PteroCache():
                     data = resp.json()
                     for egg in data['data']:
                         attributes = egg['attributes']
-                        available_eggs.append(
-                            {"egg_id": attributes['id'], "name": attributes['name'], "docker_image": attributes['docker_image'],
-                            "startup": attributes['startup']}
-                        )
+                        if attributes['id'] not in disabled_eggs:
+                            available_eggs.append(
+                                {"egg_id": attributes['id'], "name": attributes['name'], "docker_image": attributes['docker_image'],
+                                "startup": attributes['startup']}
+                            )
             self.egg_cache = available_eggs
             return
         except KeyError as e:
