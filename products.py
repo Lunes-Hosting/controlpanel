@@ -158,7 +158,25 @@ products = [
         "product_limits": {
             "databases": 4,
             "backups": 8,
-            "allocations": 1
+            "allocations": 2
+        }
+    },
+    {
+        "price_link": "price_1PwZiXGc0pLG1vqRy9Gx7RlV",
+        "id": 9,
+        "name": "Ls 16",
+        "price": 1600,
+        "limits": {
+            "memory": 16384,
+            "swap": 0,
+            "disk": 114688,
+            "io": 500,
+            "cpu": 0
+        },
+        "product_limits": {
+            "databases": 4,
+            "backups": 8,
+            "allocations": 3
         }
     },
 ]
