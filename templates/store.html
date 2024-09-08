@@ -16,17 +16,19 @@
             <h2 class="text-3xl font-bold text-white mb-6 text-center">Store</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {% for product in products %}
+                {% if product['price_link'] %}
                 <div class="card product-card shadow-lg hover:shadow-xl transition-shadow duration-300">
                     <div class="card-body p-6 text-center">
-                        {% if product['price_link'] %}
+                    
                         <a href="{{ url_for('store.create_checkout_session', price_link=product['price_link']) }}" class="btn btn-info w-full">
                             Buy {{ product['price'] }} credits
                         </a>
-                        {% else %}
-                        
-                        {% endif %}
+
                     </div>
                 </div>
+                {% else %}
+                        
+                {% endif %}
                 {% endfor %}
             </div>
         </div>
