@@ -83,7 +83,7 @@ def job1():
     print("finished job 1")
 
 
-@scheduler.task('interval', id='do_job_2', seconds=120, misfire_grace_time=900)
+@scheduler.task('interval', id='do_job_2', seconds=180, misfire_grace_time=900)
 def job2():
     print("started job2 (check to unsuspend)")
     check_to_unsuspend()
@@ -106,12 +106,12 @@ def run_job():
 
 
 
-@scheduler.task('interval', id='do_sync_users', seconds=1000, misfire_grace_time=900)
+@scheduler.task('interval', id='do_sync_users', seconds=3600, misfire_grace_time=900)
 def sync_users():
     print("started users sync")
     sync_users_script()
     pterocache.update_all()
-    print("finished job 2")
+    print("finished job users sync")
     
 
 scheduler.start()
