@@ -1,7 +1,7 @@
 import requests
-import random
 from scripts import *
 import time
+import secrets
 
 DISCONTINUED_NODE = 8
 
@@ -44,7 +44,7 @@ token = '3XZoznqyIXhXjArKJUIiYTETlGC6EOFZQpzSN3ze'
 
 # Loop through each server and send the transfer request
 for server_id in server_ids:
-    node_id = random.choice(nodes)['node_id']
+    node_id = secrets.choice(nodes)['node_id']
     url = base_url.format(server_id=server_id)
     headers['Referer'] = headers['Referer'].format(server_id=server_id)
     resp = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=1000",

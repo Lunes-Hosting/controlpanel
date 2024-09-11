@@ -4,7 +4,6 @@ import threading
 import sys
 from pterocache import *
 import bcrypt
-import random
 import mysql.connector
 # Establish a connection to the database
 import mysql.connector
@@ -465,7 +464,7 @@ def send_email(email: str, title:str, message: str, inner_app):
 
 # Function to generate a verification token
 def generate_verification_token():
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
+    return ''.join(secrets.SystemRandom().choices(string.ascii_letters + string.digits, k=20))
 
 
 # Function to send a verification email
@@ -488,5 +487,5 @@ def send_reset_email(email: str, reset_token: str, inner_app):
 
 # Function to generate a random reset token
 def generate_reset_token():
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
+    return ''.join(secrets.SystemRandom().choices(string.ascii_letters + string.digits, k=20))
 
