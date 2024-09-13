@@ -76,6 +76,9 @@ def server(server_id):
         servers_list = list_servers(ptero_id[0])
 
         products_local = list(products)
+        for _product in products_local:
+            if _product['enabled'] == False:
+                products_local.remove(_product)
         for server_inc in servers_list:
             if server_inc['attributes']['user'] == ptero_id[0]:
 
@@ -114,6 +117,9 @@ def create_server():
     nodes = get_nodes()
     eggs = get_eggs()
     products_local = list(products)
+    for _product in products_local:
+        if _product['enabled'] == False:
+            products_local.remove(_product)
     for server_inc in servers_list:
         if server_inc['attributes']['user'] == ptero_id[0]:
 
