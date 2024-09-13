@@ -190,7 +190,7 @@ products = [
         }
     },
         {
-        "enabled": True,
+        "enabled": False,
         "price_link": None,
         "id": 10,
         "name": "32GB custom",
