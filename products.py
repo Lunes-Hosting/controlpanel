@@ -1,5 +1,6 @@
 products = [
     {
+        "enabled": True,
         "price_link": None,
         "id": 0,
         "name": "Free Tier",
@@ -18,6 +19,7 @@ products = [
         }
     },
     {
+        "enabled": True,
         "price_link": None,
         "id": 1,
         "name": "Ls 0.5",
@@ -36,6 +38,7 @@ products = [
         }
     },
     {
+        "enabled": True,
         "price_link": "price_1NWnBkGc0pLG1vqRCNy4PJVZ",
         "id": 2,
         "name": "Ls 1",
@@ -54,6 +57,7 @@ products = [
         }
     },
     {
+        "enabled": True,
         "price_link": "price_1NaWkTGc0pLG1vqRRtg2FJVm",
         "id": 3,
         "name": "Ls 2",
@@ -72,6 +76,7 @@ products = [
         }
     },
     {
+        "enabled": True,
         "price_link": "price_1NaWkdGc0pLG1vqRKpp7J1CD",
         "id": 4,
         "name": "Ls 3",
@@ -90,6 +95,7 @@ products = [
         }
     },
     {
+        "enabled": True,
         "price_link": "price_1NaWkhGc0pLG1vqR4HPoxo3q",
         "id": 5,
         "name": "Ls 4",
@@ -108,6 +114,7 @@ products = [
         }
     },
     {
+        "enabled": True,
         "price_link": "price_1NaWklGc0pLG1vqR9hI9OVPO",
         "id": 6,
         "name": "Ls 5",
@@ -126,6 +133,7 @@ products = [
         }
     },
         {
+        "enabled": True,
         "price_link": "price_1NaWkpGc0pLG1vqRMBodHszM",
         "id": 7,
         "name": "Ls 6",
@@ -144,6 +152,7 @@ products = [
         }
     },
     {
+        "enabled": True,
         "price_link": "price_1NnkF6Gc0pLG1vqRSj3llmXi",
         "id": 8,
         "name": "Ls 10",
@@ -162,6 +171,7 @@ products = [
         }
     },
     {
+        "enabled": True,
         "price_link": "price_1PwZiXGc0pLG1vqRy9Gx7RlV",
         "id": 9,
         "name": "Ls 16",
@@ -170,6 +180,25 @@ products = [
             "memory": 16384,
             "swap": 0,
             "disk": 114688,
+            "io": 500,
+            "cpu": 0
+        },
+        "product_limits": {
+            "databases": 4,
+            "backups": 8,
+            "allocations": 3
+        }
+    },
+        {
+        "enabled": True,
+        "price_link": None,
+        "id": 10,
+        "name": "32GB custom",
+        "price": 1,
+        "limits": {
+            "memory": 32768,
+            "swap": 0,
+            "disk": 214688,
             "io": 500,
             "cpu": 0
         },
