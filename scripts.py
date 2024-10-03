@@ -323,6 +323,7 @@ def check_to_unsuspend():
                                 print(
                                     f"Deleting server {server['attributes']['name']} due to suspension for more than "
                                     f"3 days.")
+                                webhook_log(f"Deleting server {server['attributes']['name']} with id: {server['attributes']['id']} due to suspension for more than 3 days.")
 
                                 delete_server(server['attributes']['id'])
 
