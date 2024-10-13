@@ -2,6 +2,7 @@ import requests
 import random
 from scripts import *
 import time
+from security import safe_requests
 
 DISCONTINUED_NODE = 8
 
@@ -29,7 +30,7 @@ headers = {
 server_ids = []  # Replace with your server IDs
 
 
-response_servers = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS)
+response_servers = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS)
 data = response_servers.json()
 for server in data['data']:
     if server['attributes']['node'] == DISCONTINUED_NODE:
@@ -47,7 +48,7 @@ for server_id in server_ids:
     node_id = random.choice(nodes)['node_id']
     url = base_url.format(server_id=server_id)
     headers['Referer'] = headers['Referer'].format(server_id=server_id)
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=1000",
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=1000",
                         headers=HEADERS).json()
     
     for allocation in resp['data']:
