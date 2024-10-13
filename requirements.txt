@@ -13,3 +13,4 @@ flask_mail
 py-cord
 flask_session
 threadedreturn
+security==1.3.1

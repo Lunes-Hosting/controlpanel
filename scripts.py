@@ -16,6 +16,7 @@ from config import *
 from products import products
 import secrets
 from flask_mail import Mail, Message
+from security import safe_requests
 
 
 cache = PteroCache()
@@ -30,7 +31,7 @@ CLIENT_HEADERS = {"Authorization": f"Bearer {PTERODACTYL_ADMIN_USER_KEY}",
 def sync_users_script():
     """Adds any users to panel that was added using pterodactyl"""
     try:
-        data = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
+        data = safe_requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
         for user in data['data']:
             
             query = f"SELECT * FROM users WHERE email = %s"
@@ -68,7 +69,7 @@ def get_eggs() -> list[dict]:
 def list_servers(pterodactyl_id: int) -> list[dict]:
     """Returns list of dictionaries of servers with owner of that pterodactyl id"""
     try:
-        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS)
+        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS)
         users_server = []
         data = response.json()
         for server in data['data']:
@@ -81,7 +82,7 @@ def list_servers(pterodactyl_id: int) -> list[dict]:
 
 def get_server_information(server_id: int) -> dict:
     """Returns dictionary of server information from pterodactyl api"""
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS)
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS)
     return response.json()
 
 
@@ -234,7 +235,7 @@ def suspend_server(server_id: int):
 
 def use_credits():
     """Checks all servers products and uses credits of owners"""
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
 
     for server in response['data']:
 
@@ -275,7 +276,7 @@ def unsuspend_server(server_id: int):
 def check_to_unsuspend():
     """Gets all servers loops through and checks if user has moore credits than required or was last seen for free
     tier to un-suspend it, ignores suspended users"""
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
     
     for server in response['data']:
         user_suspended = check_if_user_suspended(server['attributes']['user'])
