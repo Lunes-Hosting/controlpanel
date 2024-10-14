@@ -143,4 +143,6 @@ def close_ticket(ticket_id):
         return redirect(url_for('tickets.tickets_index'))
     queryy = "UPDATE tickets set status = 'closed' where id = %s"
     use_database(queryy, (ticket_id,))
+    if is_admin(session['email']):
+        return redirect(url_for('admin.admin_tickets_index'))
     return redirect(url_for('tickets.tickets_index'))
