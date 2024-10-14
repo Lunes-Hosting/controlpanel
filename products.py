@@ -208,4 +208,23 @@ products = [
             "allocations": 3
         }
     },
+        {
+        "enabled": False,
+        "price_link": None,
+        "id": 10,
+        "name": "548",
+        "price": 1,
+        "limits": {
+            "memory": 8000,
+            "swap": 0,
+            "disk": 0,
+            "io": 500,
+            "cpu": 0
+        },
+        "product_limits": {
+            "databases": 1,
+            "backups": 2,
+            "allocations": 2
+        }
+    },
 ]
