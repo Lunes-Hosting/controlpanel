@@ -89,6 +89,7 @@ def success():
             flash("Failed please open a ticket")
             return url_for('index')
         add_credits(check_session['customer_email'], credits_to_add)
+        webhook_log(f"**NEW PAYMENT ALERT**: User with email: {check_session['customer_email']} bought {credits_to_add} credits.")
         flash("Success")
         return url_for('index')
 
