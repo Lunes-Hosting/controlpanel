@@ -29,7 +29,7 @@ def login_user():
             'response': recaptcha_response
         }
 
-        response = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data)
+        response = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data, timeout=60)
         result = response.json()
         if not result['success']:
             flash("Failed captcha please try again")
@@ -140,7 +140,7 @@ def reset_password_confirm(token):
                 values = (password_hash.decode(), email)
                 cursor.execute(query, values)
 
-                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS).json()['attributes']
+                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60).json()['attributes']
                 body = {
                     "username": info['username'],
                     "email": info['email'],
@@ -149,7 +149,7 @@ def reset_password_confirm(token):
                     "password": password
                 }
 
-                requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body)
+                requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body, timeout=60)
 
                 cnx.commit()
                 cursor.close()
@@ -176,7 +176,7 @@ def register_user():
             'response': recaptcha_response
         }
 
-        response = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data)
+        response = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data, timeout=60)
         result = response.json()
         if not result['success']:
             flash("Failed captcha please try again")

@@ -29,7 +29,7 @@ headers = {
 server_ids = []  # Replace with your server IDs
 
 
-response_servers = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS)
+response_servers = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60)
 data = response_servers.json()
 for server in data['data']:
     if server['attributes']['node'] == DISCONTINUED_NODE:
@@ -48,7 +48,7 @@ for server_id in server_ids:
     url = base_url.format(server_id=server_id)
     headers['Referer'] = headers['Referer'].format(server_id=server_id)
     resp = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=1000",
-                        headers=HEADERS).json()
+                        headers=HEADERS, timeout=60).json()
     
     for allocation in resp['data']:
         if not allocation['attributes']['assigned']:
@@ -59,7 +59,7 @@ for server_id in server_ids:
         '_token': token
     }
     
-    response = requests.post(url, headers=headers, data=data)
+    response = requests.post(url, headers=headers, data=data, timeout=60)
     print(response.text)
     # Check the response
     if response.status_code == 200:
