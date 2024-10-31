@@ -191,8 +191,10 @@ def create_server_submit():
 
     resp = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=10000",
                         headers=HEADERS).json()
-    random.shuffle(resp['data'])
-    for allocation in resp['data']:
+    
+    allocs = resp['data']
+    random.shuffle(allocs)
+    for allocation in allocs:
         if not allocation['attributes']['assigned']:
             alloac_id = allocation['attributes']['id']
     ptero_id = get_ptero_id(session['email'])[0]
