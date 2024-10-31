@@ -224,7 +224,8 @@ def convert_to_product(data) -> dict:
             break
 
     if returned is None:
-        print(data['attributes']['limits']['memory'], products)
+        # print(data['attributes']['limits']['memory'], products)
+        pass
     return returned
 
 
@@ -295,7 +296,16 @@ def check_to_unsuspend():
         product = convert_to_product(server)
         if product is None:
             webhook_log(f"```{server}``` no product")
-        # print(server['attributes']['name'], product)
+        #           server_id = server['attributes']['id']
+            print(server['attributes']['name'], None)
+            resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server['attributes']['id'])}", headers=HEADERS).json()
+            main_product = products[1]
+            body = main_product['limits']
+            body["feature_limits"] = main_product['product_limits']
+            body['allocation'] = resp['attributes']['allocation']
+            print(body)
+            resp2 = requests.patch(f"{PTERODACTYL_URL}api/application/servers/{int(server['attributes']['id'])}/build", headers=HEADERS,
+                                    json=body)
         if product is not None and product['name'] != "Free Tier":
 
             query = f"SELECT email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
