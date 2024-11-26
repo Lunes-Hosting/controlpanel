@@ -1,3 +1,25 @@
+"""
+Core functionality module for the Pterodactyl Control Panel.
+This module handles all interactions with the Pterodactyl API and database operations.
+
+Database Schema:
+    users table:
+        - id: int (primary key)
+        - name: str
+        - email: str (unique)
+        - password: str (bcrypt hashed)
+        - pterodactyl_id: int
+        - credits: int
+        - role: str
+        - ip: str
+        - email_verified_at: datetime
+        - last_seen: datetime
+
+Constants:
+    HEADERS: API headers for admin access
+    CLIENT_HEADERS: API headers for client access
+"""
+
 import datetime
 import string
 import threading
@@ -19,16 +41,35 @@ from flask_mail import Mail, Message
 
 
 cache = PteroCache()
-HEADERS = {"Authorization": f"Bearer {PTERODACTYL_ADMIN_KEY}",
-           'Accept': 'application/json',
-           'Content-Type': 'application/json'}
-CLIENT_HEADERS = {"Authorization": f"Bearer {PTERODACTYL_ADMIN_USER_KEY}",
-                  'Accept': 'application/json',
-                  'Content-Type': 'application/json'}
+
+# API authentication headers
+HEADERS = {
+    "Authorization": f"Bearer {PTERODACTYL_ADMIN_KEY}",
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+}
+
+CLIENT_HEADERS = {
+    "Authorization": f"Bearer {PTERODACTYL_ADMIN_USER_KEY}",
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+}
 
 
 def sync_users_script():
-    """Adds any users to panel that was added using pterodactyl"""
+    """
+    Synchronizes users between Pterodactyl panel and local database.
+    
+    Process:
+    1. Fetches all users from Pterodactyl API
+    2. For each user not in local DB:
+        - Gets their password from panel
+        - Creates new user ID
+        - Inserts into local DB with default 25 credits
+    
+    Returns:
+        None
+    """
     try:
         data = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
         for user in data['data']:
@@ -51,22 +92,87 @@ def sync_users_script():
     except KeyError:
         print(data, "ptero user data")
 
+
 def get_nodes() -> list[dict]:
-    """Returns list of dictionaries with node information in format:
-    {"node_id": node['attributes']['id'], "name": node['attributes']['name']}"""
+    """
+    Returns cached list of available nodes from Pterodactyl.
+    
+    Returns:
+        list[dict]: List of node information with format:
+            {
+                "node_id": int,
+                "name": str
+            }
+    """
     
     return cache.available_nodes
 
 
 def get_eggs() -> list[dict]:
-    """Returns list of dictionaries with egg iformation in format:
-    {"egg_id": attributes['id'], "name": attributes['name'], "docker_image": attributes['docker_image'],
-     "startup": attributes['startup']}
+    """
+    Returns cached list of server eggs from Pterodactyl.
+    
+    Returns:
+        list[dict]: List of egg information with format:
+            {
+                "egg_id": int,
+                "name": str,
+                "docker_image": str,
+                "startup": str
+            }
     """
     return cache.egg_cache
 
 def list_servers(pterodactyl_id: int) -> list[dict]:
-    """Returns list of dictionaries of servers with owner of that pterodactyl id"""
+    """
+    Returns list of dictionaries of servers with owner of that pterodactyl id.
+    
+    Makes a GET request to /api/application/servers to fetch all servers.
+    
+    Example Response:
+    {
+        "data": [
+            {
+                "attributes": {
+                    "id": 1,
+                    "external_id": null,
+                    "uuid": "uuid-string",
+                    "identifier": "identifier-string",
+                    "name": "Server Name",
+                    "description": "Server Description",
+                    "status": "installing",
+                    "suspended": false,
+                    "limits": {
+                        "memory": 1024,
+                        "swap": 0,
+                        "disk": 10240,
+                        "io": 500,
+                        "cpu": 100
+                    },
+                    "feature_limits": {
+                        "databases": 5,
+                        "allocations": 5,
+                        "backups": 2
+                    },
+                    "user": 1,
+                    "node": 1,
+                    "allocation": 1,
+                    "nest": 1,
+                    "egg": 1,
+                    "container": {
+                        "startup_command": "java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}}",
+                        "image": "quay.io/pterodactyl/core:java",
+                        "installed": true,
+                        "environment": {
+                            "SERVER_JARFILE": "server.jar",
+                            "VANILLA_VERSION": "latest"
+                        }
+                    }
+                }
+            }
+        ]
+    }
+    """
     try:
         response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS)
         users_server = []
@@ -80,13 +186,57 @@ def list_servers(pterodactyl_id: int) -> list[dict]:
         return None
 
 def get_server_information(server_id: int) -> dict:
-    """Returns dictionary of server information from pterodactyl api"""
+    """
+    Returns dictionary of server information from pterodactyl api.
+    
+    Makes a GET request to /api/application/servers/{server_id} to fetch specific server details.
+    
+    Example Response:
+    {
+        "attributes": {
+            "id": 1,
+            "external_id": null,
+            "uuid": "uuid-string",
+            "identifier": "identifier-string",
+            "name": "Server Name",
+            "description": "Server Description",
+            "status": "installing",
+            "suspended": false,
+            "limits": {
+                "memory": 1024,
+                "swap": 0,
+                "disk": 10240,
+                "io": 500,
+                "cpu": 100
+            },
+            "feature_limits": {
+                "databases": 5,
+                "allocations": 5,
+                "backups": 2
+            },
+            "user": 1,
+            "node": 1,
+            "allocation": 1,
+            "nest": 1,
+            "egg": 1
+        }
+    }
+    """
     response = requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS)
     return response.json()
 
 
 def get_ptero_id(email: str) -> tuple[int] | None:
-    """Returns tuple with id in index 0, if no user is found returns None"""
+    """
+    Gets Pterodactyl ID for a user by their email.
+    
+    Args:
+        email: User's email address
+    
+    Returns:
+        tuple[int]: Tuple containing Pterodactyl ID at index 0
+        None: If user not found
+    """
     query = f"SELECT pterodactyl_id FROM users WHERE email = %s"
     res = use_database(query, (email,))
     if res is None:
@@ -94,7 +244,16 @@ def get_ptero_id(email: str) -> tuple[int] | None:
     return res
 
 def get_id(email: str) -> tuple[int] | None:
-    """Returns tuple with id in index 0, if no user is found returns None"""
+    """
+    Gets user ID for a user by their email.
+    
+    Args:
+        email: User's email address
+    
+    Returns:
+        tuple[int]: Tuple containing user ID at index 0
+        None: If user not found
+    """
     query = f"SELECT id FROM users WHERE email = %s"
     res = use_database(query, (email,))
     if res is None:
@@ -102,7 +261,16 @@ def get_id(email: str) -> tuple[int] | None:
     return res
 
 def get_name(user_id: int) -> tuple[str] | None:
-    """Returns tuple with id in index 0, if no user is found returns None"""
+    """
+    Gets username for a user by their ID.
+    
+    Args:
+        user_id: User's ID
+    
+    Returns:
+        tuple[str]: Tuple containing username at index 0
+        None: If user not found
+    """
     query = f"SELECT name FROM users WHERE id = %s"
     res = use_database(query, (user_id,))
     if res is None:
@@ -110,8 +278,22 @@ def get_name(user_id: int) -> tuple[str] | None:
     return res
 
 def login(email: str, password: str):
-    """Checks if login info is correct if it isn't correct returns None if it is returns unmodified database
-    information"""
+    """
+    Authenticates user login credentials.
+    
+    Process:
+    1. Gets hashed password from database
+    2. Verifies password using bcrypt
+    3. If matched, returns all user information
+    
+    Args:
+        email: User's email
+        password: Plain text password
+    
+    Returns:
+        tuple: All user information from database if login successful
+        None: If login fails
+    """
     webhook_log(f"Login attempt with email {email}")
     query = f"SELECT password FROM users WHERE email = %s"
     hashed_password = use_database(query, (email,))
@@ -131,7 +313,28 @@ def login(email: str, password: str):
 
 
 def register(email: str, password: str, name: str, ip: str) -> str | dict:
-    """Attempts to register user if it fails it returns error in string otherwise returns user object json"""
+    """
+    Registers a new user in both Pterodactyl and local database.
+    
+    Process:
+    1. Checks for banned emails
+    2. Checks if IP already registered
+    3. Creates user in Pterodactyl
+    4. Creates user in local database with:
+        - Hashed password
+        - Default 25 credits
+        - Stored IP
+    
+    Args:
+        email: User's email
+        password: Plain text password
+        name: Username
+        ip: User's IP address
+    
+    Returns:
+        dict: User object from Pterodactyl API if successful
+        str: Error message if registration fails
+    """
     webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered")
     
     banned_emails = ["@nowni.com"]
@@ -174,7 +377,25 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
 
 
 def delete_user(user_id: int) -> int:
-    """Returns request status code"""
+    """
+    Deletes a user from both the panel database and Pterodactyl.
+    
+    Makes a DELETE request to /api/application/users/{user_id} to remove the user.
+    
+    Returns the HTTP status code (204 on success).
+    
+    Example Success: Returns 204 (No Content)
+    Example Error Response:
+    {
+        "errors": [
+            {
+                "code": "NotFound",
+                "status": "404",
+                "detail": "The requested resource was not found on this server."
+            }
+        ]
+    }
+    """
     # Delete the user from the database
     query = "DELETE FROM users WHERE id = %s"
     values = (user_id,)
@@ -188,6 +409,23 @@ def delete_user(user_id: int) -> int:
 
 
 def add_credits(email: str, amount: int, set_client: bool = True):
+    """
+    Adds credits to a user's account.
+    
+    Process:
+    1. Gets current credits from database
+    2. Adds specified amount
+    3. Updates database
+    4. Optionally sets user role to 'client'
+    
+    Args:
+        email: User's email
+        amount: Number of credits to add
+        set_client: Whether to set user role to 'client'
+    
+    Returns:
+        None
+    """
     # Delete the user from the database
     query = f"SELECT credits FROM users WHERE email = %s"
 
@@ -201,8 +439,25 @@ def add_credits(email: str, amount: int, set_client: bool = True):
 
 
 def remove_credits(email: str, amount: float) -> str | None:
-    """Attempts to remove credits from user returns "SUSPEND" if the amount of credits to subtract is more than amount
-     user has otherwise returns None"""
+    """
+    Removes credits from a user's account.
+    
+    Process:
+    1. Gets current credits
+    2. If user has enough credits:
+        - Subtracts amount
+        - Updates database
+    3. If not enough credits:
+        - Returns "SUSPEND"
+    
+    Args:
+        email: User's email
+        amount: Number of credits to remove
+    
+    Returns:
+        "SUSPEND": If user doesn't have enough credits
+        None: If credits successfully removed
+    """
     query = f"SELECT credits FROM users WHERE email = %s"
 
     current_credits = use_database(query, (email,))
@@ -216,7 +471,15 @@ def remove_credits(email: str, amount: float) -> str | None:
 
 
 def convert_to_product(data) -> dict:
-    """Returns Product with matched MEMORY count all other fields ignored"""
+    """
+    Returns Product with matched MEMORY count all other fields ignored.
+    
+    Args:
+        data: Server data
+    
+    Returns:
+        dict: Product information
+    """
     returned = None
     for product in products:
         if int(product['limits']['memory']) == int(data['attributes']['limits']['memory']):
@@ -230,11 +493,34 @@ def convert_to_product(data) -> dict:
 
 
 def suspend_server(server_id: int):
+    """
+    Suspends a server through Pterodactyl API.
+    Typically called when user runs out of credits.
+    
+    Args:
+        server_id: Pterodactyl server ID
+    
+    Returns:
+        None
+    """
     requests.post(f"{PTERODACTYL_URL}api/application/servers/{server_id}/suspend", headers=HEADERS)
 
 
 def use_credits():
-    """Checks all servers products and uses credits of owners"""
+    """
+    Scheduled task that processes credit usage for all servers.
+    
+    Process:
+    1. Gets all servers
+    2. For each server:
+        - Gets server details
+        - Calculates credit cost based on resources
+        - Attempts to remove credits from owner
+        - Suspends server if not enough credits
+    
+    Returns:
+        None
+    """
     response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
 
     for server in response['data']:
@@ -259,7 +545,15 @@ def use_credits():
 
 
 def delete_server(server_id) -> int:
-    """Tries to delete server returns status code"""
+    """
+    Tries to delete server returns status code.
+    
+    Args:
+        server_id: Pterodactyl server ID
+    
+    Returns:
+        int: HTTP status code
+    """
     response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS)
     if response.status_code == 204:
         webhook_log(f"Server {server_id} deleted successfully.")
@@ -269,13 +563,40 @@ def delete_server(server_id) -> int:
 
 
 def unsuspend_server(server_id: int):
-    """Un-suspends specific server id"""
+    """
+    Un-suspends specific server id.
+    
+    Makes a POST request to /api/application/servers/{server_id}/unsuspend to unsuspend the server.
+    
+    Example Success: Returns 204 (No Content)
+    Example Error Response:
+    {
+        "errors": [
+            {
+                "code": "NotFound",
+                "status": "404",
+                "detail": "The requested resource was not found on this server."
+            }
+        ]
+    }
+    """
     requests.post(f"{PTERODACTYL_URL}api/application/servers/{server_id}/unsuspend", headers=HEADERS)
 
 
 def check_to_unsuspend():
-    """Gets all servers loops through and checks if user has moore credits than required or was last seen for free
-    tier to un-suspend it, ignores suspended users"""
+    """
+    Scheduled task that checks for servers that can be unsuspended.
+    
+    Process:
+    1. Gets all servers
+    2. For each suspended server:
+        - Checks if owner has required credits
+        - Checks if owner qualifies for free tier
+        - Unsuspends if either condition met
+    
+    Returns:
+        None
+    """
     response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
     
     for server in response['data']:
@@ -360,7 +681,15 @@ def check_to_unsuspend():
 
 
 def get_credits(email: str) -> int:
-    """Returns int of amount of credits in database."""
+    """
+    Returns int of amount of credits in database.
+    
+    Args:
+        email: User's email
+    
+    Returns:
+        int: Credits amount
+    """
     query = f"SELECT credits FROM users WHERE email = %s"
     current_credits = use_database(query, (email,))
 
@@ -368,7 +697,16 @@ def get_credits(email: str) -> int:
 
 
 def check_if_user_suspended(pterodactyl_id: str) -> bool | None:
-    """Returns the bool value of if a user is suspended, if user is not found with the pterodactyl id it returns None"""
+    """
+    Returns the bool value of if a user is suspended, if user is not found with the pterodactyl id it returns None
+    
+    Args:
+        pterodactyl_id: Pterodactyl user ID
+    
+    Returns:
+        bool: Whether user is suspended
+        None: If user not found
+    """
     suspended = use_database(f"SELECT suspended FROM users WHERE pterodactyl_id = %s", (pterodactyl_id,))
     to_bool = {0: False, 1: True}
     if suspended is None:
@@ -378,7 +716,16 @@ def check_if_user_suspended(pterodactyl_id: str) -> bool | None:
 
 
 def update_ip(email: str, ip: EnvironHeaders):
-    """Updates the ip by getting the header with key "CF-Connecting-IP" default is "localhost"."""
+    """
+    Updates the ip by getting the header with key "CF-Connecting-IP" default is "localhost".
+    
+    Args:
+        email: User's email
+        ip: IP address
+    
+    Returns:
+        None
+    """
     real_ip = ip.get('CF-Connecting-IP', "localhost")
     if real_ip != "localhost":
         query = f"UPDATE users SET ip = '{real_ip}' where email = %s"
@@ -387,8 +734,17 @@ def update_ip(email: str, ip: EnvironHeaders):
 
 
 def update_last_seen(email: str, everyone: bool = False):
-    """Sets a users last seen to current time in database, if "everyone" is True it updates everyone in database to
-    current time."""
+    """
+    Sets a users last seen to current time in database, if "everyone" is True it updates everyone in database to
+    current time.
+    
+    Args:
+        email: User's email
+        everyone: Whether to update all users
+    
+    Returns:
+        None
+    """
     if everyone is True:
         query = f"UPDATE users SET last_seen = '{datetime.datetime.now()}'"
         use_database(query)
@@ -398,7 +754,15 @@ def update_last_seen(email: str, everyone: bool = False):
 
 
 def get_last_seen(email: str) -> datetime.datetime:
-    """Returns datetime object of when user with that email was last seen."""
+    """
+    Returns datetime object of when user with that email was last seen.
+    
+    Args:
+        email: User's email
+    
+    Returns:
+        datetime.datetime: Last seen time
+    """
     query = f"SELECT last_seen FROM users WHERE email = %s"
     last_seen = use_database(query, (email,))
     return last_seen[0]
@@ -407,6 +771,14 @@ def get_last_seen(email: str) -> datetime.datetime:
 def after_request(session, request: EnvironHeaders, require_login: bool = False):
     """
     This function is called after every request
+    
+    Args:
+        session: Session object
+        request: Request object
+        require_login: Whether to require login
+    
+    Returns:
+        None
     """
     if require_login is True:
         email = session.get("email")
@@ -431,14 +803,30 @@ def after_request(session, request: EnvironHeaders, require_login: bool = False)
 
 
 def is_admin(email: str) -> bool:
+    """
+    Checks if user is an admin.
+    
+    Args:
+        email: User's email
+    
+    Returns:
+        bool: Whether user is an admin
+    """
     query = "SELECT role FROM users WHERE email = %s"
     role = use_database(query, (email,))
     return role[0] == "admin"
 
 
-def use_database(query: str, values: tuple = None, database=DATABASE, all: bool = False) -> tuple | None | list:
-    """Runs database query, if "SELECT" is in the query it returns unmodified result otherwise returns None"""
-    result = None
+def get_db_connection(database=DATABASE):
+    """
+    Creates and returns a database connection with standard configuration.
+    
+    Args:
+        database: Database name to connect to
+        
+    Returns:
+        tuple: (connection, cursor)
+    """
     cnx = mysql.connector.connect(
         host=HOST,
         user=USER,
@@ -447,26 +835,74 @@ def use_database(query: str, values: tuple = None, database=DATABASE, all: bool 
         charset='utf8mb4',
         collation='utf8mb4_unicode_ci'
     )
-
     cursor = cnx.cursor(buffered=True)
-    cursor.execute(query, values)
-    if "select" in query.lower():
-        if all is False:
-            result = cursor.fetchone()
-        else:
-            result = cursor.fetchall()
-    cnx.commit()
-    cursor.close()
-    cnx.close()
-    return result
+    return cnx, cursor
 
+def use_database(query: str, values: tuple = None, database=DATABASE, all: bool = False):
+    """
+    Runs database query, if "SELECT" is in the query it returns unmodified result otherwise returns None
+    
+    Args:
+        query: SQL query
+        values: Query values
+        database: Database name
+        all: Whether to return all results
+    
+    Returns:
+        tuple: Query result
+        None: If query is not SELECT
+        list: All query results
+    """
+    cnx, cursor = get_db_connection(database)
+    try:
+        if values:
+            cursor.execute(query, values)
+        else:
+            cursor.execute(query)
+            
+        if "SELECT" in query.upper():
+            if all:
+                result = cursor.fetchall()
+            else:
+                result = cursor.fetchone()
+            cnx.close()
+            return result
+        else:
+            cnx.commit()
+            cnx.close()
+            return None
+    except Exception as e:
+        print(f"Database error: {e}")
+        cnx.close()
+        return None
 
 def webhook_log(message: str):
+    """
+    Sends a message to the webhook.
+    
+    Args:
+        message: Message to send
+    
+    Returns:
+        None
+    """
     resp = requests.post(WEBHOOK_URL,
                          json={"username": "Web Logs", "content": message})
     print(resp.text)
 
 def send_email(email: str, title:str, message: str, inner_app):
+    """
+    Sends an email to the user.
+    
+    Args:
+        email: User's email
+        title: Email title
+        message: Email message
+        inner_app: Flask app
+    
+    Returns:
+        None
+    """
     with inner_app.app_context():
         mail = Mail(inner_app)
         print("started emails")
@@ -477,11 +913,28 @@ def send_email(email: str, title:str, message: str, inner_app):
 
 # Function to generate a verification token
 def generate_verification_token():
+    """
+    Generates a verification token.
+    
+    Returns:
+        str: Verification token
+    """
     return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
 
 
 # Function to send a verification email
 def send_verification_email(email: str, verification_token: str, inner_app):
+    """
+    Sends a verification email to the user.
+    
+    Args:
+        email: User's email
+        verification_token: Verification token
+        inner_app: Flask app
+    
+    Returns:
+        None
+    """
     with inner_app.app_context():
         mail = Mail(inner_app)
         print("started emails")
@@ -491,6 +944,17 @@ def send_verification_email(email: str, verification_token: str, inner_app):
         print(f"sent email to {email}")
         
 def send_reset_email(email: str, reset_token: str, inner_app):
+    """
+    Sends a password reset email to the user.
+    
+    Args:
+        email: User's email
+        reset_token: Reset token
+        inner_app: Flask app
+    
+    Returns:
+        None
+    """
     with inner_app.app_context():
         mail = Mail(inner_app)
         msg = Message('Password Reset Request', recipients=[email])
@@ -500,5 +964,10 @@ def send_reset_email(email: str, reset_token: str, inner_app):
 
 # Function to generate a random reset token
 def generate_reset_token():
+    """
+    Generates a reset token.
+    
+    Returns:
+        str: Reset token
+    """
     return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
-

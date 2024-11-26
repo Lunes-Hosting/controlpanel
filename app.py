@@ -1,3 +1,21 @@
+"""
+Main application file for the Pterodactyl Control Panel.
+This file initializes the Flask application and sets up all core configurations.
+
+Session Variables:
+    - email: str - User's email address
+    - random_id: str - Random identifier for rate limiting
+    - pterodactyl_id: tuple[int] - User's Pterodactyl panel ID
+    - verified: bool - Whether user's email is verified
+    - role: str - User's role (admin/client/user)
+
+Configuration:
+    - MAX_CONTENT_LENGTH: 10MB file upload limit
+    - SESSION_TYPE: filesystem-based session storage
+    - MAIL_* configs: Email server settings
+    - RECAPTCHA_* configs: Google ReCAPTCHA settings
+"""
+
 from flask import Flask
 from flask_apscheduler import APScheduler
 from flask_limiter import Limiter
@@ -17,112 +35,91 @@ from scripts import *
 from cacheext import cache
 #This imports the bot's code ONLY if the user wishes to use it
 
-
+# Initialize Flask app and extensions
 app = Flask(__name__, "/static")
-app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # Limit to 16 MB
+app.config.update(
+    MAX_CONTENT_LENGTH=10 * 1024 * 1024,  # 10 MB
+    SESSION_PERMANENT=True,
+    SESSION_TYPE="filesystem",
+    SECRET_KEY=SECRET_KEY,
+    SCHEDULER_API_ENABLED=True,
+    MAIL_SERVER=MAIL_SERVER,
+    MAIL_PORT=MAIL_PORT,
+    MAIL_USE_TLS=True,
+    MAIL_USERNAME=MAIL_USERNAME,
+    MAIL_PASSWORD=MAIL_PASSWORD,
+    MAIL_DEFAULT_SENDER=MAIL_DEFAULT_SENDER,
+    RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY,
+    RECAPTCHA_PRIVATE_KEY=RECAPTCHA_SECRET_KEY
+)
+
+# Initialize extensions
 cache.init_app(app)
-def rate_limit_key():
-    # Replace 'user_id' with the actual key used to store the user identifier in the session
-    user_identifier = session.get('random_id', None)
-    print(user_identifier, 1)
-    return user_identifier
-
-
-limiter = Limiter(rate_limit_key, app=app, default_limits=["200 per day", "50 per hour"])
-
-limiter.limit("20 per hour", key_func=rate_limit_key)(user)
-limiter.limit("15 per hour", key_func=rate_limit_key)(servers)
-limiter.limit("15 per hour", key_func=rate_limit_key)(tickets)
-limiter.limit("10 per hour", key_func=rate_limit_key)(store)
-
-app.register_blueprint(user)
-app.register_blueprint(servers, url_prefix="/servers")
-app.register_blueprint(store, url_prefix="/store")
-app.register_blueprint(admin, url_prefix="/admin")
-app.register_blueprint(tickets, url_prefix="/tickets")
-
-
-class Config:
-    SCHEDULER_API_ENABLED = True
-
-
-app.config["SESSION_PERMANENT"] = True
-app.config["SESSION_TYPE"] = "filesystem"
-app.config["SECRET_KEY"] = SECRET_KEY
-# Initialize the session
 Session(app)
-
-app.config.from_object(Config())
-
-# initialize scheduler
+mail = Mail(app)
 scheduler = APScheduler()
-# if you don't want to use a config, you can set options here:
-# scheduler.api_enabled = True
 scheduler.init_app(app)
 
-app.config['MAIL_SERVER'] = MAIL_SERVER
-app.config['MAIL_PORT'] = MAIL_PORT
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = MAIL_USERNAME
-app.config['MAIL_PASSWORD'] = MAIL_PASSWORD
-app.config['MAIL_DEFAULT_SENDER'] = MAIL_DEFAULT_SENDER
-app.config['RECAPTCHA_PUBLIC_KEY'] = RECAPTCHA_SITE_KEY
-app.config['RECAPTCHA_PRIVATE_KEY'] = RECAPTCHA_SECRET_KEY
+def rate_limit_key():
+    """Generate a unique key for rate limiting based on user's session."""
+    return session.get('random_id')
 
-mail = Mail(app)
+# Configure rate limiting
+limiter = Limiter(rate_limit_key, app=app, default_limits=["200 per day", "50 per hour"])
 
-# Configuration for Flask-Caching
+# Apply rate limits to blueprints
+for blueprint, limit in [
+    (user, "20 per hour"),
+    (servers, "15 per hour"),
+    (tickets, "15 per hour"),
+    (store, "10 per hour")
+]:
+    limiter.limit(limit, key_func=rate_limit_key)(blueprint)
+    app.register_blueprint(blueprint, 
+                         url_prefix=f"/{blueprint.name}" if blueprint.name != "user" else None)
 
+# Register admin blueprint separately (no rate limit)
+app.register_blueprint(admin, url_prefix="/admin")
 
-
-
-@scheduler.task('interval', id='do_job_1', seconds=3600, misfire_grace_time=900)
-def job1():
-    print("started using credits")
+@scheduler.task('interval', id='credit_usage', seconds=3600, misfire_grace_time=900)
+def process_credits():
+    """Process hourly credit usage for all servers."""
+    print("Processing credits...")
     use_credits()
-    print("finished job 1")
+    print("Credit processing complete")
 
-
-@scheduler.task('interval', id='do_job_2', seconds=180, misfire_grace_time=900)
-def job2():
-    print("started job2 (check to unsuspend)")
+@scheduler.task('interval', id='server_unsuspend', seconds=180, misfire_grace_time=900)
+def check_suspensions():
+    """Check for servers that can be unsuspended."""
+    print("Checking suspensions...")
     check_to_unsuspend()
-    print("finished job 2")
+    print("Suspension check complete")
 
-job_has_run = False
-
-@scheduler.task('interval', id='do_run_job', seconds=5, misfire_grace_time=900)
-def run_job():
-    global job_has_run
-    if not job_has_run:
-        
-
-        asyncio.run(enable_bot())
-
-        job_has_run = True
-
-
-
-
-
-
-@scheduler.task('interval', id='do_sync_users', seconds=3600, misfire_grace_time=900)
-def sync_users():
-    print("started users sync")
+@scheduler.task('interval', id='sync_users', seconds=3600, misfire_grace_time=900)
+def sync_user_data():
+    """Synchronize user data with Pterodactyl panel."""
+    print("Syncing users...")
     sync_users_script()
     pterocache.update_all()
-    print("finished job users sync")
-    
+    print("User sync complete")
+
+job_has_run = False
+@scheduler.task('interval', id='bot_startup', seconds=5, misfire_grace_time=900)
+def start_bot():
+    """Start Discord bot if not already running."""
+    global job_has_run
+    if not job_has_run:
+        asyncio.run(enable_bot())
+        job_has_run = True
 
 scheduler.start()
+
 @app.route('/')
 def index():
+    """Main route - redirects to login if not authenticated."""
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     after_request(session=session, request=request.environ, require_login=True)
-
-
-
 
 if __name__ == '__main__':
     # Create separate processes for Flask and the Discord bot
@@ -130,6 +127,9 @@ if __name__ == '__main__':
     app.run(debug=False, host="0.0.0.0", port=1137)
 
 def webhook_log(message: str):
+    """
+    Send a message to the webhook log.
+    """
     resp = requests.post(WEBHOOK_URL,
                          json={"username": "Web Logs", "content": message})
     print(resp.text)

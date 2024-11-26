@@ -1,3 +1,21 @@
+"""
+Server management routes for the Pterodactyl Control Panel.
+Handles all server-related operations including creation, modification, and deletion.
+
+Session Variables Used:
+    - email: str - User's email for authentication
+    - pterodactyl_id: tuple[int] - User's Pterodactyl panel ID
+    - verified: bool - Whether user's email is verified
+
+URL Routes:
+    - / : List all servers
+    - /<server_id> : View specific server
+    - /create : Server creation form
+    - /create/submit : Handle server creation
+    - /update/<server_id> : Update server configuration
+    - /delete/<server_id> : Delete server
+"""
+
 from flask import Blueprint, request, render_template, session, flash
 import sys
 from threadedreturn import ThreadWithReturnValue
@@ -7,95 +25,80 @@ from products import products
 
 servers = Blueprint('servers', __name__)
 
+def get_user_verification_status(email):
+    """Helper function to check if user's email is verified"""
+    query = "SELECT email_verified_at FROM users WHERE email = %s"
+    result = use_database(query, (email,))
+    return result[0] is not None if result else False
+
+def get_user_ptero_id(session):
+    """Helper function to get or set pterodactyl_id in session"""
+    if 'pterodactyl_id' not in session:
+        ptero_id = get_ptero_id(session['email'])
+        session['pterodactyl_id'] = ptero_id
+    return session['pterodactyl_id']
+
+def verify_server_ownership(server_id, user_email):
+    """Helper function to verify server ownership"""
+    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
+    ptero_id = get_ptero_id(user_email)
+    return resp['attributes']['user'] == ptero_id[0] if ptero_id else False
 
 @servers.route('/')
 def servers_index():
+    """Lists all servers owned by the authenticated user."""
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
+        
     after_request(session, request.environ, True)
-    if 'pterodactyl_id' in session:
-        ptero_id = session['pterodactyl_id']
-    else:
-        ptero_id = get_ptero_id(session['email'])
-        session['pterodactyl_id'] = ptero_id
-
-    cnx = mysql.connector.connect(
-        host=HOST,
-        user=USER,
-        password=PASSWORD,
-        database=DATABASE,
-        charset='utf8mb4',
-        collation='utf8mb4_unicode_ci'
-    )
-    cursor = cnx.cursor(buffered=True)
-
-    query = f"Select email_verified_at FROM users where email = %s"
-    cursor.execute(query, (session['email'],))
-    results = cursor.fetchone()
+    ptero_id = get_user_ptero_id(session)
+    verified = get_user_verification_status(session['email'])
+    
     servers_list = []
-    cnx.commit()
-    if results[0] is None:
-        verified = False
-    else:
-        verified = True
+    if verified:
         servers_list = list_servers(ptero_id[0])
-
+        
     return render_template('servers.html', servers=servers_list, verified=verified)
-
 
 @servers.route('/<server_id>')
 def server(server_id):
+    """Displays detailed information about a specific server."""
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
+        
     after_request(session, request.environ, True)
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
-    cnx = mysql.connector.connect(
-        host=HOST,
-        user=USER,
-        password=PASSWORD,
-        database=DATABASE,
-        charset='utf8mb4',
-        collation='utf8mb4_unicode_ci'
-    )
-
-    cursor = cnx.cursor()
-    query = f"SELECT pterodactyl_id FROM users where email = %s"
-    cursor.execute(query, (session['email'],))
-    rows = cursor.fetchone()
-    cursor.close()
-    cnx.close()
-
-    if resp['attributes']['user'] == rows[0]:
-
-        if 'pterodactyl_id' in session:
-            ptero_id = session['pterodactyl_id']
-        else:
-            ptero_id = get_ptero_id(session['email'])
-            session['pterodactyl_id'] = ptero_id
-
-        servers_list = list_servers(ptero_id[0])
-
-        products_local = list(products)
-        for _product in products_local:
-            if _product['enabled'] == False:
-                products_local.remove(_product)
-        for server_inc in servers_list:
-            if server_inc['attributes']['user'] == ptero_id[0]:
-
-                if server_inc['attributes']['limits']['memory'] == 128:
-                    print("yes")
-
-                    products_local.remove(products[0])
-                    break
-
-        info = get_server_information(server_id)
-        return render_template('server.html', info=info, products=products_local)
-    else:
-        return "You cant view this server you dont own it!"
-
+    
+    if not verify_server_ownership(server_id, session['email']):
+        return "You can't view this server - you don't own it!"
+        
+    ptero_id = get_user_ptero_id(session)
+    servers_list = list_servers(ptero_id[0])
+    
+    # Filter available products
+    products_local = [p for p in products if p['enabled']]
+    for server in servers_list:
+        if (server['attributes']['user'] == ptero_id[0] and 
+            server['attributes']['limits']['memory'] == 128):
+            products_local.remove(products[0])
+            break
+            
+    info = get_server_information(server_id)
+    return render_template('server.html', info=info, products=products_local)
 
 @servers.route("/create")
 def create_server():
+    """
+    Displays server creation form.
+    
+    Session Requirements:
+        - email: User must be logged in
+    
+    Returns:
+        template: create_server.html with:
+            - eggs: Available server types
+            - nodes: Available nodes
+            - products: Available upgrade options
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     after_request(session, request.environ, True)
@@ -134,6 +137,19 @@ def create_server():
 
 @servers.route("/delete/<server_id>")
 def delete_server(server_id):
+    """
+    Deletes a server.
+    
+    Session Requirements:
+        - email: User must be logged in
+    
+    Args:
+        server_id: Pterodactyl server ID
+    
+    Returns:
+        redirect: To servers list on success
+        str: Error message if user doesn't own server
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     webhook_log(f"Server with id: {server_id} was deleted by user")
@@ -165,6 +181,26 @@ def delete_server(server_id):
 
 @servers.route('/create/submit', methods=['POST'])
 def create_server_submit():
+    """
+    Handles server creation form submission.
+    
+    Session Requirements:
+        - email: User must be logged in
+        - verified: Email must be verified
+    
+    Form Data:
+        - name: Server name
+        - egg_id: Server type/egg
+        - location: Node location
+        - memory: RAM allocation
+        - disk: Disk space allocation
+        - cpu: CPU allocation
+        - g-recaptcha-response: ReCAPTCHA token
+    
+    Returns:
+        redirect: To servers list on success
+        template: Error page on failure
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     recaptcha_response = request.form.get('g-recaptcha-response')
@@ -253,6 +289,19 @@ def create_server_submit():
 
 @servers.route('/adminupdate/<server_id>', methods=['POST'])
 def admin_update_server_submit(server_id):
+    """
+    Updates server configuration (admin only).
+    
+    Session Requirements:
+        - email: User must be logged in
+        - admin: User must be an admin
+    
+    Args:
+        server_id: Pterodactyl server ID
+    
+    Returns:
+        redirect: To server page on success
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     if not is_admin(session['email']):
@@ -264,6 +313,26 @@ def admin_update_server_submit(server_id):
 
 @servers.route('/update/<server_id>', methods=['POST'])
 def update_server_submit(server_id, bypass_owner_only: bool = False):
+    """
+    Updates server configuration.
+    
+    Session Requirements:
+        - email: User must be logged in
+        - verified: Email must be verified
+    
+    Args:
+        server_id: Pterodactyl server ID
+        bypass_owner_only: Allow non-owners to modify (admin only)
+    
+    Form Data:
+        - memory: New RAM allocation
+        - disk: New disk space allocation
+        - cpu: New CPU allocation
+    
+    Returns:
+        redirect: To server page on success
+        str: Error message on failure
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     after_request(session, request.environ, True)
