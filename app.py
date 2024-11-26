@@ -115,11 +115,6 @@ def index():
         return redirect(url_for("user.login_user"))
     after_request(session=session, request=request.environ, require_login=True)
 
-if __name__ == '__main__':
-    # Create separate processes for Flask and the Discord bot
-    webhook_log("**----------------DASHBOARD HAS STARTED UP----------------**")
-    Thread(target=run_bot).start()
-    app.run(debug=False, host="0.0.0.0", port=1137)
 
 def webhook_log(message: str):
     """
@@ -128,3 +123,12 @@ def webhook_log(message: str):
     resp = requests.post(WEBHOOK_URL,
                          json={"username": "Web Logs", "content": message})
     print(resp.text)
+def start_bot_loop():
+    asyncio.run(run_bot())  # This will start the Discord bot in an event loop
+
+if __name__ == '__main__':
+    # Create separate processes for Flask and the Discord bot
+    webhook_log("**----------------DASHBOARD HAS STARTED UP----------------**")
+    bot_thread = Thread(target=start_bot_loop, daemon=True)
+    bot_thread.start()
+    app.run(debug=False, host="0.0.0.0", port=1137)

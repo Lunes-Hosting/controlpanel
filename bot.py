@@ -1,8 +1,9 @@
 import discord
 from discord.ext import commands
 from threading import Thread
-from config import TOKEN, URL
+from config import TOKEN, URL, PTERODACTYL_URL, HEADERS
 from scripts import use_database, add_credits
+import requests
 
 bot = discord.Bot()
 
@@ -59,5 +60,36 @@ async def info_command(ctx, email: discord.Option(str, "User's email")):
     except Exception as e:
         await ctx.respond(f"Error fetching user info: {str(e)}", ephemeral=True)
 
-def run_bot():
-    bot.run(TOKEN)
+@bot.slash_command(name="trigger", description="Show total servers and users")
+async def trigger_command(ctx):
+    await ctx.defer(ephemeral=True)
+    if not ctx.author.guild_permissions.administrator:
+        await ctx.respond("You do not have permission to use this command.", ephemeral=True)
+        return
+
+    try:
+        # Get total users from database
+        total_users = use_database("SELECT COUNT(*) FROM users")[0]
+        
+        # Get total servers from Pterodactyl
+        resp = requests.get(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS)
+        total_servers = len(resp.json()['data'])
+        
+        # Create embed response
+        embed = discord.Embed(title="System Statistics", color=discord.Color.blue())
+        embed.add_field(name="Total Users", value=str(total_users), inline=True)
+        embed.add_field(name="Total Servers", value=str(total_servers), inline=True)
+        
+        # Send ephemeral response to user
+        await ctx.respond(embed=embed, ephemeral=True)
+        
+        # Send to specific channel
+        channel = bot.get_channel(1284260369925279744)
+        if channel:
+            await channel.send(embed=embed)
+        
+    except Exception as e:
+        await ctx.respond(f"Error fetching statistics: {str(e)}", ephemeral=True)
+
+async def run_bot():
+    await bot.start(TOKEN)  # Replace with your bot token

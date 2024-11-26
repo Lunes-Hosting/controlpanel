@@ -58,7 +58,10 @@ def servers_index():
     if verified:
         servers_list = list_servers(ptero_id[0])
         
-    return render_template('servers.html', servers=servers_list, verified=verified)
+    # Check if user is suspended
+    suspended = check_if_user_suspended(str(ptero_id[0])) if ptero_id else False
+        
+    return render_template('servers.html', servers=servers_list, verified=verified, suspended=suspended)
 
 @servers.route('/<server_id>')
 def server(server_id):
