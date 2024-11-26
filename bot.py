@@ -65,7 +65,7 @@ async def info_command(ctx, email: discord.Option(str, "User's email")):
 @bot.slash_command(name="randomnumber", description="Generate a random number between 1 and 1000")
 async def randomnumber_command(ctx):
     number = random.randint(1, 1000)
-    await ctx.respond(f"🎲 Your random number is: **{number}**", ephemeral=True)
+    await ctx.respond(f"🎲 Your random number is: **{number}**", ephemeral=False)
 
 @bot.slash_command(name="trigger", description="Show total servers and users")
 async def trigger_command(ctx):
