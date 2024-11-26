@@ -13,7 +13,7 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 95%;
             margin: 20px auto;
             padding: 0 20px;
         }
@@ -166,6 +166,7 @@
                             <th>Role</th>
                             <th>Credits</th>
                             <th>Status</th>
+                            <th>Servers</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -191,6 +192,11 @@
                                             <i class="fas fa-check"></i> Active
                                         </span>
                                     {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('admin.admin_user_servers', user_id=user['id']) }}" class="btn btn-primary" style="font-size: 12px;">
+                                        <i class="fas fa-server"></i> View Servers
+                                    </a>
                                 </td>
                                 <td>
                                     <div class="action-buttons">

@@ -185,6 +185,89 @@ def admin_tickets_index():
     return render_template('admin/tickets.html', tickets=tickets_list)
 
 
+@admin.route('/user/<user_id>/servers')
+def admin_user_servers(user_id):
+    """
+    Display all servers owned by a specific user.
+    
+    Session Requirements:
+        - email: User must be logged in
+        
+    Access Control:
+        - User must be admin
+        
+    Args:
+        user_id: User's ID to view servers for
+        
+    Returns:
+        template: admin/user_servers.html with:
+            - user_info: Basic user information
+            - servers: List of user's servers
+    """
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    if not is_admin(session['email']):
+        return "YOU'RE NOT ADMIN BRO"
+
+    # Get user info
+    query = "SELECT name, email FROM users WHERE id = %s"
+    user_info = use_database(query, (user_id,))
+    if not user_info:
+        flash("User not found")
+        return redirect(url_for('admin.users'))
+
+    user_info = {
+        'name': user_info[0],
+        'email': user_info[1]
+    }
+
+    # Get user's pterodactyl ID
+    query = "SELECT pterodactyl_id FROM users WHERE id = %s"
+    ptero_id = use_database(query, (user_id,))[0]
+
+    # Get user's servers
+    servers = list_servers(ptero_id)
+
+    return render_template('admin/user_servers.html', servers=servers, user_info=user_info)
+
+
+@admin.route('/server/<server_id>')
+def admin_manage_server(server_id):
+    """
+    Display admin server management page.
+    
+    Session Requirements:
+        - email: User must be logged in
+        
+    Access Control:
+        - User must be admin
+        
+    Args:
+        server_id: Server ID to manage
+        
+    Returns:
+        template: admin/manage_server.html with server details
+    """
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    if not is_admin(session['email']):
+        return "YOU'RE NOT ADMIN"
+        
+    try:
+        # Get server details from Pterodactyl
+        server = get_server(server_id)
+        if not server:
+            flash("Server not found")
+            return redirect(url_for('admin.users'))
+            
+        return render_template('admin/manage_server.html', server=server)
+        
+    except Exception as e:
+        print(f"Error fetching server details: {e}")
+        flash("Error fetching server details. Check logs for details.")
+        return redirect(url_for('admin.users'))
+
+
 @admin.route('/user/delete/<user_id>', methods=['POST'])
 def admin_delete_user(user_id):
     """
