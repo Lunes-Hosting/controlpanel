@@ -47,22 +47,39 @@
             border-collapse: collapse;
             margin-top: 20px;
             background: white;
+            table-layout: fixed;
         }
         
         th {
             background-color: #f8f9fa;
-            padding: 12px;
+            padding: 8px;
             text-align: left;
             font-weight: 600;
             color: #495057;
             border-bottom: 2px solid #dee2e6;
+            font-size: 14px;
+            white-space: nowrap;
         }
         
         td {
-            padding: 12px;
+            padding: 8px;
             border-bottom: 1px solid #dee2e6;
             color: #212529;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
+
+        /* Column widths */
+        th:nth-child(1), td:nth-child(1) { width: 5%; }  /* ID */
+        th:nth-child(2), td:nth-child(2) { width: 15%; } /* Name */
+        th:nth-child(3), td:nth-child(3) { width: 20%; } /* Email */
+        th:nth-child(4), td:nth-child(4) { width: 10%; } /* Role */
+        th:nth-child(5), td:nth-child(5) { width: 8%; }  /* Credits */
+        th:nth-child(6), td:nth-child(6) { width: 12%; } /* Status */
+        th:nth-child(7), td:nth-child(7) { width: 12%; } /* Servers */
+        th:nth-child(8), td:nth-child(8) { width: 18%; } /* Actions */
         
         tr:hover {
             background-color: #f8f9fa;
@@ -70,14 +87,14 @@
         
         .btn {
             display: inline-block;
-            padding: 6px 12px;
+            padding: 4px 8px;
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 500;
             text-decoration: none;
             cursor: pointer;
             border: none;
-            transition: background-color 0.2s;
+            transition: all 0.2s;
         }
         
         .btn-danger {
@@ -106,28 +123,24 @@
         .btn-success:hover {
             background-color: #218838;
         }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 500;
+
+        .btn-link {
+            background: none;
+            color: #007bff;
+            padding: 0;
         }
-        
-        .status-active {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        
-        .status-suspended {
-            background-color: #f8d7da;
-            color: #721c24;
+
+        .btn-link:hover {
+            text-decoration: underline;
+            color: #0056b3;
         }
         
         .action-buttons {
             display: flex;
-            gap: 8px;
+            gap: 4px;
+            flex-wrap: nowrap;
+            justify-content: flex-start;
+            align-items: center;
         }
         
         .user-link {
@@ -138,6 +151,25 @@
         
         .user-link:hover {
             text-decoration: underline;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 6px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-suspended {
+            background-color: #f8d7da;
+            color: #721c24;
         }
     </style>
 </head>
@@ -194,7 +226,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('admin.admin_user_servers', user_id=user['id']) }}" class="btn btn-primary" style="font-size: 12px;">
+                                    <a href="{{ url_for('admin.admin_user_servers', user_id=user['id']) }}" class="btn btn-link" style="font-size: 12px;">
                                         <i class="fas fa-server"></i> View Servers
                                     </a>
                                 </td>
