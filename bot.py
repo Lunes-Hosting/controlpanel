@@ -79,7 +79,7 @@ async def trigger_command(ctx):
         total_users = use_database("SELECT COUNT(*) FROM users")[0]
         
         # Get total servers from Pterodactyl
-        resp = requests.get(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS)
+        resp = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS)
         total_servers = len(resp.json()['data'])
         
         # Create embed response
