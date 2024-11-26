@@ -4,6 +4,7 @@ from threading import Thread
 from config import TOKEN, URL, PTERODACTYL_URL
 from scripts import use_database, add_credits, HEADERS
 import requests
+import random
 
 bot = discord.Bot()
 
@@ -29,7 +30,7 @@ async def add_credits_command(ctx, email: discord.Option(str, "User's email"), a
         new_credits = use_database(query, (email,))
         
         message = (f"{'Added' if amount > 0 else 'Removed'} {abs(amount)} credits to/from {email}.\n"
-                   f"Old balance: {current_credits[0][0]} | New balance: {new_credits[0][0]}")
+                   f"Old balance: {current_credits[0]} | New balance: {new_credits[0]}")
         await ctx.respond(message, ephemeral=True)
         
     except Exception as e:
@@ -58,6 +59,11 @@ async def info_command(ctx, email: discord.Option(str, "User's email")):
         
     except Exception as e:
         await ctx.respond(f"Error fetching user info: {str(e)}", ephemeral=True)
+
+@bot.slash_command(name="randomnumber", description="Generate a random number between 1 and 1000")
+async def randomnumber_command(ctx):
+    number = random.randint(1, 1000)
+    await ctx.respond(f"🎲 Your random number is: **{number}**", ephemeral=True)
 
 @bot.slash_command(name="trigger", description="Show total servers and users")
 async def trigger_command(ctx):
