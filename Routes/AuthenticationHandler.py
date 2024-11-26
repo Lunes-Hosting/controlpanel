@@ -400,3 +400,71 @@ def logout():
     """
     session.clear()
     return redirect(url_for("index"))
+
+
+@user.route('/account/delete', methods=['GET', 'POST'])
+def delete_account():
+    """
+    Handle user account self-deletion.
+    
+    Methods:
+        GET: Display deletion confirmation page
+        POST: Process account deletion
+        
+    Session Requirements:
+        - email: User must be logged in
+        
+    Process:
+        1. Verify user is logged in
+        2. Delete all user's servers
+        3. Delete user from Pterodactyl
+        4. Delete user's tickets and comments
+        5. Delete user from database
+        6. Clear session
+        
+    Returns:
+        GET: template: delete_account.html
+        POST: redirect: To login page with confirmation
+    """
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+        
+    if request.method == "GET":
+        return render_template("delete_account.html")
+        
+    try:
+        # Get user info
+        query = "SELECT id, pterodactyl_id FROM users WHERE email = %s"
+        user_info = use_database(query, (session['email'],))
+        if not user_info:
+            flash("User not found")
+            return redirect(url_for('index'))
+            
+        user_id, ptero_id = user_info
+        
+        # Get and delete all user's servers
+        servers = list_servers(ptero_id)
+        for server in servers:
+            server_id = server['attributes']['id']
+            delete_server(server_id)
+            
+        # Delete user from Pterodactyl
+        delete_user(ptero_id)
+        
+        # Delete user's tickets and comments
+        use_database("DELETE FROM ticket_comments WHERE user_id = %s", (user_id,))
+        use_database("DELETE FROM tickets WHERE user_id = %s", (user_id,))
+        
+        # Finally delete user from database
+        use_database("DELETE FROM users WHERE id = %s", (user_id,))
+        
+        webhook_log(f"User `{session['email']}` deleted their account")
+        session.clear()
+        flash("Your account has been permanently deleted.")
+        
+    except Exception as e:
+        print(f"Error deleting account: {e}")
+        flash("Error deleting account. Please contact support.")
+        return redirect(url_for('index'))
+        
+    return redirect(url_for('user.login_user'))

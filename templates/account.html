@@ -28,18 +28,19 @@
             {% endwith %}
 
             <h1 class="text-3xl font-bold text-center text-info">Welcome to Your Account</h1>
-            <div class="user-info mt-8 text-center text-white">
-                <p class="text-lg"><strong>Username:</strong> {{username}}</p>
-                <p class="text-lg"><strong>Email:</strong> {{email}}</p>
-                <p class="text-lg"><strong>Credits:</strong> {{credits}}</p>
-                <p class="text-lg"><strong>Server Count:</strong> {{server_count}}</p>
-                <p class="text-lg"><strong>Current monthly credit usage:</strong> {{monthly_usage}}</p>
-                <br>
-                <br>
-                <p><i>The control panel uses a credit-based system. credits are charged hourly based on the monthly price (price / 30 / 24) 
-                    This means that the price of your servers won’t be charged right away when the you creates a server,
-                     but instead, the credits are reduced hourly—giving you the option to cancel and create servers freely anytime.
-                      When the user runs out of credits, his server will automatically be suspended.</i></p>
+            <div class="account-info">
+                <h2>Account Information</h2>
+                <p><strong>Username:</strong> {{ username }}</p>
+                <p><strong>Email:</strong> {{ email }}</p>
+                <p><strong>Credits:</strong> {{ credits }}</p>
+                <p><strong>Server Count:</strong> {{ server_count }}</p>
+                <p><strong>Monthly Usage:</strong> {{ monthly_usage }}</p>
+                
+                <div class="danger-zone" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd;">
+                    <h3 style="color: #dc3545;">Danger Zone</h3>
+                    <p style="color: #6c757d;">Once you delete your account, there is no going back. Please be certain.</p>
+                    <a href="{{ url_for('user.delete_account') }}" class="btn btn-danger" style="display: inline-block; background-color: #dc3545; color: white; text-decoration: none; padding: 8px 16px; border-radius: 4px; margin-top: 10px;">Delete Account</a>
+                </div>
             </div>
             <div class="button-container mt-6 text-center">
                 <a href="{{url_for('user.logout')}}" class="btn btn-info text-white">Log out</a>

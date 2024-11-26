@@ -10,10 +10,29 @@
     table, th, td {
       border:1px solid black;
     }
+    .delete-btn {
+        background-color: #ff4444;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .delete-btn:hover {
+        background-color: #cc0000;
+    }
 </style>
 {% include 'admin/admin_taskbar.html' %}
 
     <div class="users-container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-info">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
         <table style="width:100%">
             <tr>
               <th>Id</th>
@@ -22,9 +41,9 @@
               <th>Role</th>
               <th>Credits</th>
               <th>Suspended</th>
+              <th>Actions</th>
             </tr>
         {% for user in users %}
-
                 <tr>
                     <td>{{ user['id'] }}</td>
                     <td><a href="{{ url_for('admin.admin_user', user_id=user['panel_id']) }}">{{ user['name'] }}</a></td>
@@ -36,9 +55,12 @@
                     {% else %}
                         <td>False</td>
                     {% endif %}
+                    <td>
+                        <form action="{{ url_for('admin.admin_delete_user', user_id=user['id']) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this user? This will delete all their servers, tickets, and data.');">
+                            <button type="submit" class="delete-btn">Delete</button>
+                        </form>
+                    </td>
                 </tr>
-
-
         {% endfor %}
     </table>
     </div>
