@@ -48,7 +48,6 @@ async def info_command(ctx, email: discord.Option(str, "User's email")):
             await ctx.respond(f"Error: User with email {email} not found", ephemeral=True)
             return
         
-        user_info = user_info[0]
         embed = discord.Embed(title=f"User Information: {email}", color=discord.Color.blue())
         embed.add_field(name="Credits", value=user_info[0], inline=True)
         embed.add_field(name="Role", value=user_info[1], inline=True)
