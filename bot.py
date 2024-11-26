@@ -1,8 +1,8 @@
 import discord
 from discord.ext import commands
 from threading import Thread
-from config import TOKEN, URL, PTERODACTYL_URL, HEADERS
-from scripts import use_database, add_credits
+from config import TOKEN, URL, PTERODACTYL_URL
+from scripts import use_database, add_credits, HEADERS
 import requests
 
 bot = discord.Bot()
