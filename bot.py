@@ -15,15 +15,17 @@ async def on_ready():
 
 @bot.slash_command(name="add_credits", description="Add or remove credits from a user's account")
 async def add_credits_command(ctx, email: discord.Option(str, "User's email"), amount: discord.Option(int, "Credits amount (negative to subtract)")):
+    await ctx.defer(ephemeral=False)
     if not ctx.author.guild_permissions.administrator:
-        await ctx.respond("You do not have permission to use this command.", ephemeral=True)
+        await ctx.respond("You do not have permission to use this command.", ephemeral=False)
         return
     try:
+        
         query = "SELECT credits FROM users WHERE email = %s"
         current_credits = use_database(query, (email,))
         
         if not current_credits:
-            await ctx.respond(f"Error: User with email {email} not found", ephemeral=True)
+            await ctx.respond(f"Error: User with email {email} not found", ephemeral=False)
             return
         
         add_credits(email, amount, set_client=False)
@@ -31,10 +33,10 @@ async def add_credits_command(ctx, email: discord.Option(str, "User's email"), a
         
         message = (f"{'Added' if amount > 0 else 'Removed'} {abs(amount)} credits to/from {email}.\n"
                    f"Old balance: {current_credits[0]} | New balance: {new_credits[0]}")
-        await ctx.respond(message, ephemeral=True)
+        await ctx.respond(message, ephemeral=False)
         
     except Exception as e:
-        await ctx.respond(f"Error modifying credits: {str(e)}", ephemeral=True)
+        await ctx.respond(f"Error modifying credits: {str(e)}", ephemeral=False)
 
 @bot.slash_command(name="info", description="Get user information")
 async def info_command(ctx, email: discord.Option(str, "User's email")):
