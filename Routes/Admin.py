@@ -11,6 +11,19 @@ admin = Blueprint('admin', __name__)
 
 @admin.route("/")
 def admin_index():
+    """
+    Display admin dashboard homepage.
+    
+    Session Requirements:
+        - email: User must be logged in
+        
+    Access Control:
+        - User must be admin
+        
+    Returns:
+        template: admin/admin.html
+        str: Error message if not admin
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     if not is_admin(session['email']):
@@ -20,6 +33,22 @@ def admin_index():
 
 @admin.route("/users")
 def users():
+    """
+    Display list of all users with their details.
+    
+    Session Requirements:
+        - email: User must be logged in
+        
+    Access Control:
+        - User must be admin
+        
+    Returns:
+        template: admin/users.html with:
+            - users: List of user objects containing:
+                - name, credits, role, email
+                - suspended status, ID, panel ID
+        str: Error message if not admin
+    """
     full_users = []
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -36,6 +65,19 @@ def users():
 
 @admin.route("/servers")
 def admin_servers():
+    """
+    Display list of all servers in the panel.
+    
+    Session Requirements:
+        - email: User must be logged in
+        
+    Access Control:
+        - User must be admin
+        
+    Returns:
+        template: admin/servers.html with list of all servers
+        str: Error message if not admin
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     if not is_admin(session['email']):
@@ -46,6 +88,22 @@ def admin_servers():
 
 @admin.route('/user/<user_id>')
 def admin_user(user_id):
+    """
+    Get detailed information about a specific user.
+    
+    Session Requirements:
+        - email: User must be logged in
+        
+    Access Control:
+        - User must be admin
+        
+    Args:
+        user_id: Pterodactyl user ID
+        
+    Returns:
+        json: User information from Pterodactyl API
+        str: Error message if not admin
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     if not is_admin(session['email']):
@@ -56,6 +114,26 @@ def admin_user(user_id):
 
 @admin.route('/server/<server_id>')
 def admin_server(server_id):
+    """
+    Display detailed server information and management options.
+    
+    Session Requirements:
+        - email: User must be logged in
+        - pterodactyl_id: User's panel ID
+        
+    Access Control:
+        - User must be admin
+        
+    Args:
+        server_id: Pterodactyl server ID
+        
+    Returns:
+        template: admin/server.html with:
+            - info: Server details
+            - products: Available upgrade options
+            - product: Current server configuration
+        str: Error message if not admin
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     if not is_admin(session['email']):
@@ -76,6 +154,20 @@ def admin_server(server_id):
 
 @admin.route('/tickets')
 def admin_tickets_index():
+    """
+    Display list of all open support tickets.
+    
+    Session Requirements:
+        - email: User must be logged in
+        - pterodactyl_id: User's panel ID
+        
+    Access Control:
+        - User must be admin
+        
+    Returns:
+        template: admin/tickets.html with list of open tickets
+        str: Error message if not admin
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     if not is_admin(session['email']):

@@ -9,6 +9,16 @@ tickets = Blueprint('tickets', __name__)
 
 @tickets.route('/')
 def tickets_index():
+    """
+    Display list of open tickets for the authenticated user.
+    
+    Session Requirements:
+        - email: User must be logged in
+        - pterodactyl_id: User's panel ID (fetched if not in session)
+        
+    Returns:
+        template: tickets.html with list of user's open tickets
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     after_request(session=session, request=request.environ, require_login=True)
@@ -26,6 +36,19 @@ def tickets_index():
 
 @tickets.route('/create/submit', methods=['POST'])
 def create_ticket_submit():
+    """
+    Handle ticket creation form submission.
+    
+    Session Requirements:
+        - email: User must be logged in
+        
+    Form Data:
+        - title: Ticket title/subject
+        - message: Initial ticket message
+        
+    Returns:
+        redirect: To new ticket page on success
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     after_request(session=session, request=request.environ, require_login=True)
@@ -72,6 +95,21 @@ def create_ticket_submit():
 
 @tickets.route('/message/submit/<ticket_id>', methods=['POST'])
 def add_message_submit(ticket_id):
+    """
+    Add a new message to an existing ticket.
+    
+    Session Requirements:
+        - email: User must be logged in
+        
+    Args:
+        ticket_id: ID of ticket to add message to
+        
+    Form Data:
+        - message: Message content
+        
+    Returns:
+        redirect: Back to ticket page
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     after_request(session=session, request=request.environ, require_login=True)
@@ -103,6 +141,21 @@ def add_message_submit(ticket_id):
 
 @tickets.route('/<ticket_id>')
 def ticket(ticket_id):
+    """
+    Display a specific ticket and its messages.
+    
+    Session Requirements:
+        - email: User must be logged in
+        
+    Args:
+        ticket_id: ID of ticket to view
+        
+    Returns:
+        template: ticket.html with:
+            - messages: List of ticket messages
+            - info: Ticket metadata
+        redirect: To tickets list if user can't access ticket
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     
@@ -129,6 +182,22 @@ def ticket(ticket_id):
 
 @tickets.route('/close/<ticket_id>', methods=['POST'])
 def close_ticket(ticket_id):
+    """
+    Close a support ticket.
+    
+    Session Requirements:
+        - email: User must be logged in
+        
+    Access Control:
+        - Only ticket owner or admin can close ticket
+        - Closed tickets can only be viewed by admins
+        
+    Args:
+        ticket_id: ID of ticket to close
+        
+    Returns:
+        redirect: To tickets list or admin panel
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     

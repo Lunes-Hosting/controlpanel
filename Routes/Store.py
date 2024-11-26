@@ -13,6 +13,16 @@ active_payments = []
 
 @store.route("/")
 def storepage():
+    """
+    Display the store page with available products.
+    
+    Session Requirements:
+        - email: User must be logged in
+        - pterodactyl_id: User's panel ID (fetched if not in session)
+        
+    Returns:
+        template: store.html with list of available products
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     after_request(session, request.environ, True)
@@ -32,6 +42,19 @@ def storepage():
 
 @store.route('/checkout/<price_link>', methods=['POST', 'GET'])
 def create_checkout_session(price_link: str):
+    """
+    Create a Stripe checkout session for product purchase.
+    
+    Session Requirements:
+        - email: User must be logged in
+        - pterodactyl_id: User's panel ID
+        
+    Args:
+        price_link: Stripe price ID for the product
+        
+    Returns:
+        redirect: To Stripe checkout page
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     after_request(session, request.environ, True)
@@ -68,6 +91,22 @@ def create_checkout_session(price_link: str):
 
 @store.route('/success', methods=['GET'])
 def success():
+    """
+    Handle successful payment callback from Stripe.
+    
+    Session Requirements:
+        - pay_id: Stripe payment session ID
+        - price_link: Product price ID
+        
+    Process:
+        1. Verify payment session
+        2. Check payment status
+        3. Add credits to user account
+        4. Log successful payment
+        
+    Returns:
+        url: Redirect URL with status message
+    """
     try:
         pay_id = session['pay_id']
     except KeyError:
@@ -101,5 +140,10 @@ def success():
 
 @store.route('/cancel', methods=['GET'])
 def cancel():
-    # Handle the case when the customer cancels the payment
+    """
+    Handle cancelled payment callback from Stripe.
+    
+    Returns:
+        template: cancel.html showing payment cancellation message
+    """
     return render_template('cancel.html')

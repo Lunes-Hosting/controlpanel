@@ -21,6 +21,22 @@ pterocache = PteroCache()
 
 @user.route('/login', methods=['POST', 'GET'])
 def login_user():
+    """
+    Handle user login via form submission.
+    
+    Methods:
+        GET: Display login form
+        POST: Process login attempt
+        
+    Form Data:
+        - email: User's email
+        - password: User's password
+        - g-recaptcha-response: ReCAPTCHA token
+        
+    Returns:
+        GET: template: login.html with ReCAPTCHA key
+        POST: redirect: To dashboard on success or login page with error
+    """
     after_request(session=session, request=request.environ)
     if request.method == "POST":
         recaptcha_response = request.form.get('g-recaptcha-response')
@@ -58,6 +74,20 @@ def login_user():
 
 @user.route('/')
 def index():
+    """
+    Display user account dashboard.
+    
+    Session Requirements:
+        - email: User must be logged in
+        
+    Returns:
+        template: account.html with:
+            - credits: User's current credits
+            - server_count: Number of servers owned
+            - username: User's name
+            - email: User's email
+            - monthly_usage: Total monthly credit usage
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
 
@@ -88,6 +118,25 @@ def index():
 # Route to request a password reset (via email)
 @user.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
+    """
+    Handle password reset request.
+    
+    Methods:
+        GET: Display reset request form
+        POST: Process reset request
+        
+    Form Data:
+        - email: User's email address
+        
+    Process:
+        1. Validate email exists
+        2. Generate reset token
+        3. Send reset email
+        
+    Returns:
+        GET: template: reset_password.html
+        POST: redirect: To login page with confirmation
+    """
     if request.method == 'POST':
         email = request.form.get('email')
 
@@ -111,6 +160,31 @@ def reset_password():
 
 @user.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password_confirm(token):
+    """
+    Handle password reset confirmation.
+    
+    Methods:
+        GET: Display password reset form
+        POST: Process new password
+        
+    Args:
+        token: Reset token from email
+        
+    Form Data:
+        - email: User's email
+        - password: New password
+        - confirm_password: Password confirmation
+        - token: Reset token
+        
+    Process:
+        1. Validate token matches cached token
+        2. Update password in local database
+        3. Update password in Pterodactyl panel
+        
+    Returns:
+        GET: template: reset_password_confirm.html
+        POST: redirect: To login page on success
+    """
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
@@ -169,6 +243,30 @@ def reset_password_confirm(token):
 
 @user.route('/register', methods=['POST', 'GET'])
 def register_user():
+    """
+    Handle user registration.
+    
+    Methods:
+        GET: Display registration form
+        POST: Process registration
+        
+    Form Data:
+        - email: User's email
+        - username: Desired username
+        - password: Desired password
+        - confirm_password: Password confirmation
+        - g-recaptcha-response: ReCAPTCHA token
+        
+    Process:
+        1. Validate form data
+        2. Create user in Pterodactyl panel
+        3. Create user in local database
+        4. Send verification email
+        
+    Returns:
+        GET: template: register.html
+        POST: redirect: To login page on success
+    """
     if request.method == "POST":
         recaptcha_response = request.form.get('g-recaptcha-response')
         data = {
@@ -211,6 +309,19 @@ def register_user():
 
 @user.route("/resend_confirmation_email")
 def resend_confirmation_email():
+    """
+    Resend email verification link.
+    
+    Session Requirements:
+        - email: User must be logged in
+        
+    Process:
+        1. Generate new verification token
+        2. Send verification email
+        
+    Returns:
+        redirect: To account page with confirmation
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
 
@@ -228,6 +339,20 @@ def resend_confirmation_email():
 
 @user.route('/verify_email/<token>', methods=['GET'])
 def verify_email(token):
+    """
+    Verify user's email address.
+    
+    Args:
+        token: Email verification token
+        
+    Process:
+        1. Get email from cache using token
+        2. Update user's verified status
+        3. Clear verification token from cache
+        
+    Returns:
+        redirect: To account page with status message
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
 
@@ -264,5 +389,14 @@ def verify_email(token):
 
 @user.route('/logout', methods=['GET'])
 def logout():
+    """
+    Log out current user.
+    
+    Process:
+        1. Clear session data
+        
+    Returns:
+        redirect: To login page
+    """
     session.clear()
     return redirect(url_for("index"))
