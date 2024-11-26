@@ -248,3 +248,55 @@ def admin_delete_user(user_id):
         flash("Error deleting user. Check logs for details.")
         
     return redirect(url_for('admin.users'))
+
+
+@admin.route('/user/toggle_suspension/<user_id>', methods=['POST'])
+def admin_toggle_suspension(user_id):
+    """
+    Toggle user suspension status.
+    
+    Session Requirements:
+        - email: User must be logged in
+        
+    Access Control:
+        - User must be admin
+        
+    Args:
+        user_id: User's ID to suspend/unsuspend
+        
+    Process:
+        1. Verify admin status
+        2. Toggle user's suspension status
+        3. Log the action
+        
+    Returns:
+        redirect: To admin users page with status message
+    """
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    if not is_admin(session['email']):
+        return "YOU'RE NOT ADMIN"
+        
+    try:
+        # Get current suspension status
+        query = "SELECT suspended, email FROM users WHERE id = %s"
+        result = use_database(query, (user_id,))
+        if not result:
+            flash("User not found")
+            return redirect(url_for('admin.users'))
+            
+        current_status, user_email = result
+        new_status = 0 if current_status == 1 else 1
+        
+        # Update suspension status
+        use_database("UPDATE users SET suspended = %s WHERE id = %s", (new_status, user_id))
+        
+        action = "suspended" if new_status == 1 else "unsuspended"
+        webhook_log(f"Admin `{session['email']}` {action} user `{user_email}`")
+        flash(f"User has been {action}.")
+        
+    except Exception as e:
+        print(f"Error toggling suspension: {e}")
+        flash("Error updating user status. Check logs for details.")
+        
+    return redirect(url_for('admin.users'))

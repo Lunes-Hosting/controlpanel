@@ -1,69 +1,224 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Servers</title>
+    <title>Admin - Users</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/admin_users.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .alert {
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .alert-info {
+            background-color: #cce5ff;
+            border: 1px solid #b8daff;
+            color: #004085;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+            color: #212529;
+        }
+        
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .btn-warning:hover {
+            background-color: #e0a800;
+        }
+        
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-suspended {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .user-link {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .user-link:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-<style>
-    table, th, td {
-      border:1px solid black;
-    }
-    .delete-btn {
-        background-color: #ff4444;
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-    .delete-btn:hover {
-        background-color: #cc0000;
-    }
-</style>
-{% include 'admin/admin_taskbar.html' %}
-
-    <div class="users-container">
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-info">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        
-        <table style="width:100%">
-            <tr>
-              <th>Id</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Credits</th>
-              <th>Suspended</th>
-              <th>Actions</th>
-            </tr>
-        {% for user in users %}
-                <tr>
-                    <td>{{ user['id'] }}</td>
-                    <td><a href="{{ url_for('admin.admin_user', user_id=user['panel_id']) }}">{{ user['name'] }}</a></td>
-                    <td>{{ user['email'] }}</td>
-                    <td>{{ user['role'] }}</td>
-                    <td>{{ user['credits'] }}</td>
-                    {% if user['suspended'] == 1 %}
-                        <td>True</td>
-                    {% else %}
-                        <td>False</td>
-                    {% endif %}
-                    <td>
-                        <form action="{{ url_for('admin.admin_delete_user', user_id=user['id']) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this user? This will delete all their servers, tickets, and data.');">
-                            <button type="submit" class="delete-btn">Delete</button>
-                        </form>
-                    </td>
-                </tr>
-        {% endfor %}
-    </table>
+    {% include 'admin/admin_taskbar.html' %}
+    
+    <div class="container">
+        <div class="card">
+            <h2>User Management</h2>
+            
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-info">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Credits</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                            <tr>
+                                <td>{{ user['id'] }}</td>
+                                <td>
+                                    <a href="{{ url_for('admin.admin_user', user_id=user['panel_id']) }}" class="user-link">
+                                        {{ user['name'] }}
+                                    </a>
+                                </td>
+                                <td>{{ user['email'] }}</td>
+                                <td>{{ user['role'] }}</td>
+                                <td>{{ user['credits'] }}</td>
+                                <td>
+                                    {% if user['suspended'] == 1 %}
+                                        <span class="status-badge status-suspended">
+                                            <i class="fas fa-ban"></i> Suspended
+                                        </span>
+                                    {% else %}
+                                        <span class="status-badge status-active">
+                                            <i class="fas fa-check"></i> Active
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <form action="{{ url_for('admin.admin_toggle_suspension', user_id=user['id']) }}" method="POST" style="display: inline;">
+                                            {% if user['suspended'] == 1 %}
+                                                <button type="submit" class="btn btn-success" title="Unsuspend User">
+                                                    <i class="fas fa-unlock"></i>
+                                                </button>
+                                            {% else %}
+                                                <button type="submit" class="btn btn-warning" title="Suspend User" onclick="return confirm('Are you sure you want to suspend this user?');">
+                                                    <i class="fas fa-ban"></i>
+                                                </button>
+                                            {% endif %}
+                                        </form>
+                                        
+                                        <form action="{{ url_for('admin.admin_delete_user', user_id=user['id']) }}" method="POST" style="display: inline;">
+                                            <button type="submit" class="btn btn-danger" title="Delete User" onclick="return confirm('Are you sure you want to delete this user? This will delete all their servers, tickets, and data.');">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-
 </body>
 </html>
