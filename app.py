@@ -28,11 +28,12 @@ from Routes.Admin import *
 from Routes.Tickets import *
 from flask_session import Session
 from multiprocessing import Process
-from bot import enable_bot
+from bot import run_bot
 import asyncio
 import random
 from scripts import *
 from cacheext import cache
+from threading import Thread
 #This imports the bot's code ONLY if the user wishes to use it
 
 # Initialize Flask app and extensions
@@ -103,14 +104,7 @@ def sync_user_data():
     pterocache.update_all()
     print("User sync complete")
 
-job_has_run = False
-@scheduler.task('interval', id='bot_startup', seconds=5, misfire_grace_time=900)
-def start_bot():
-    """Start Discord bot if not already running."""
-    global job_has_run
-    if not job_has_run:
-        asyncio.run(enable_bot())
-        job_has_run = True
+
 
 scheduler.start()
 
@@ -124,6 +118,7 @@ def index():
 if __name__ == '__main__':
     # Create separate processes for Flask and the Discord bot
     webhook_log("**----------------DASHBOARD HAS STARTED UP----------------**")
+    Thread(target=run_bot).start()
     app.run(debug=False, host="0.0.0.0", port=1137)
 
 def webhook_log(message: str):
