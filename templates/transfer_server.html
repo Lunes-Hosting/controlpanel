@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      
+      <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/create_server.css') }}">
+      <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+      <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
+      <script src="https://cdn.tailwindcss.com"></script>
+      <title>Lunes Host | Transfer Server</title>
+      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
+      <style>
+         body {
+            color: white;
+         }
+         .card {
+            background-color: #1f2937 !important;
+         }
+         .select, .input {
+            color: white;
+            background-color: #374151;
+            border-color: #4b5563;
+         }
+         .label-text {
+            color: #d1d5db;
+         }
+      </style>
+   </head>
+   <body data-theme="synthwave" class="bg-base-200">
+      {% include 'taskbar.html' %}
+      <div class="hero min-h-screen bg-base-200">
+         <div class="hero-content flex-col lg:flex-col">
+            <div class="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
+               <div class="text-center lg:text-center p-6">
+                  <h1 class="text-5xl text-white">Transfer Server</h1>
+                  <p class="py-6 text-gray-300">Transfer your server to a new node!</p>
+               </div>
+               <div class="card-body">
+                  {% with messages = get_flashed_messages() %}
+                     {% if messages %}
+                        {% for message in messages %}
+                           <div class="alert alert-info mb-4">{{ message }}</div>
+                        {% endfor %}
+                     {% endif %}
+                  {% endwith %}
+                  <form action="{{ url_for('servers.transfer_server_submit', server_id=server_id) }}" method="post">
+                     <div class="form-control">
+                        <label class="label">
+                           <span class="label-text">Current Node:</span>
+                        </label>
+                        <input type="text" value="{{ current_node }}" class="input input-bordered text-white" disabled />
+                     </div>
+                     <div class="form-control">
+                        <label class="label">
+                           <span class="label-text">Target Node:</span>
+                        </label>
+                        <select class="select select-bordered w-full max-w-xs text-white" name="node_id" id="node_id" required>
+                           <option value="" disabled selected>Select Node</option>
+                           {% for node in nodes %}
+                              <option value="{{ node.node_id }}">{{ node.name }}</option>
+                           {% endfor %}
+                        </select>
+                     </div>
+                     <div class="form-control mt-6">
+                        <button type="submit" class="btn btn-neutral">Transfer Server</button>
+                     </div>
+                  </form>
+               </div>
+            </div>
+         </div>
+      </div>
+   </body>
+</html>
