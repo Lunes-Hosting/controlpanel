@@ -86,7 +86,8 @@ def server(server_id):
             break
             
     info = get_server_information(server_id)
-    return render_template('server.html', info=info, products=products_local)
+    nodes = get_nodes()
+    return render_template('server.html', info=info, products=products_local, nodes=nodes)
 
 @servers.route("/create")
 def create_server():
@@ -381,3 +382,84 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
                            json=body)
     print(resp2.text)
     return redirect(url_for('servers.servers_index'))
+
+@servers.route('/transfer/<server_id>')
+def transfer_server_route(server_id):
+    """
+    Displays server transfer page.
+    
+    Session Requirements:
+        - email: User must be logged in
+    
+    Returns:
+        template: transfer_server.html with:
+            - server_id
+            - current node
+            - available nodes
+    """
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    
+    after_request(session, request.environ, True)
+    
+    if not verify_server_ownership(server_id, session['email']):
+        return "You can't transfer this server - you don't own it!"
+    
+    # Get server information
+    info = get_server_information(server_id)
+    current_node_id = info['attributes']['node']
+    
+    # Get node details to get the node name
+    nodes = get_nodes()
+    current_node_name = next((node['name'] for node in nodes if node['node_id'] == current_node_id), 'Unknown Node')
+    
+    # Get all nodes and filter out "full" nodes
+    available_nodes = [
+        node for node in nodes 
+        if "full" not in node['name'].lower() and node['node_id'] != current_node_id
+    ]
+    
+    return render_template('transfer_server.html', 
+                           server_id=server_id, 
+                           current_node=current_node_name, 
+                           current_node_id=current_node_id,
+                           nodes=available_nodes)
+
+@servers.route('/transfer/<server_id>/submit', methods=['POST'])
+def transfer_server_submit(server_id):
+    """
+    Handles server transfer submission.
+    
+    Session Requirements:
+        - email: User must be logged in
+    
+    Form Data:
+        - node_id: Target node for server transfer
+    
+    Returns:
+        redirect: To server page on success
+        str: Error message on failure
+    """
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    
+    after_request(session, request.environ, True)
+    
+    if not verify_server_ownership(server_id, session['email']):
+        return "You can't transfer this server - you don't own it!"
+    
+    # Get target node from form
+    node_id = request.form.get('node_id')
+    
+    # Attempt server transfer
+    status_code = transfer_server(int(server_id), int(node_id))
+    
+    if status_code == 202:
+        flash('Server transfer initiated successfully.')
+    elif status_code == 400:
+        flash('Unable to process the transfer. The target node may not have available resources.')
+    else:
+        flash('An unexpected error occurred during server transfer.')
+    
+    return redirect(url_for('servers.server', server_id=server_id))
+

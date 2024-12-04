@@ -972,3 +972,74 @@ def generate_reset_token():
     """
     return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
 
+
+def get_node_allocation(node_id: int) -> int:
+    """
+    Gets random allocation for a specific node.
+    
+    Args:
+        node_id: ID of the node
+    
+    Returns:
+        int: Random available allocation ID
+    """
+    
+    url = f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=10000"
+    response = requests.get(url, headers=HEADERS).json()
+    
+    allocs = response['data']
+    random.shuffle(allocs)
+    for allocation in allocs:
+        if not allocation['attributes']['assigned']:
+            return allocation['attributes']['id']
+
+def transfer_server(server_id: int, target_node_id: int) -> int:
+    """
+    Transfer a server to a new node using Pterodactyl API.
+    
+    Args:
+        server_id (int): ID of the server to transfer
+        target_node_id (int): ID of the target node
+    
+    Returns:
+        int: HTTP status code from the transfer request
+    """
+    # Get server details
+    server_info = get_server_information(server_id)
+    alloc = get_node_allocation(target_node_id)
+    print(alloc, 1)
+    
+    # Prepare transfer payload
+    transfer_payload = {
+        "node_id": target_node_id,
+        "allocation_id": alloc,
+    }
+    print(transfer_payload, 2)
+    
+    # Perform server transfer
+    transfer_url = f"{PTERODACTYL_URL}api/application/servers/{server_id}/transfer"
+    
+    try:
+        response = requests.post(
+            transfer_url, 
+            headers=HEADERS, 
+            json=transfer_payload
+        )
+        
+        # Log the response for debugging
+        print(f"Server Transfer Response: {response.status_code}")
+        print(f"Response Text: {response.text}")
+        
+        # Simple logging if transfer is successful
+        if response.status_code == 202:
+            # Get the user who owns the server (assuming we can retrieve this from server_info)
+            user_id = server_info['attributes']['user']
+            
+            # Log the transfer
+            webhook_log(f"User {user_id} transferred server {server_id} to node {target_node_id}")
+        
+        return response.status_code
+    
+    except Exception as e:
+        print(f"Server transfer error: {e}")
+        return 500

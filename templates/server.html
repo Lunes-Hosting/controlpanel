@@ -28,6 +28,7 @@
         <div class="button-group">
             <a href="{{ url_for('servers.delete_server', server_id=info['attributes']['id']) }}" class="button delete-button">Delete</a>
             <a href="https://ctrl.lunes.host/server/{{ info['attributes']['uuid'].split('-')[0] }}" class="button manage-button">Manage</a>
+            <a href="{{ url_for('servers.transfer_server_route', server_id=info['attributes']['id']) }}" class="button transfer-button">Transfer</a>
         </div>
         <h1 id="update-plan">Update Plan</h1>
         <form action="{{ url_for('servers.update_server_submit', server_id=info['attributes']['id']) }}" method="post">
@@ -46,6 +47,40 @@
         </form>
     </div>
 
+    <!-- Transfer Modal -->
+    <div id="transferModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+        <div class="modal-content" style="background-color: #1a1c1e; margin: 15% auto; padding: 20px; border: 1px solid #2c2f33; width: 80%; max-width: 500px; border-radius: 8px; color: #ffffff;">
+            <h3 style="margin-bottom: 20px;">Transfer Server</h3>
+            <div style="margin-bottom: 15px;">
+                <label for="nodeSelect" style="display: block; margin-bottom: 8px;">Target Node:</label>
+                <select id="nodeSelect" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; background-color: #2c2f33; color: #ffffff; border: 1px solid #40444b;">
+                    {% for node in nodes %}
+                        {% if node.node_id != info['attributes']['node'] %}
+                        <option value="{{ node.node_id }}">{{ node.name }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button onclick="closeTransferModal()" style="padding: 8px 16px; border-radius: 4px; background-color: #40444b; color: white; border: none; cursor: pointer;">Cancel</button>
+                <button onclick="transferServer()" style="padding: 8px 16px; border-radius: 4px; background-color: #5865f2; color: white; border: none; cursor: pointer;">Transfer</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .transfer-button {
+            background-color: #5865f2;
+            color: white;
+        }
+        .transfer-button:hover {
+            background-color: #4752c4;
+        }
+        .modal-content button:hover {
+            opacity: 0.8;
+        }
+    </style>
+
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const titles = ['warning-title', 'server-name', 'update-plan'];
@@ -60,6 +95,47 @@
             }
         });
     });
+
+    function openTransferModal() {
+        document.getElementById('transferModal').style.display = 'block';
+    }
+
+    function closeTransferModal() {
+        document.getElementById('transferModal').style.display = 'none';
+    }
+
+    function transferServer() {
+        const nodeId = document.getElementById('nodeSelect').value;
+
+        const data = {
+            node_id: parseInt(nodeId)
+        };
+
+        fetch(`/api/application/servers/{{ info['attributes']['id'] }}/transfer`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (response.status === 202) {
+                alert('Server transfer initiated successfully');
+            } else if (response.status === 400) {
+                alert('Unable to process the transfer. The target node may not have any available allocations or is not available.');
+            } else if (response.status === 504) {
+                alert('The target node did not respond. Please try again later.');
+            } else {
+                alert('An error occurred while transferring the server');
+            }
+            closeTransferModal();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while transferring the server');
+            closeTransferModal();
+        });
+    }
     </script>
 </body>
 </html>
