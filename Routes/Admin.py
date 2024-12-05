@@ -73,7 +73,7 @@ def users():
     base_query += " LIMIT ? OFFSET ?"
     
     # Execute count query
-    total_users = use_database(count_query, search_params + (per_page, offset), one=True)[0]
+    total_users = use_database(count_query, search_params)[0]
     
     # Execute users query
     users_from_db = use_database(base_query, search_params + (per_page, offset), all=True)
