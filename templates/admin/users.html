@@ -171,6 +171,42 @@
             background-color: #f8d7da;
             color: #721c24;
         }
+        
+        /* Pagination Styles */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+        }
+        
+        .pagination a, .pagination span {
+            color: #495057;
+            padding: 8px 16px;
+            text-decoration: none;
+            border: 1px solid #dee2e6;
+            margin: 0 4px;
+            border-radius: 4px;
+        }
+        
+        .pagination .current {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .search-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        #searchInput {
+            width: 300px;
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -178,18 +214,13 @@
     
     <div class="container">
         <div class="card">
-            <h2>User Management</h2>
-            
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-info">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search users (name, email, ID)..." value="{{ search_term }}">
+                <span>Total Users: {{ total_users }}</span>
+            </div>
             
             <div class="table-responsive">
-                <table>
+                <table id="usersTable">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -198,65 +229,77 @@
                             <th>Role</th>
                             <th>Credits</th>
                             <th>Status</th>
-                            <th>Servers</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for user in users %}
-                            <tr>
-                                <td>{{ user['id'] }}</td>
-                                <td>
-                                    <a href="{{ url_for('admin.admin_user', user_id=user['panel_id']) }}" class="user-link">
-                                        {{ user['name'] }}
-                                    </a>
-                                </td>
-                                <td>{{ user['email'] }}</td>
-                                <td>{{ user['role'] }}</td>
-                                <td>{{ user['credits'] }}</td>
-                                <td>
-                                    {% if user['suspended'] == 1 %}
-                                        <span class="status-badge status-suspended">
-                                            <i class="fas fa-ban"></i> Suspended
-                                        </span>
-                                    {% else %}
-                                        <span class="status-badge status-active">
-                                            <i class="fas fa-check"></i> Active
-                                        </span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <a href="{{ url_for('admin.admin_user_servers', user_id=user['id']) }}" class="btn btn-link" style="font-size: 12px;">
-                                        <i class="fas fa-server"></i> View Servers
-                                    </a>
-                                </td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <form action="{{ url_for('admin.admin_toggle_suspension', user_id=user['id']) }}" method="POST" style="display: inline;">
-                                            {% if user['suspended'] == 1 %}
-                                                <button type="submit" class="btn btn-success" title="Unsuspend User">
-                                                    <i class="fas fa-unlock"></i>
-                                                </button>
-                                            {% else %}
-                                                <button type="submit" class="btn btn-warning" title="Suspend User" onclick="return confirm('Are you sure you want to suspend this user?');">
-                                                    <i class="fas fa-ban"></i>
-                                                </button>
-                                            {% endif %}
-                                        </form>
-                                        
-                                        <form action="{{ url_for('admin.admin_delete_user', user_id=user['id']) }}" method="POST" style="display: inline;">
-                                            <button type="submit" class="btn btn-danger" title="Delete User" onclick="return confirm('Are you sure you want to delete this user? This will delete all their servers, tickets, and data.');">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
+                        <tr>
+                            <td>{{ user.id }}</td>
+                            <td>{{ user.name }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>{{ user.role }}</td>
+                            <td>{{ user.credits }}</td>
+                            <td>
+                                {% if user.suspended %}
+                                <span class="badge badge-danger">Suspended</span>
+                                {% else %}
+                                <span class="badge badge-success">Active</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="/admin/user/{{ user.id }}/servers" class="btn btn-info">Servers</a>
+                                <a href="#" onclick="toggleSuspension({{ user.id }})" class="btn btn-warning">
+                                    {{ 'Unsuspend' if user.suspended else 'Suspend' }}
+                                </a>
+                            </td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+            
+            <div class="pagination">
+                {% if current_page > 1 %}
+                <a href="{{ url_for('admin.users', page=current_page-1, search=search_term) }}">Previous</a>
+                {% endif %}
+                
+                {% for page in range(1, total_pages + 1) %}
+                    {% if page == current_page %}
+                    <span class="current">{{ page }}</span>
+                    {% else %}
+                    <a href="{{ url_for('admin.users', page=page, search=search_term) }}">{{ page }}</a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if current_page < total_pages %}
+                <a href="{{ url_for('admin.users', page=current_page+1, search=search_term) }}">Next</a>
+                {% endif %}
+            </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.trim();
+                
+                // Redirect with search term
+                window.location.href = `{{ url_for('admin.users') }}?search=${encodeURIComponent(searchTerm)}`;
+            });
+
+            function toggleSuspension(userId) {
+                fetch(`/admin/user/${userId}/toggle_suspension`, {
+                    method: 'POST'
+                }).then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

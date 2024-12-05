@@ -34,33 +34,74 @@ def admin_index():
 @admin.route("/users")
 def users():
     """
-    Display list of all users with their details.
+    Display paginated list of users with efficient search.
     
-    Session Requirements:
-        - email: User must be logged in
-        
-    Access Control:
-        - User must be admin
-        
+    Query Parameters:
+    - page: Current page number (default 1)
+    - search: Optional search term
+    
     Returns:
-        template: admin/users.html with:
-            - users: List of user objects containing:
-                - name, credits, role, email
-                - suspended status, ID, panel ID
-        str: Error message if not admin
+    - Paginated users list
+    - Total user count
+    - Current page
     """
-    full_users = []
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     if not is_admin(session['email']):
         return "YOUR NOT ADMIN BRO"
-    # resp = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
-    query = "SELECT name, credits, role, email, suspended, id, pterodactyl_id FROM users"
-    users_from_db = use_database(query, all=True)
+    
+    # Get query parameters
+    page = int(request.args.get('page', 1))
+    search_term = request.args.get('search', '').strip()
+    per_page = 100
+    
+    # Base query
+    base_query = "SELECT name, credits, role, email, suspended, id, pterodactyl_id FROM users"
+    count_query = "SELECT COUNT(*) FROM users"
+    
+    # Apply search if term exists
+    if search_term:
+        search_condition = " WHERE (name LIKE ? OR email LIKE ? OR id LIKE ?)"
+        search_params = (f'%{search_term}%', f'%{search_term}%', f'%{search_term}%')
+        base_query += search_condition
+        count_query += search_condition
+    else:
+        search_params = ()
+    
+    # Add pagination
+    offset = (page - 1) * per_page
+    base_query += " LIMIT ? OFFSET ?"
+    
+    # Execute count query
+    total_users = use_database(count_query, search_params + (per_page, offset), one=True)[0]
+    
+    # Execute users query
+    users_from_db = use_database(base_query, search_params + (per_page, offset), all=True)
+    
+    # Process users
+    full_users = []
     for user in users_from_db:
-        full_users.append({"name": user[0], "credits": int(user[1]), "role": user[2], "email": user[3], "suspended": user[4],
-                           "id": user[5], "panel_id": user[6]})
-    return render_template("admin/users.html", users=full_users)
+        full_users.append({
+            "name": user[0], 
+            "credits": int(user[1]), 
+            "role": user[2], 
+            "email": user[3], 
+            "suspended": user[4],
+            "id": user[5], 
+            "panel_id": user[6]
+        })
+    
+    # Calculate total pages
+    total_pages = (total_users + per_page - 1) // per_page
+    
+    return render_template(
+        "admin/users.html", 
+        users=full_users, 
+        total_pages=total_pages, 
+        current_page=page, 
+        total_users=total_users,
+        search_term=search_term
+    )
 
 
 @admin.route("/servers")
