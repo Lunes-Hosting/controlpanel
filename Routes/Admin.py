@@ -66,19 +66,25 @@ def users():
     if search_term:
         base_query += " WHERE (name LIKE ? OR email LIKE ? OR CAST(id AS CHAR) LIKE ?)"
         count_query += " WHERE (name LIKE ? OR email LIKE ? OR CAST(id AS CHAR) LIKE ?)"
-        search_params.extend([f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'])
+        search_params = [f'%{search_term}%', f'%{search_term}%', f'%{search_term}%']
     
     # Add pagination
-    offset = (page - 1) * per_page
     base_query += " LIMIT ? OFFSET ?"
-    search_params.extend([per_page, offset])
+    
+    # Prepare final parameters for both queries
+    if search_term:
+        count_params = search_params.copy()
+        query_params = search_params + [per_page, (page - 1) * per_page]
+    else:
+        count_params = []
+        query_params = [per_page, (page - 1) * per_page]
     
     # Execute count query
-    total_users_result = use_database(count_query, tuple(search_params[:-2]) if search_term else None)
+    total_users_result = use_database(count_query, tuple(count_params))
     total_users = total_users_result[0] if total_users_result else 0
     
     # Execute users query
-    users_from_db = use_database(base_query, tuple(search_params), all=True)
+    users_from_db = use_database(base_query, tuple(query_params), all=True)
     
     # Process users
     full_users = []
