@@ -59,40 +59,43 @@ def users():
     base_query = "SELECT name, credits, role, email, suspended, id, pterodactyl_id FROM users"
     count_query = "SELECT COUNT(*) FROM users"
     
+    # Prepare search and pagination parameters
+    search_params = []
+    
     # Apply search if term exists
     if search_term:
-        search_condition = " WHERE (name LIKE ? OR email LIKE ? OR id LIKE ?)"
-        search_params = (f'%{search_term}%', f'%{search_term}%', f'%{search_term}%')
-        base_query += search_condition
-        count_query += search_condition
-    else:
-        search_params = ()
+        base_query += " WHERE (name LIKE ? OR email LIKE ? OR id LIKE ?)"
+        count_query += " WHERE (name LIKE ? OR email LIKE ? OR id LIKE ?)"
+        search_params.extend([f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'])
     
     # Add pagination
     offset = (page - 1) * per_page
     base_query += " LIMIT ? OFFSET ?"
+    search_params.extend([per_page, offset])
     
     # Execute count query
-    total_users = use_database(count_query, search_params)[0]
+    total_users_result = use_database(count_query, tuple(search_params[:-2]) if search_term else None)
+    total_users = total_users_result[0] if total_users_result else 0
     
     # Execute users query
-    users_from_db = use_database(base_query, search_params + (per_page, offset), all=True)
+    users_from_db = use_database(base_query, tuple(search_params), all=True)
     
     # Process users
     full_users = []
-    for user in users_from_db:
-        full_users.append({
-            "name": user[0], 
-            "credits": int(user[1]), 
-            "role": user[2], 
-            "email": user[3], 
-            "suspended": user[4],
-            "id": user[5], 
-            "panel_id": user[6]
-        })
+    if users_from_db:
+        for user in users_from_db:
+            full_users.append({
+                "name": user[0], 
+                "credits": int(user[1]), 
+                "role": user[2], 
+                "email": user[3], 
+                "suspended": user[4],
+                "id": user[5], 
+                "panel_id": user[6]
+            })
     
     # Calculate total pages
-    total_pages = (total_users + per_page - 1) // per_page
+    total_pages = max(1, (total_users + per_page - 1) // per_page)
     
     return render_template(
         "admin/users.html", 
