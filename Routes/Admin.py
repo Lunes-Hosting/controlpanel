@@ -71,20 +71,33 @@ def users():
     # Add pagination
     base_query += " LIMIT ? OFFSET ?"
     
-    # Prepare final parameters for both queries
+    # Prepare final parameters
     if search_term:
-        count_params = search_params.copy()
-        query_params = search_params + [per_page, (page - 1) * per_page]
+        # For count query, use search params
+        count_params = tuple(search_params)
+        # For main query, add pagination params
+        query_params = tuple(search_params + [per_page, (page - 1) * per_page])
     else:
-        count_params = []
-        query_params = [per_page, (page - 1) * per_page]
+        # No search, just use pagination params
+        count_params = ()
+        query_params = (per_page, (page - 1) * per_page)
+    
+    # Debug print
+    print(f"Count Query: {count_query}")
+    print(f"Count Params: {count_params}")
+    print(f"Base Query: {base_query}")
+    print(f"Query Params: {query_params}")
     
     # Execute count query
-    total_users_result = use_database(count_query, tuple(count_params))
+    total_users_result = use_database(count_query, count_params)
     total_users = total_users_result[0] if total_users_result else 0
     
     # Execute users query
-    users_from_db = use_database(base_query, tuple(query_params), all=True)
+    users_from_db = use_database(base_query, query_params, all=True)
+    
+    # Debug print
+    print(f"Total Users: {total_users}")
+    print(f"Users from DB: {users_from_db}")
     
     # Process users
     full_users = []

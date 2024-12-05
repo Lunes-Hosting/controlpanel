@@ -114,89 +114,186 @@
             background-color: #dc3545;
             color: white;
         }
+        
+        /* New styles */
+        .mx-auto {
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .px-4 {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        
+        .py-8 {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        
+        .text-2xl {
+            font-size: 1.5rem;
+        }
+        
+        .font-bold {
+            font-weight: bold;
+        }
+        
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+        
+        .flex {
+            display: flex;
+        }
+        
+        .items-center {
+            align-items: center;
+        }
+        
+        .justify-center {
+            justify-content: center;
+        }
+        
+        .bg-yellow-100 {
+            background-color: #fefecd;
+        }
+        
+        .border {
+            border: 1px solid #ddd;
+        }
+        
+        .border-yellow-400 {
+            border-color: #f7dc6f;
+        }
+        
+        .text-yellow-700 {
+            color: #f7dc6f;
+        }
+        
+        .px-3 {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+        
+        .py-2 {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+        
+        .leading-tight {
+            line-height: 1.25;
+        }
+        
+        .bg-blue-500 {
+            background-color: #3498db;
+        }
+        
+        .text-white {
+            color: white;
+        }
+        
+        .border-gray-300 {
+            border-color: #ddd;
+        }
+        
+        .hover\:bg-gray-100:hover {
+            background-color: #f7f7f7;
+        }
+        
+        .hover\:text-gray-700:hover {
+            color: #333;
+        }
     </style>
 </head>
 <body>
     {% include 'admin/admin_taskbar.html' %}
     
-    <div class="container">
-        <div class="card">
-            <div class="search-container">
-                <input type="text" id="searchInput" placeholder="Search users (name, email, ID)..." value="{{ search_term }}">
-                <span>Total Users: {{ total_users }}</span>
-            </div>
-            
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Credits</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if users %}
-                            {% for user in users %}
-                            <tr>
-                                <td>{{ user.id }}</td>
-                                <td>{{ user.name }}</td>
-                                <td>{{ user.email }}</td>
-                                <td>{{ user.role }}</td>
-                                <td>{{ user.credits }}</td>
-                                <td>
-                                    {% if user.suspended %}
-                                    <span class="badge badge-danger">Suspended</span>
-                                    {% else %}
-                                    <span class="badge badge-success">Active</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <a href="/admin/user/{{ user.id }}/servers" class="btn btn-info">Servers</a>
-                                    <a href="#" onclick="toggleSuspension({{ user.id }})" class="btn btn-warning">
-                                        {{ 'Unsuspend' if user.suspended else 'Suspend' }}
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td colspan="7" style="text-align: center; padding: 20px;">
-                                    No users found. Try a different search term.
-                                </td>
-                            </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
-            
-            <div class="pagination">
-                {% if current_page > 1 %}
-                <a href="{{ url_for('admin.users', page=current_page-1, search=search_term) }}">Previous</a>
-                {% endif %}
-                
-                {% for page in range(1, total_pages + 1) %}
-                    {% if page == current_page %}
-                    <span class="current">{{ page }}</span>
-                    {% else %}
-                    <a href="{{ url_for('admin.users', page=page, search=search_term) }}">{{ page }}</a>
-                    {% endif %}
-                {% endfor %}
-                
-                {% if current_page < total_pages %}
-                <a href="{{ url_for('admin.users', page=current_page+1, search=search_term) }}">Next</a>
-                {% endif %}
-            </div>
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold mb-4">User Management</h1>
+        
+        <div class="mb-4 flex items-center">
+            <form method="get" action="{{ url_for('admin.users') }}" class="flex-grow mr-4">
+                <input 
+                    type="text" 
+                    name="search" 
+                    placeholder="Search users..." 
+                    value="{{ search_term or '' }}" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                >
+            </form>
+            <span class="text-gray-600">Total Users: {{ total_users }}</span>
         </div>
+
+        {% if users %}
+        <div class="overflow-x-auto">
+            <table class="w-full bg-white shadow-md rounded-lg overflow-hidden">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="px-4 py-2 text-left">ID</th>
+                        <th class="px-4 py-2 text-left">Name</th>
+                        <th class="px-4 py-2 text-left">Email</th>
+                        <th class="px-4 py-2 text-left">Credits</th>
+                        <th class="px-4 py-2 text-left">Role</th>
+                        <th class="px-4 py-2 text-left">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr class="border-b hover:bg-gray-100 {{ 'bg-red-100' if user.suspended else '' }}">
+                        <td class="px-4 py-2">{{ user.id }}</td>
+                        <td class="px-4 py-2">{{ user.name }}</td>
+                        <td class="px-4 py-2">{{ user.email }}</td>
+                        <td class="px-4 py-2">{{ user.credits }}</td>
+                        <td class="px-4 py-2">{{ user.role }}</td>
+                        <td class="px-4 py-2">
+                            {% if user.suspended %}
+                            <span class="text-red-600">Suspended</span>
+                            {% else %}
+                            <span class="text-green-600">Active</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative" role="alert">
+            <strong class="font-bold">No Users Found!</strong>
+            <span class="block sm:inline">
+                {% if search_term %}
+                No users match the search term "{{ search_term }}".
+                {% else %}
+                There are no users in the database.
+                {% endif %}
+            </span>
+        </div>
+        {% endif %}
+
+        {% if total_pages > 1 %}
+        <div class="flex justify-center mt-4">
+            <nav aria-label="Page navigation">
+                <ul class="inline-flex items-center -space-x-px">
+                    {% for page in range(1, total_pages + 1) %}
+                    <li>
+                        <a href="{{ url_for('admin.users', page=page, search=search_term) }}" 
+                           class="px-3 py-2 leading-tight 
+                           {{ 'bg-blue-500 text-white' if page == current_page else 'text-gray-500 bg-white hover:bg-gray-100 hover:text-gray-700' }} 
+                           border border-gray-300">
+                            {{ page }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('searchInput');
+            const searchInput = document.querySelector('input[name="search"]');
             
             searchInput.addEventListener('input', function() {
                 const searchTerm = this.value.trim();
@@ -204,16 +301,6 @@
                 // Redirect with search term
                 window.location.href = `{{ url_for('admin.users') }}?search=${encodeURIComponent(searchTerm)}`;
             });
-
-            function toggleSuspension(userId) {
-                fetch(`/admin/user/${userId}/toggle_suspension`, {
-                    method: 'POST'
-                }).then(response => {
-                    if (response.ok) {
-                        location.reload();
-                    }
-                });
-            }
         });
     </script>
 </body>
