@@ -55,7 +55,7 @@ def users():
     search_term = request.args.get('search', '').strip()
     per_page = 100
     
-    # Base query
+    # Prepare base queries
     base_query = "SELECT name, credits, role, email, suspended, id, pterodactyl_id FROM users"
     count_query = "SELECT COUNT(*) FROM users"
     
@@ -64,8 +64,8 @@ def users():
     
     # Apply search if term exists
     if search_term:
-        base_query += " WHERE (name LIKE ? OR email LIKE ? OR id LIKE ?)"
-        count_query += " WHERE (name LIKE ? OR email LIKE ? OR id LIKE ?)"
+        base_query += " WHERE (name LIKE ? OR email LIKE ? OR CAST(id AS CHAR) LIKE ?)"
+        count_query += " WHERE (name LIKE ? OR email LIKE ? OR CAST(id AS CHAR) LIKE ?)"
         search_params.extend([f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'])
     
     # Add pagination

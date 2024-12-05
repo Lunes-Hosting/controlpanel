@@ -10,6 +10,7 @@
             background-color: #f8f9fa;
             margin: 0;
             padding: 0;
+            color: #212529;
         }
         
         .container {
@@ -26,174 +27,6 @@
             margin-bottom: 20px;
         }
         
-        .alert {
-            padding: 12px 20px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
-        
-        .alert-info {
-            background-color: #cce5ff;
-            border: 1px solid #b8daff;
-            color: #004085;
-        }
-        
-        .table-responsive {
-            overflow-x: auto;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            background: white;
-            table-layout: fixed;
-        }
-        
-        th {
-            background-color: #f8f9fa;
-            padding: 8px;
-            text-align: left;
-            font-weight: 600;
-            color: #495057;
-            border-bottom: 2px solid #dee2e6;
-            font-size: 14px;
-            white-space: nowrap;
-        }
-        
-        td {
-            padding: 8px;
-            border-bottom: 1px solid #dee2e6;
-            color: #212529;
-            font-size: 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Column widths */
-        th:nth-child(1), td:nth-child(1) { width: 5%; }  /* ID */
-        th:nth-child(2), td:nth-child(2) { width: 15%; } /* Name */
-        th:nth-child(3), td:nth-child(3) { width: 20%; } /* Email */
-        th:nth-child(4), td:nth-child(4) { width: 10%; } /* Role */
-        th:nth-child(5), td:nth-child(5) { width: 8%; }  /* Credits */
-        th:nth-child(6), td:nth-child(6) { width: 12%; } /* Status */
-        th:nth-child(7), td:nth-child(7) { width: 12%; } /* Servers */
-        th:nth-child(8), td:nth-child(8) { width: 18%; } /* Actions */
-        
-        tr:hover {
-            background-color: #f8f9fa;
-        }
-        
-        .btn {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 500;
-            text-decoration: none;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
-        }
-        
-        .btn-danger {
-            background-color: #dc3545;
-            color: white;
-        }
-        
-        .btn-danger:hover {
-            background-color: #c82333;
-        }
-        
-        .btn-warning {
-            background-color: #ffc107;
-            color: #212529;
-        }
-        
-        .btn-warning:hover {
-            background-color: #e0a800;
-        }
-        
-        .btn-success {
-            background-color: #28a745;
-            color: white;
-        }
-        
-        .btn-success:hover {
-            background-color: #218838;
-        }
-
-        .btn-link {
-            background: none;
-            color: #007bff;
-            padding: 0;
-        }
-
-        .btn-link:hover {
-            text-decoration: underline;
-            color: #0056b3;
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 4px;
-            flex-wrap: nowrap;
-            justify-content: flex-start;
-            align-items: center;
-        }
-        
-        .user-link {
-            color: #007bff;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .user-link:hover {
-            text-decoration: underline;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 3px 6px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 500;
-            white-space: nowrap;
-        }
-        
-        .status-active {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        
-        .status-suspended {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        
-        /* Pagination Styles */
-        .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-top: 20px;
-        }
-        
-        .pagination a, .pagination span {
-            color: #495057;
-            padding: 8px 16px;
-            text-decoration: none;
-            border: 1px solid #dee2e6;
-            margin: 0 4px;
-            border-radius: 4px;
-        }
-        
-        .pagination .current {
-            background-color: #007bff;
-            color: white;
-        }
-        
         .search-container {
             display: flex;
             justify-content: space-between;
@@ -206,6 +39,80 @@
             padding: 8px;
             border: 1px solid #dee2e6;
             border-radius: 4px;
+            color: #212529;  /* Ensure black text */
+            background-color: white;  /* Ensure white background */
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+        }
+        
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+            text-align: left;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+        }
+        
+        .pagination a, .pagination span {
+            color: #495057;
+            padding: 8px 16px;
+            margin: 0 4px;
+            border: 1px solid #dee2e6;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        
+        .pagination .current {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .btn-info {
+            background-color: #17a2b8;
+            color: white;
+        }
+        
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .badge-success {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .badge-danger {
+            background-color: #dc3545;
+            color: white;
         }
     </style>
 </head>
@@ -220,7 +127,7 @@
             </div>
             
             <div class="table-responsive">
-                <table id="usersTable">
+                <table>
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -233,28 +140,36 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for user in users %}
-                        <tr>
-                            <td>{{ user.id }}</td>
-                            <td>{{ user.name }}</td>
-                            <td>{{ user.email }}</td>
-                            <td>{{ user.role }}</td>
-                            <td>{{ user.credits }}</td>
-                            <td>
-                                {% if user.suspended %}
-                                <span class="badge badge-danger">Suspended</span>
-                                {% else %}
-                                <span class="badge badge-success">Active</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="/admin/user/{{ user.id }}/servers" class="btn btn-info">Servers</a>
-                                <a href="#" onclick="toggleSuspension({{ user.id }})" class="btn btn-warning">
-                                    {{ 'Unsuspend' if user.suspended else 'Suspend' }}
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
+                        {% if users %}
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ user.id }}</td>
+                                <td>{{ user.name }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>{{ user.role }}</td>
+                                <td>{{ user.credits }}</td>
+                                <td>
+                                    {% if user.suspended %}
+                                    <span class="badge badge-danger">Suspended</span>
+                                    {% else %}
+                                    <span class="badge badge-success">Active</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="/admin/user/{{ user.id }}/servers" class="btn btn-info">Servers</a>
+                                    <a href="#" onclick="toggleSuspension({{ user.id }})" class="btn btn-warning">
+                                        {{ 'Unsuspend' if user.suspended else 'Suspend' }}
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 20px;">
+                                    No users found. Try a different search term.
+                                </td>
+                            </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
