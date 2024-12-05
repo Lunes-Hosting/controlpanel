@@ -6,17 +6,29 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         /* Dark theme styles */
-        body {
-            background-color: #121212;
+        html, body {
+            background-color: #121212 !important;
             color: #e0e0e0;
             font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         .container {
-            max-width: 95%;
-            margin: 20px auto;
+            max-width: 100%;
+            margin: 0;
+            padding: 20px;
             background-color: #121212;
-            padding: 0 10px;
+        }
+
+        /* Ensure no white spaces */
+        body > div {
+            background-color: #121212;
         }
 
         .page-header {
@@ -182,7 +194,7 @@
 <body>
     {% include 'admin/admin_taskbar.html' %}
     
-    <div class="container mx-auto px-4 py-8">
+    <div class="container">
         <div class="page-header">
             <h1>User Management</h1>
             <span>Total Users: {{ total_users }}</span>
