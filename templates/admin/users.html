@@ -324,7 +324,10 @@
                     {% endif %}
                     
                     {# Show pages around current page #}
-                    {% for page in range(max(1, current_page-2), min(total_pages+1, current_page+3)) %}
+                    {% set start_page = [1, current_page-2]|max %}
+                    {% set end_page = [total_pages, current_page+2]|min %}
+                    
+                    {% for page in range(start_page, end_page + 1) %}
                         {% if page == current_page %}
                         <span class="current">{{ page }}</span>
                         {% else %}
