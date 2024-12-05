@@ -242,18 +242,38 @@
         .hover\:text-gray-700:hover {
             color: #333;
         }
+        
+        .page-header {
+            background-color: #f8f9fa;
+            color: #212529;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .page-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #212529;
+        }
     </style>
 </head>
 <body>
     {% include 'admin/admin_taskbar.html' %}
     
     <div class="container mx-auto px-4 py-8">
-        <h1 class="text-2xl font-bold mb-4">User Management</h1>
+        <div class="page-header">
+            <h1>User Management</h1>
+            <span>Total Users: {{ total_users }}</span>
+        </div>
         
         <div class="card">
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Search users (name, email, ID)..." value="{{ search_term }}">
-                <span>Total Users: {{ total_users }}</span>
             </div>
             
             <div class="table-responsive">
