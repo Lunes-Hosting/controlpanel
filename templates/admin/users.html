@@ -10,7 +10,7 @@
             background-color: #f8f9fa;
             margin: 0;
             padding: 0;
-            color: #212529;
+            color: black;
         }
         
         .container {
@@ -39,8 +39,8 @@
             padding: 8px;
             border: 1px solid #dee2e6;
             border-radius: 4px;
-            color: #212529;  /* Ensure black text */
-            background-color: white;  /* Ensure white background */
+            color: black;
+            background-color: white;
         }
         
         .table-responsive {
@@ -65,44 +65,77 @@
             justify-content: center;
             align-items: center;
             margin-top: 20px;
+            overflow-x: auto;
+            white-space: nowrap;
+            max-width: 100%;
+            padding: 10px;
         }
         
-        .pagination a, .pagination span {
-            color: #495057;
-            padding: 8px 16px;
-            margin: 0 4px;
-            border: 1px solid #dee2e6;
+        .pagination-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        
+        .pagination a, 
+        .pagination span {
+            padding: 5px 10px;
+            margin: 0 2px;
+            border: 1px solid #ddd;
             text-decoration: none;
-            border-radius: 4px;
+            color: black;
+            border-radius: 3px;
+            min-width: 30px;
+            text-align: center;
+        }
+        
+        .pagination a:hover {
+            background-color: #f0f0f0;
         }
         
         .pagination .current {
             background-color: #007bff;
             color: white;
+            font-weight: bold;
+        }
+        
+        .pagination-ellipsis {
+            padding: 5px;
+            color: #666;
         }
         
         .btn {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 4px;
+            color: white !important;
             text-decoration: none;
-            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 3px;
+            display: inline-block;
+            margin: 2px;
         }
         
         .btn-info {
             background-color: #17a2b8;
-            color: white;
         }
         
         .btn-warning {
             background-color: #ffc107;
-            color: #212529;
+            color: black !important;
+        }
+        
+        .btn-success {
+            background-color: #28a745;
         }
         
         .badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
+            padding: 3px 6px;
+            border-radius: 3px;
+        }
+        
+        .badge-danger {
+            background-color: #dc3545;
+            color: white;
         }
         
         .badge-success {
@@ -110,9 +143,14 @@
             color: white;
         }
         
-        .badge-danger {
-            background-color: #dc3545;
-            color: white;
+        .suspended-text {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .active-text {
+            color: #28a745;
+            font-weight: bold;
         }
         
         /* New styles */
@@ -242,14 +280,15 @@
                                 <td>{{ user.credits }}</td>
                                 <td>
                                     {% if user.suspended %}
-                                    <span class="badge badge-danger">Suspended</span>
+                                    <span class="badge badge-danger suspended-text">Suspended</span>
                                     {% else %}
-                                    <span class="badge badge-success">Active</span>
+                                    <span class="badge badge-success active-text">Active</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     <a href="/admin/user/{{ user.id }}/servers" class="btn btn-info">Servers</a>
-                                    <a href="#" onclick="toggleSuspension({{ user.id }})" class="btn btn-warning">
+                                    <a href="#" onclick="toggleSuspension({{ user.id }})" 
+                                       class="btn {{ 'btn-success' if user.suspended else 'btn-warning' }}">
                                         {{ 'Unsuspend' if user.suspended else 'Suspend' }}
                                     </a>
                                 </td>
@@ -272,21 +311,38 @@
             
             {% if total_pages > 1 %}
             <div class="pagination">
-                {% if current_page > 1 %}
-                <a href="{{ url_for('admin.users', page=current_page-1, search=search_term) }}">Previous</a>
-                {% endif %}
-                
-                {% for page in range(1, total_pages + 1) %}
-                    {% if page == current_page %}
-                    <span class="current">{{ page }}</span>
-                    {% else %}
-                    <a href="{{ url_for('admin.users', page=page, search=search_term) }}">{{ page }}</a>
+                <div class="pagination-container">
+                    {% if current_page > 1 %}
+                    <a href="{{ url_for('admin.users', page=1, search=search_term) }}">&laquo; First</a>
+                    <a href="{{ url_for('admin.users', page=current_page-1, search=search_term) }}">Previous</a>
                     {% endif %}
-                {% endfor %}
-                
-                {% if current_page < total_pages %}
-                <a href="{{ url_for('admin.users', page=current_page+1, search=search_term) }}">Next</a>
-                {% endif %}
+                    
+                    {# Show first few pages #}
+                    {% if current_page > 4 %}
+                    <a href="{{ url_for('admin.users', page=1, search=search_term) }}">1</a>
+                    <span class="pagination-ellipsis">...</span>
+                    {% endif %}
+                    
+                    {# Show pages around current page #}
+                    {% for page in range(max(1, current_page-2), min(total_pages+1, current_page+3)) %}
+                        {% if page == current_page %}
+                        <span class="current">{{ page }}</span>
+                        {% else %}
+                        <a href="{{ url_for('admin.users', page=page, search=search_term) }}">{{ page }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {# Show last few pages #}
+                    {% if current_page < total_pages - 3 %}
+                    <span class="pagination-ellipsis">...</span>
+                    <a href="{{ url_for('admin.users', page=total_pages, search=search_term) }}">{{ total_pages }}</a>
+                    {% endif %}
+                    
+                    {% if current_page < total_pages %}
+                    <a href="{{ url_for('admin.users', page=current_page+1, search=search_term) }}">Next</a>
+                    <a href="{{ url_for('admin.users', page=total_pages, search=search_term) }}">Last &raquo;</a>
+                    {% endif %}
+                </div>
             </div>
             {% endif %}
         </div>
