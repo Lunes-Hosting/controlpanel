@@ -74,13 +74,13 @@ def users():
     # Prepare final parameters
     if search_term:
         # For count query, use search params
-        count_params = tuple(search_params)
+        count_params = search_params
         # For main query, add pagination params
-        query_params = tuple(search_params + [per_page, (page - 1) * per_page])
+        query_params = search_params + [per_page, (page - 1) * per_page]
     else:
         # No search, just use pagination params
-        count_params = ()
-        query_params = (per_page, (page - 1) * per_page)
+        count_params = []
+        query_params = [per_page, (page - 1) * per_page]
     
     # Debug print
     print(f"Count Query: {count_query}")

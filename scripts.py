@@ -855,10 +855,15 @@ def use_database(query: str, values: tuple = None, database=DATABASE, all: bool 
     """
     cnx, cursor = get_db_connection(database)
     try:
-        if values:
-            cursor.execute(query, values)
-        else:
-            cursor.execute(query)
+        # Ensure values is a tuple, even if None
+        if values is None:
+            values = ()
+        
+        # Replace '?' placeholders with '%s' for MySQL
+        query = query.replace('?', '%s')
+        
+        # Execute query with parameters
+        cursor.execute(query, values)
             
         if "SELECT" in query.upper():
             if all:
@@ -873,6 +878,8 @@ def use_database(query: str, values: tuple = None, database=DATABASE, all: bool 
             return None
     except Exception as e:
         print(f"Database error: {e}")
+        print(f"Query: {query}")
+        print(f"Values: {values}")
         cnx.close()
         return None
 
