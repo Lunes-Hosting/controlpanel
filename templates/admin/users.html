@@ -236,10 +236,10 @@
                                 </td>
                                 <td>
                                     <a href="/admin/user/{{ user.id }}/servers" class="btn btn-info">Servers</a>
-                                    <a href="#" onclick="toggleSuspension({{ user.id }})" 
+                                    <button onclick="toggleSuspension({{ user.id }}, this)" 
                                        class="btn {{ 'btn-success' if user.suspended else 'btn-warning' }}">
                                         {{ 'Unsuspend' if user.suspended else 'Suspend' }}
-                                    </a>
+                                    </button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -314,17 +314,29 @@
                     window.location.href = `{{ url_for('admin.users') }}`;
                 }
             });
-
-            function toggleSuspension(userId) {
-                fetch(`/admin/user/${userId}/toggle_suspension`, {
-                    method: 'POST'
-                }).then(response => {
-                    if (response.ok) {
-                        location.reload();
-                    }
-                });
-            }
         });
+
+        function toggleSuspension(userId, button) {
+            fetch(`/admin/user/toggle_suspension/${userId}`, {
+                method: 'POST'
+            }).then(response => {
+                if (response.ok) {
+                    // Toggle button text and classes
+                    const isSuspended = button.textContent.trim() === 'Suspend';
+                    button.textContent = isSuspended ? 'Unsuspend' : 'Suspend';
+                    button.classList.toggle('btn-warning');
+                    button.classList.toggle('btn-success');
+                    
+                    // Toggle status badge
+                    const statusCell = button.closest('tr').querySelector('td:nth-child(6)');
+                    if (isSuspended) {
+                        statusCell.innerHTML = '<span class="badge badge-danger suspended-text">Suspended</span>';
+                    } else {
+                        statusCell.innerHTML = '<span class="badge badge-success active-text">Active</span>';
+                    }
+                }
+            });
+        }
     </script>
 </body>
 </html>
