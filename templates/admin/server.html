@@ -3,33 +3,306 @@
 <head>
     <title>Server {{ info['attributes']['name'] }}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/server_details.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Dark theme styles */
+        html, body {
+            background-color: #121212 !important;
+            color: #e0e0e0;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #121212;
+        }
+
+        /* Ensure no white spaces */
+        body > div {
+            background-color: #121212;
+        }
+
+        .page-header {
+            background-color: #1e1e1e;
+            color: white;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 4px;
+        }
+
+        .page-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .card {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            background-color: #2a2a2a;
+            border: 1px solid #333;
+            color: #e0e0e0;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #e0e0e0;
+            text-decoration: none;
+            margin-bottom: 20px;
+            padding: 8px 12px;
+            background-color: #2a2a2a;
+            border-radius: 4px;
+            border: 1px solid #333;
+            transition: background-color 0.2s;
+        }
+
+        .back-link:hover {
+            background-color: #333;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #3d8b40;
+        }
+
+        .btn-secondary {
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #333;
+        }
+
+        .btn-secondary:hover {
+            background-color: #333;
+        }
+
+        .resource-card {
+            background-color: #2a2a2a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .resource-card h3 {
+            margin: 0 0 10px 0;
+            color: #e0e0e0;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .resource-bar {
+            height: 6px;
+            background-color: #1e1e1e;
+            border-radius: 3px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .resource-bar .fill {
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .resource-bar .fill.warning {
+            background-color: #FFA726;
+        }
+
+        .resource-bar .fill.danger {
+            background-color: #EF5350;
+        }
+
+        .plan-selector {
+            background-color: #2a2a2a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            width: 100%;
+            color: #e0e0e0;
+            margin-bottom: 15px;
+        }
+
+        .plan-option {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .plan-option:hover {
+            background-color: #333;
+        }
+
+        .plan-option:checked {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .submit-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .submit-btn:hover {
+            background-color: #3d8b40;
+        }
+
+        .section-title {
+            color: #e0e0e0;
+            font-size: 18px;
+            margin: 20px 0 10px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+    </style>
 </head>
 <body>
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    {% for message in messages %}
-        {{ message }}
-    {% endfor %}
-{% endif %}
-{% endwith %}
     {% include 'admin/admin_taskbar.html' %}
-    <div class="server-details-container">
-        <h1>{{ info['attributes']['name'] }}</h1>
-        <a href="{{ url_for('servers.delete_server', server_id=info['attributes']['id']) }}" class="button delete-button">Delete</a>
-        <a href="https://ctrl.lunes.host/server/{{ info['attributes']['uuid'].split('-')[0] }}" class="button manage-button">Manage</a>
-        <h2>Current plan</h2>
-        <p>{{product['name']}} Memory {{product['limits']['memory']}}, Storage {{product['limits']['disk']}}, CPU%(0=Unlimited) {{product['limits']['cpu']}}</p>
-        <h1>Update Plan</h1>
-        <form action="{{ url_for('servers.admin_update_server_submit', server_id=info['attributes']['id']) }}" method="post">
-            <select id="plan" name="plan" class="plan" size="3" required>
-                {% for product_inc in products %}
-                    <option class="plan-option" value="{{product_inc['id']}}">{{product_inc['name']}} Memory {{product_inc['limits']['memory']}}, Storage {{product_inc['limits']['disk']}}, CPU%(0=Unlimited) {{product_inc['limits']['cpu']}}</option>
+    
+    <div class="container">
+        <a href="{{ url_for('admin.users') }}" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Users
+        </a>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert">{{ message }}</div>
                 {% endfor %}
-            </select>
-            <br>
-            <input type="submit" value="Submit">
-        </form>
+            {% endif %}
+        {% endwith %}
+
+        <div class="page-header">
+            <h1>
+                <i class="fas fa-server"></i>
+                {{ info['attributes']['name'] }}
+            </h1>
+            <div class="btn-group">
+                <a href="https://ctrl.lunes.host/server/{{ info['attributes']['uuid'].split('-')[0] }}" class="btn btn-primary">
+                    <i class="fas fa-cog"></i> Manage
+                </a>
+                <a href="{{ url_for('servers.delete_server', server_id=info['attributes']['id']) }}" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Delete
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">Current Resources</div>
+            <div class="resource-card">
+                <h3><i class="fas fa-memory"></i> Memory</h3>
+                <div class="resource-bar">
+                    <div class="fill {% if product['limits']['memory'] > 8192 %}danger{% elif product['limits']['memory'] > 4096 %}warning{% endif %}"
+                         style="width: {% if (product['limits']['memory'] / 16384 * 100) > 100 %}100{% else %}{{ (product['limits']['memory'] / 16384 * 100) }}{% endif %}%"></div>
+                </div>
+                <p>{{ product['limits']['memory'] }} MB</p>
+            </div>
+
+            <div class="resource-card">
+                <h3><i class="fas fa-microchip"></i> CPU</h3>
+                <div class="resource-bar">
+                    <div class="fill {% if product['limits']['cpu'] > 200 %}danger{% elif product['limits']['cpu'] > 100 %}warning{% endif %}"
+                         style="width: {% if (product['limits']['cpu'] / 300 * 100) > 100 %}100{% else %}{{ (product['limits']['cpu'] / 300 * 100) }}{% endif %}%"></div>
+                </div>
+                <p>{{ product['limits']['cpu'] }}% {% if product['limits']['cpu'] == 0 %}(Unlimited){% endif %}</p>
+            </div>
+
+            <div class="resource-card">
+                <h3><i class="fas fa-hdd"></i> Storage</h3>
+                <div class="resource-bar">
+                    <div class="fill {% if product['limits']['disk'] > 20480 %}danger{% elif product['limits']['disk'] > 10240 %}warning{% endif %}"
+                         style="width: {% if (product['limits']['disk'] / 32768 * 100) > 100 %}100{% else %}{{ (product['limits']['disk'] / 32768 * 100) }}{% endif %}%"></div>
+                </div>
+                <p>{{ product['limits']['disk'] }} MB</p>
+            </div>
+
+            <div class="section-title">Update Plan</div>
+            <form action="{{ url_for('servers.admin_update_server_submit', server_id=info['attributes']['id']) }}" method="post">
+                <select id="plan" name="plan" class="plan-selector" size="3" required>
+                    {% for product_inc in products %}
+                        <option class="plan-option" value="{{product_inc['id']}}" 
+                                {% if product_inc['id'] == product['id'] %}selected{% endif %}>
+                            {{product_inc['name']}} - 
+                            Memory: {{product_inc['limits']['memory']}} MB, 
+                            Storage: {{product_inc['limits']['disk']}} MB, 
+                            CPU: {{product_inc['limits']['cpu']}}% {% if product_inc['limits']['cpu'] == 0 %}(Unlimited){% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="submit-btn">
+                    <i class="fas fa-sync-alt"></i> Update Plan
+                </button>
+            </form>
+        </div>
     </div>
 </body>
 </html>
