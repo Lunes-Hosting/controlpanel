@@ -5,109 +5,203 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
+        /* Dark theme styles */
+        html, body {
+            background-color: #121212 !important;
+            color: #e0e0e0;
+            font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
+            height: 100%;
         }
-        
+
+        * {
+            box-sizing: border-box;
+        }
+
         .container {
             max-width: 1200px;
-            margin: 20px auto;
-            padding: 0 20px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #121212;
         }
-        
+
+        /* Ensure no white spaces */
+        body > div {
+            background-color: #121212;
+        }
+
+        .page-header {
+            background-color: #1e1e1e;
+            color: white;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 4px;
+        }
+
+        .page-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .user-info {
+            color: #e0e0e0;
+            margin-bottom: 10px;
+        }
+
         .card {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 4px;
             padding: 20px;
             margin-bottom: 20px;
         }
-        
-        .user-info {
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #dee2e6;
-        }
-        
-        .user-info h3 {
-            margin: 0;
-            color: #495057;
-        }
-        
-        .user-info p {
-            margin: 5px 0;
-            color: #6c757d;
-        }
-        
+
         .alert {
             padding: 12px 20px;
             margin-bottom: 20px;
             border-radius: 4px;
+            background-color: #2a2a2a;
+            border: 1px solid #333;
+            color: #e0e0e0;
         }
-        
-        .alert-info {
-            background-color: #cce5ff;
-            border: 1px solid #b8daff;
-            color: #004085;
-        }
-        
+
         .servers-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
             margin-top: 20px;
         }
-        
+
         .server-card {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background-color: #2a2a2a;
+            border: 1px solid #333;
+            border-radius: 4px;
             padding: 20px;
-            transition: transform 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
             cursor: pointer;
-            border: 1px solid #dee2e6;
         }
-        
+
         .server-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            background-color: #333;
         }
-        
+
         .server-name {
             font-size: 18px;
             font-weight: 600;
-            color: #212529;
-            margin-bottom: 10px;
+            color: #e0e0e0;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        
+
+        .server-name i {
+            color: #4CAF50;
+        }
+
         .server-details {
-            color: #6c757d;
-            font-size: 14px;
+            color: #b0b0b0;
         }
-        
+
         .server-details p {
-            margin: 5px 0;
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        
+
+        .server-details i {
+            width: 20px;
+            color: #666;
+        }
+
         .back-link {
-            display: inline-block;
-            color: #6c757d;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #e0e0e0;
             text-decoration: none;
             margin-bottom: 20px;
+            padding: 8px 12px;
+            background-color: #2a2a2a;
+            border-radius: 4px;
+            border: 1px solid #333;
+            transition: background-color 0.2s;
         }
-        
+
         .back-link:hover {
-            color: #495057;
+            background-color: #333;
         }
-        
+
         .no-servers {
             text-align: center;
             padding: 40px;
-            color: #6c757d;
-            font-size: 18px;
+            color: #888;
+        }
+
+        .no-servers i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #666;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background-color: #2a2a2a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 15px;
+            flex: 1;
+        }
+
+        .stat-card h3 {
+            margin: 0 0 5px 0;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        /* Resource usage bars */
+        .resource-bar {
+            height: 6px;
+            background-color: #1e1e1e;
+            border-radius: 3px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .resource-bar .fill {
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .resource-bar .fill.warning {
+            background-color: #FFA726;
+        }
+
+        .resource-bar .fill.danger {
+            background-color: #EF5350;
         }
     </style>
 </head>
@@ -119,16 +213,36 @@
             <i class="fas fa-arrow-left"></i> Back to Users
         </a>
         
-        <div class="card">
-            <div class="user-info">
-                <h3>{{ user_info.name }}'s Servers</h3>
-                <p>Email: {{ user_info.email }}</p>
+        <div class="page-header">
+            <div>
+                <h1>{{ user_info.name }}'s Servers</h1>
+                <div class="user-info">{{ user_info.email }}</div>
             </div>
-            
+            <div>Total Servers: {{ servers|length if servers else 0 }}</div>
+        </div>
+
+        {% if servers %}
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total RAM</h3>
+                <div class="value">{{ (servers|sum(attribute='attributes.limits.memory')/1024)|round(1) }} GB</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total CPU</h3>
+                <div class="value">{{ servers|sum(attribute='attributes.limits.cpu') }}%</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Disk</h3>
+                <div class="value">{{ (servers|sum(attribute='attributes.limits.disk')/1024)|round(1) }} GB</div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="card">
             {% with messages = get_flashed_messages() %}
                 {% if messages %}
                     {% for message in messages %}
-                        <div class="alert alert-info">{{ message }}</div>
+                        <div class="alert">{{ message }}</div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
@@ -136,25 +250,48 @@
             {% if servers %}
                 <div class="servers-grid">
                     {% for server in servers %}
-                    <div class="server-card" 
-                    onclick="window.location.href='{{ url_for('admin.admin_manage_server', server_id=server.attributes.id) }}'">
-                   <div class="server-name">
-                       <i class="fas fa-server"></i> {{ server.attributes.name|e }}
-                   </div>
-                   
-                   <div class="server-details">
-                       <p><i class="fas fa-memory"></i> RAM: {{ server.attributes.limits.memory|int }} MB</p>
-                       <p><i class="fas fa-microchip"></i> CPU: {{ server.attributes.limits.cpu|int }}%</p>
-                       <p><i class="fas fa-hdd"></i> Disk: {{ server.attributes.limits.disk|int }} MB</p>
-                       <p><i class="fas fa-network-wired"></i> Node: {{ server.attributes.node|e }}</p>
-                   </div>
-               </div>
-               
+                    <div class="server-card" onclick="window.location.href='{{ url_for('admin.admin_manage_server', server_id=server.attributes.id) }}'">
+                        <div class="server-name">
+                            <i class="fas fa-server"></i>
+                            {{ server.attributes.name|e }}
+                        </div>
+                        
+                        <div class="server-details">
+                            <p>
+                                <i class="fas fa-memory"></i>
+                                RAM: {{ server.attributes.limits.memory|int }} MB
+                                <div class="resource-bar">
+                                    <div class="fill {% if server.attributes.limits.memory > 8192 %}danger{% elif server.attributes.limits.memory > 4096 %}warning{% endif %}"
+                                         style="width: {{ (server.attributes.limits.memory / 16384 * 100)|min(100) }}%"></div>
+                                </div>
+                            </p>
+                            <p>
+                                <i class="fas fa-microchip"></i>
+                                CPU: {{ server.attributes.limits.cpu|int }}%
+                                <div class="resource-bar">
+                                    <div class="fill {% if server.attributes.limits.cpu > 200 %}danger{% elif server.attributes.limits.cpu > 100 %}warning{% endif %}"
+                                         style="width: {{ (server.attributes.limits.cpu / 300 * 100)|min(100) }}%"></div>
+                                </div>
+                            </p>
+                            <p>
+                                <i class="fas fa-hdd"></i>
+                                Disk: {{ server.attributes.limits.disk|int }} MB
+                                <div class="resource-bar">
+                                    <div class="fill {% if server.attributes.limits.disk > 20480 %}danger{% elif server.attributes.limits.disk > 10240 %}warning{% endif %}"
+                                         style="width: {{ (server.attributes.limits.disk / 32768 * 100)|min(100) }}%"></div>
+                                </div>
+                            </p>
+                            <p>
+                                <i class="fas fa-network-wired"></i>
+                                Node: {{ server.attributes.node|e }}
+                            </p>
+                        </div>
+                    </div>
                     {% endfor %}
                 </div>
             {% else %}
                 <div class="no-servers">
-                    <i class="fas fa-server fa-2x"></i>
+                    <i class="fas fa-server"></i>
                     <p>This user has no servers.</p>
                 </div>
             {% endif %}
