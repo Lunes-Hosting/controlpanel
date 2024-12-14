@@ -1,3 +1,44 @@
+"""
+Authentication Handler Module
+===========================
+
+This module handles all authentication-related routes and functionality for the control panel.
+It manages user registration, login, password resets, email verification, and account deletion.
+
+Templates Used:
+-------------
+- login.html: User login form
+- register.html: New user registration form
+- reset_password.html: Password reset request form
+- reset_password_confirm.html: New password form after reset
+- account.html: User dashboard/profile page
+- delete_account.html: Account deletion confirmation
+
+Database Tables Used:
+------------------
+- users: Stores user information and credentials
+- tickets: For user support tickets
+- ticket_comments: For ticket messages
+- servers: Links to user's Pterodactyl servers
+
+External Services:
+---------------
+- Pterodactyl Panel API: For server management
+- ReCAPTCHA: For form protection
+- SMTP: For sending verification emails
+
+Session Variables:
+---------------
+- email: User's email address
+- pterodactyl_id: User's Pterodactyl panel ID
+- verified: Email verification status
+
+Cache Keys:
+---------
+- [email]: Stores email verification tokens
+- reset_[token]: Stores password reset tokens
+"""
+
 from flask import Blueprint, request, render_template, session, flash, current_app, redirect, url_for
 import sys
 import threading
@@ -33,9 +74,19 @@ def login_user():
         - password: User's password
         - g-recaptcha-response: ReCAPTCHA token
         
+    Templates:
+        - login.html: Shows login form with ReCAPTCHA
+        
+    Session:
+        Sets: email, pterodactyl_id
+        
     Returns:
         GET: template: login.html with ReCAPTCHA key
         POST: redirect: To dashboard on success or login page with error
+        
+    Related Functions:
+        - after_request(): Updates session data
+        - get_ptero_id(): Gets Pterodactyl panel ID
     """
     after_request(session=session, request=request.environ)
     if request.method == "POST":
@@ -80,6 +131,14 @@ def index():
     Session Requirements:
         - email: User must be logged in
         
+    Templates:
+        - account.html: Shows user profile and stats
+        
+    Database Queries:
+        - Get user credits
+        - Get server count
+        - Calculate monthly usage
+        
     Returns:
         template: account.html with:
             - credits: User's current credits
@@ -87,6 +146,10 @@ def index():
             - username: User's name
             - email: User's email
             - monthly_usage: Total monthly credit usage
+            
+    Related Functions:
+        - get_credits(): Gets user's credit balance
+        - list_servers(): Gets user's server list
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -128,14 +191,22 @@ def reset_password():
     Form Data:
         - email: User's email address
         
+    Templates:
+        - reset_password.html: Password reset request form
+        
     Process:
-        1. Validate email exists
-        2. Generate reset token
-        3. Send reset email
+        1. Validate email exists in database
+        2. Generate secure reset token
+        3. Cache token with email for 30 minutes
+        4. Send reset email with token link
         
     Returns:
         GET: template: reset_password.html
         POST: redirect: To login page with confirmation
+        
+    Related Functions:
+        - send_reset_email(): Sends password reset email
+        - generate_reset_token(): Creates secure token
     """
     if request.method == 'POST':
         email = request.form.get('email')
@@ -157,7 +228,6 @@ def reset_password():
     return render_template('reset_password.html')
 
 
-
 @user.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password_confirm(token):
     """
@@ -176,14 +246,22 @@ def reset_password_confirm(token):
         - confirm_password: Password confirmation
         - token: Reset token
         
+    Templates:
+        - reset_password_confirm.html: New password form
+        
     Process:
         1. Validate token matches cached token
         2. Update password in local database
         3. Update password in Pterodactyl panel
+        4. Clear reset token from cache
         
     Returns:
         GET: template: reset_password_confirm.html
         POST: redirect: To login page on success
+        
+    Related Functions:
+        - update_password(): Updates password in database
+        - update_panel_password(): Updates Pterodactyl password
     """
     if request.method == 'POST':
         email = request.form.get('email')
@@ -257,15 +335,24 @@ def register_user():
         - confirm_password: Password confirmation
         - g-recaptcha-response: ReCAPTCHA token
         
+    Templates:
+        - register.html: Registration form with ReCAPTCHA
+        
     Process:
-        1. Validate form data
+        1. Validate form data and ReCAPTCHA
         2. Create user in Pterodactyl panel
         3. Create user in local database
-        4. Send verification email
+        4. Generate verification token
+        5. Send verification email
         
     Returns:
         GET: template: register.html
         POST: redirect: To login page on success
+        
+    Related Functions:
+        - register(): Creates user accounts
+        - send_verification_email(): Sends email verification
+        - generate_verification_token(): Creates secure token
     """
     if request.method == "POST":
         recaptcha_response = request.form.get('g-recaptcha-response')
@@ -317,10 +404,15 @@ def resend_confirmation_email():
         
     Process:
         1. Generate new verification token
-        2. Send verification email
+        2. Cache token with email
+        3. Send verification email
         
     Returns:
         redirect: To account page with confirmation
+        
+    Related Functions:
+        - generate_verification_token(): Creates new token
+        - send_verification_email(): Sends verification email
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -347,11 +439,16 @@ def verify_email(token):
         
     Process:
         1. Get email from cache using token
-        2. Update user's verified status
-        3. Clear verification token from cache
+        2. Verify token matches and is valid
+        3. Update user's verified status
+        4. Clear verification token from cache
+        5. Log verification in webhook
         
     Returns:
         redirect: To account page with status message
+        
+    Related Functions:
+        - webhook_log(): Logs verification event
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -393,10 +490,14 @@ def logout():
     Log out current user.
     
     Process:
-        1. Clear session data
+        1. Clear all session data
+        2. Redirect to login page
         
     Returns:
         redirect: To login page
+        
+    Session:
+        Clears: All session data
     """
     session.clear()
     return redirect(url_for("index"))
@@ -414,17 +515,27 @@ def delete_account():
     Session Requirements:
         - email: User must be logged in
         
+    Templates:
+        - delete_account.html: Deletion confirmation page
+        
     Process:
         1. Verify user is logged in
-        2. Delete all user's servers
-        3. Delete user from Pterodactyl
-        4. Delete user's tickets and comments
-        5. Delete user from database
-        6. Clear session
+        2. Get user's Pterodactyl ID
+        3. Delete all user's servers
+        4. Delete user from Pterodactyl panel
+        5. Delete user's tickets and comments
+        6. Delete user from database
+        7. Clear session data
+        8. Log deletion in webhook
         
     Returns:
         GET: template: delete_account.html
         POST: redirect: To login page with confirmation
+        
+    Related Functions:
+        - delete_server(): Removes servers
+        - delete_user(): Removes from Pterodactyl
+        - webhook_log(): Logs account deletion
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))

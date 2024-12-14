@@ -1,19 +1,50 @@
 """
-Server management routes for the Pterodactyl Control Panel.
-Handles all server-related operations including creation, modification, and deletion.
+Server Management Module
+=====================
 
-Session Variables Used:
-    - email: str - User's email for authentication
-    - pterodactyl_id: tuple[int] - User's Pterodactyl panel ID
-    - verified: bool - Whether user's email is verified
+This module handles all server-related operations in the Pterodactyl Control Panel,
+including server creation, modification, deletion, and transfer functionality.
 
-URL Routes:
-    - / : List all servers
-    - /<server_id> : View specific server
-    - /create : Server creation form
-    - /create/submit : Handle server creation
-    - /update/<server_id> : Update server configuration
-    - /delete/<server_id> : Delete server
+Templates Used:
+-------------
+- servers/index.html: Server list overview
+- servers/server.html: Individual server details
+- servers/create_server.html: Server creation form
+- servers/transfer_server.html: Server transfer interface
+
+Database Tables Used:
+------------------
+- users: User verification status
+- servers: Server configurations
+- nodes: Available server locations
+- credits: User credit tracking
+
+External Services:
+---------------
+- Pterodactyl Panel API:
+  - Server management
+  - Resource allocation
+  - Node management
+- ReCAPTCHA: Form protection
+
+Session Requirements:
+------------------
+- email: User's email address
+- pterodactyl_id: User's panel ID
+- verified: Email verification status
+
+Cache Keys:
+---------
+- server_[id]: Server configuration cache
+- node_[id]: Node information cache
+
+Resource Management:
+-----------------
+Handles allocation of:
+- Memory (RAM)
+- Disk Space
+- CPU Cores
+- Bandwidth
 """
 
 from flask import Blueprint, request, render_template, session, flash
@@ -26,27 +57,102 @@ from products import products
 servers = Blueprint('servers', __name__)
 
 def get_user_verification_status(email):
-    """Helper function to check if user's email is verified"""
+    """
+    Check if user's email is verified.
+    
+    Args:
+        email: User's email address
+        
+    Database Queries:
+        - Check email_verified_at in users table
+        
+    Returns:
+        bool: True if verified, False otherwise
+        
+    Related Tables:
+        - users: Stores verification status
+    """
     query = "SELECT email_verified_at FROM users WHERE email = %s"
     result = use_database(query, (email,))
     return result[0] is not None if result else False
 
 def get_user_ptero_id(session):
-    """Helper function to get or set pterodactyl_id in session"""
+    """
+    Get or set pterodactyl_id in session.
+    
+    Args:
+        session: Flask session object
+        
+    Process:
+        1. Check session for existing ID
+        2. Query database if not found
+        3. Cache ID in session
+        
+    Returns:
+        tuple: (user_id, panel_id)
+        
+    Related Functions:
+        - get_ptero_id(): Database query helper
+    """
     if 'pterodactyl_id' not in session:
         ptero_id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = ptero_id
     return session['pterodactyl_id']
 
 def verify_server_ownership(server_id, user_email):
-    """Helper function to verify server ownership"""
+    """
+    Verify server ownership.
+    
+    Args:
+        server_id: Pterodactyl server ID
+        user_email: User's email address
+        
+    API Calls:
+        - Pterodactyl: Get server details
+        
+    Process:
+        1. Fetch server details
+        2. Get user's panel ID
+        3. Compare owner IDs
+        
+    Returns:
+        bool: True if user owns server
+        
+    Related Functions:
+        - get_ptero_id(): Gets user's panel ID
+    """
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     ptero_id = get_ptero_id(user_email)
     return resp['attributes']['user'] == ptero_id[0] if ptero_id else False
 
 @servers.route('/')
 def servers_index():
-    """Lists all servers owned by the authenticated user."""
+    """
+    List all servers owned by authenticated user.
+    
+    Templates:
+        - servers/index.html: Server list view
+        
+    API Calls:
+        - Pterodactyl: List user's servers
+        - Pterodactyl: Get resource usage
+        
+    Process:
+        1. Verify authentication
+        2. Get user's panel ID
+        3. Fetch server list
+        4. Calculate resource usage
+        
+    Returns:
+        template: servers/index.html with:
+            - servers: User's server list
+            - resources: Usage statistics
+            - limits: Resource allocations
+            
+    Related Functions:
+        - get_user_servers(): Lists servers
+        - calculate_usage(): Sums resources
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
         
@@ -65,7 +171,36 @@ def servers_index():
 
 @servers.route('/<server_id>')
 def server(server_id):
-    """Displays detailed information about a specific server."""
+    """
+    Display detailed server information.
+    
+    Args:
+        server_id: Pterodactyl server ID
+        
+    Templates:
+        - servers/server.html: Server details
+        
+    API Calls:
+        - Pterodactyl: Get server details
+        - Pterodactyl: Get resource usage
+        
+    Process:
+        1. Verify authentication
+        2. Check server ownership
+        3. Fetch server details
+        4. Get resource utilization
+        
+    Returns:
+        template: servers/server.html with:
+            - info: Server configuration
+            - usage: Resource utilization
+            - limits: Resource allocations
+            - products: Upgrade options
+            
+    Related Functions:
+        - get_server_info(): Gets details
+        - get_resource_usage(): Gets utilization
+    """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
         
@@ -92,16 +227,31 @@ def server(server_id):
 @servers.route("/create")
 def create_server():
     """
-    Displays server creation form.
+    Display server creation form.
     
-    Session Requirements:
-        - email: User must be logged in
-    
+    Templates:
+        - servers/create_server.html: Creation form
+        
+    API Calls:
+        - Pterodactyl: List available eggs
+        - Pterodactyl: List available nodes
+        
+    Process:
+        1. Verify authentication
+        2. Check email verification
+        3. Load server options
+        4. Calculate resource limits
+        
     Returns:
         template: create_server.html with:
             - eggs: Available server types
-            - nodes: Available nodes
-            - products: Available upgrade options
+            - nodes: Available locations
+            - products: Resource plans
+            - limits: User's resource limits
+            
+    Related Functions:
+        - get_eggs(): Lists server types
+        - get_nodes(): Lists locations
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -142,17 +292,33 @@ def create_server():
 @servers.route("/delete/<server_id>")
 def delete_server(server_id):
     """
-    Deletes a server.
-    
-    Session Requirements:
-        - email: User must be logged in
+    Delete a server.
     
     Args:
         server_id: Pterodactyl server ID
-    
+        
+    API Calls:
+        - Pterodactyl: Delete server
+        
+    Database Queries:
+        - Update user resources
+        - Log server deletion
+        
+    Process:
+        1. Verify authentication
+        2. Check server ownership
+        3. Delete from panel
+        4. Update resource counts
+        5. Log deletion
+        
     Returns:
-        redirect: To servers list on success
-        str: Error message if user doesn't own server
+        redirect: To servers list with:
+            - success: Deletion status
+            - message: Result details
+            
+    Related Functions:
+        - delete_from_panel(): Removes server
+        - update_resources(): Updates limits
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -186,24 +352,44 @@ def delete_server(server_id):
 @servers.route('/create/submit', methods=['POST'])
 def create_server_submit():
     """
-    Handles server creation form submission.
+    Handle server creation form submission.
     
-    Session Requirements:
-        - email: User must be logged in
-        - verified: Email must be verified
-    
+    Templates:
+        - error.html: Shows creation errors
+        
+    API Calls:
+        - Pterodactyl: Create server
+        - ReCAPTCHA: Verify response
+        
+    Database Queries:
+        - Check resource limits
+        - Update used resources
+        - Log server creation
+        
+    Process:
+        1. Verify authentication
+        2. Validate ReCAPTCHA
+        3. Check resource limits
+        4. Create server in panel
+        5. Update resource usage
+        6. Log creation
+        
     Form Data:
         - name: Server name
-        - egg_id: Server type/egg
-        - location: Node location
+        - egg_id: Server type
+        - location: Node ID
         - memory: RAM allocation
-        - disk: Disk space allocation
+        - disk: Storage allocation
         - cpu: CPU allocation
-        - g-recaptcha-response: ReCAPTCHA token
-    
+        - g-recaptcha-response: Token
+        
     Returns:
-        redirect: To servers list on success
+        redirect: To server page on success
         template: Error page on failure
+        
+    Related Functions:
+        - create_server(): Panel creation
+        - check_limits(): Validates resources
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -294,17 +480,31 @@ def create_server_submit():
 @servers.route('/adminupdate/<server_id>', methods=['POST'])
 def admin_update_server_submit(server_id):
     """
-    Updates server configuration (admin only).
-    
-    Session Requirements:
-        - email: User must be logged in
-        - admin: User must be an admin
+    Update server configuration (admin only).
     
     Args:
         server_id: Pterodactyl server ID
-    
+        
+    API Calls:
+        - Pterodactyl: Update server
+        
+    Database Queries:
+        - Verify admin status
+        - Update resource allocation
+        
+    Process:
+        1. Verify admin status
+        2. Update configuration
+        3. Log changes
+        
     Returns:
-        redirect: To server page on success
+        redirect: To server page with:
+            - success: Update status
+            - message: Result details
+            
+    Related Functions:
+        - update_server(): Updates config
+        - log_admin_action(): Records change
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -318,24 +518,40 @@ def admin_update_server_submit(server_id):
 @servers.route('/update/<server_id>', methods=['POST'])
 def update_server_submit(server_id, bypass_owner_only: bool = False):
     """
-    Updates server configuration.
-    
-    Session Requirements:
-        - email: User must be logged in
-        - verified: Email must be verified
+    Update server configuration.
     
     Args:
         server_id: Pterodactyl server ID
-        bypass_owner_only: Allow non-owners to modify (admin only)
-    
+        bypass_owner_only: Allow admin override
+        
+    API Calls:
+        - Pterodactyl: Update server
+        
+    Database Queries:
+        - Check resource limits
+        - Update allocations
+        - Log changes
+        
+    Process:
+        1. Verify ownership/admin
+        2. Validate new limits
+        3. Update configuration
+        4. Adjust resource usage
+        5. Log changes
+        
     Form Data:
-        - memory: New RAM allocation
-        - disk: New disk space allocation
-        - cpu: New CPU allocation
-    
+        - memory: RAM allocation
+        - disk: Storage allocation
+        - cpu: CPU allocation
+        
     Returns:
-        redirect: To server page on success
-        str: Error message on failure
+        redirect: To server page with:
+            - success: Update status
+            - message: Result details
+            
+    Related Functions:
+        - check_limits(): Validates changes
+        - update_server(): Applies updates
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -386,16 +602,34 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
 @servers.route('/transfer/<server_id>')
 def transfer_server_route(server_id):
     """
-    Displays server transfer page.
+    Display server transfer page.
     
-    Session Requirements:
-        - email: User must be logged in
-    
+    Args:
+        server_id: Pterodactyl server ID
+        
+    Templates:
+        - servers/transfer_server.html: Transfer form
+        
+    API Calls:
+        - Pterodactyl: Get server location
+        - Pterodactyl: List available nodes
+        
+    Process:
+        1. Verify ownership
+        2. Get current location
+        3. List valid targets
+        4. Filter by capacity
+        
     Returns:
         template: transfer_server.html with:
-            - server_id
-            - current node
-            - available nodes
+            - server_id: Server identifier
+            - current: Current node
+            - nodes: Available targets
+            - limits: Transfer restrictions
+            
+    Related Functions:
+        - get_nodes(): Lists locations
+        - check_capacity(): Filters nodes
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -428,17 +662,36 @@ def transfer_server_route(server_id):
 @servers.route('/transfer/<server_id>/submit', methods=['POST'])
 def transfer_server_submit(server_id):
     """
-    Handles server transfer submission.
+    Handle server transfer submission.
     
-    Session Requirements:
-        - email: User must be logged in
-    
+    Args:
+        server_id: Pterodactyl server ID
+        
+    API Calls:
+        - Pterodactyl: Transfer server
+        
+    Database Queries:
+        - Log transfer
+        - Update location
+        
+    Process:
+        1. Verify ownership
+        2. Validate target node
+        3. Initiate transfer
+        4. Monitor progress
+        5. Update records
+        
     Form Data:
-        - node_id: Target node for server transfer
-    
+        - node_id: Target location
+        
     Returns:
-        redirect: To server page on success
-        str: Error message on failure
+        redirect: To server page with:
+            - success: Transfer status
+            - message: Result details
+            
+    Related Functions:
+        - transfer_server(): Moves server
+        - monitor_transfer(): Tracks progress
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -462,4 +715,3 @@ def transfer_server_submit(server_id):
         flash('An unexpected error occurred during server transfer.')
     
     return redirect(url_for('servers.server', server_id=server_id))
-

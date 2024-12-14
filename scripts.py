@@ -1,6 +1,41 @@
 """
 Core functionality module for the Pterodactyl Control Panel.
-This module handles all interactions with the Pterodactyl API and database operations.
+This module serves as the central interface between the web application and both the Pterodactyl API 
+and the local database. It handles all core operations including user management, server provisioning,
+credit system, and automated maintenance tasks.
+
+Architecture Overview:
+    - Web Layer: Flask routes interface with this module for all core operations
+    - Database Layer: MySQL database stores user data, credits, and application state
+    - API Layer: Communicates with Pterodactyl API for server management
+    - Cache Layer: Uses PteroCache for optimizing API calls
+    - Task Layer: Runs scheduled tasks for credit processing and server maintenance
+
+Key Components:
+    1. User Management:
+        - Registration/Authentication
+        - Credit system
+        - Role management (admin/client)
+        - Email verification
+        - Password reset
+    
+    2. Server Management:
+        - Server provisioning
+        - Suspension/Unsuspension
+        - Resource allocation
+        - Node management
+        - Server transfers
+    
+    3. Credit System:
+        - Credit tracking
+        - Automated usage calculation
+        - Payment processing integration
+    
+    4. Security:
+        - Password hashing (bcrypt)
+        - Session management
+        - IP tracking
+        - Admin access control
 
 Database Schema:
     users table:
@@ -14,6 +49,21 @@ Database Schema:
         - ip: str
         - email_verified_at: datetime
         - last_seen: datetime
+
+Dependencies:
+    - flask: Web framework
+    - mysql-connector: Database interface
+    - bcrypt: Password hashing
+    - requests: HTTP client for API calls
+    - flask_mail: Email functionality
+    - pterocache: Custom caching layer
+
+Environment Variables Required:
+    - PTERODACTYL_URL: Base URL for Pterodactyl panel
+    - PTERODACTYL_ADMIN_KEY: Admin API key
+    - PTERODACTYL_ADMIN_USER_KEY: Client API key
+    - DATABASE: MySQL database name
+    - MAIL_* settings for email configuration
 
 Constants:
     HEADERS: API headers for admin access

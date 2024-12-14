@@ -1,3 +1,51 @@
+"""
+Support Ticket Module
+===================
+
+This module handles all support ticket functionality in the control panel,
+including ticket creation, messaging, and status management.
+
+Templates Used:
+-------------
+- tickets.html: Ticket list overview
+- ticket.html: Individual ticket view
+- ticket_message.html: Message composition
+
+Database Tables Used:
+------------------
+- tickets: Ticket metadata and status
+- ticket_comments: Message content
+- users: User information
+- admins: Admin privileges
+
+Access Control:
+-------------
+- Users can only view their own tickets
+- Admins can view all tickets
+- Only ticket owner or admin can close tickets
+- Closed tickets visible only to admins
+
+Session Requirements:
+------------------
+- email: User's email address
+- pterodactyl_id: User's panel ID
+- admin: Admin status (optional)
+
+Notifications:
+------------
+- Email notifications on:
+  - New ticket creation
+  - New messages
+  - Ticket closure
+- Discord webhooks for admins
+
+Message Formatting:
+----------------
+- Supports markdown
+- Code block highlighting
+- Image attachments
+"""
+
 from flask import Blueprint, request, render_template, session, flash, current_app
 import sys, time
 from threadedreturn import ThreadWithReturnValue
@@ -12,12 +60,30 @@ def tickets_index():
     """
     Display list of open tickets for the authenticated user.
     
-    Session Requirements:
-        - email: User must be logged in
-        - pterodactyl_id: User's panel ID (fetched if not in session)
+    Templates:
+        - tickets.html: Ticket overview list
+        
+    Database Queries:
+        - Get user's tickets
+        - Get message counts
+        - Get admin status
+        
+    Process:
+        1. Verify authentication
+        2. Get user's panel ID
+        3. Fetch open tickets
+        4. Load message counts
+        5. Check admin status
         
     Returns:
-        template: tickets.html with list of user's open tickets
+        template: tickets.html with:
+            - tickets: Open ticket list
+            - counts: Message counts
+            - is_admin: Admin privileges
+            
+    Related Functions:
+        - get_ticket_list(): Fetches tickets
+        - count_messages(): Gets responses
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -39,15 +105,35 @@ def create_ticket_submit():
     """
     Handle ticket creation form submission.
     
-    Session Requirements:
-        - email: User must be logged in
+    Templates:
+        - error.html: Shows validation errors
+        
+    Database Queries:
+        - Create ticket record
+        - Add initial message
+        - Get user information
+        
+    Process:
+        1. Verify authentication
+        2. Validate form data
+        3. Create ticket record
+        4. Add initial message
+        5. Send notifications
+        6. Log creation
         
     Form Data:
-        - title: Ticket title/subject
-        - message: Initial ticket message
+        - title: Ticket subject
+        - message: Initial content
         
     Returns:
-        redirect: To new ticket page on success
+        redirect: To new ticket with:
+            - ticket_id: New ticket ID
+            - success: Creation status
+            
+    Related Functions:
+        - create_ticket(): Makes record
+        - notify_admins(): Alerts staff
+        - log_ticket(): Records creation
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -65,7 +151,7 @@ def create_ticket_submit():
     #     return redirect(url_for("tickets.tickets_index"))
     #get form data
     title = request.form['title']
-    message = request.form['title']
+    message = request.form['message']
     user_id = get_id(session['email'])[0]
     ts = time.time()
     timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
@@ -92,23 +178,42 @@ def create_ticket_submit():
     return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
 
 
-
 @tickets.route('/message/submit/<ticket_id>', methods=['POST'])
 def add_message_submit(ticket_id):
     """
     Add a new message to an existing ticket.
     
-    Session Requirements:
-        - email: User must be logged in
-        
     Args:
-        ticket_id: ID of ticket to add message to
+        ticket_id: Target ticket ID
+        
+    Templates:
+        - ticket_message.html: Message form
+        
+    Database Queries:
+        - Verify ticket access
+        - Add message record
+        - Update ticket status
+        
+    Process:
+        1. Verify authentication
+        2. Check ticket access
+        3. Validate message
+        4. Add to database
+        5. Send notifications
+        6. Update last reply
         
     Form Data:
-        - message: Message content
+        - message: Content text
         
     Returns:
-        redirect: Back to ticket page
+        redirect: To ticket view with:
+            - success: Message status
+            - message_id: New message ID
+            
+    Related Functions:
+        - add_message(): Stores content
+        - notify_users(): Alerts parties
+        - format_message(): Processes text
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -139,22 +244,41 @@ def add_message_submit(ticket_id):
         webhook_log(f"Ticket comment added by staff member `{session['email']}` with message `{message}` https://betadash.lunes.host/tickets/{ticket_id}")
     return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
 
+
 @tickets.route('/<ticket_id>')
 def ticket(ticket_id):
     """
     Display a specific ticket and its messages.
     
-    Session Requirements:
-        - email: User must be logged in
-        
     Args:
-        ticket_id: ID of ticket to view
+        ticket_id: Ticket to view
+        
+    Templates:
+        - ticket.html: Ticket thread view
+        
+    Database Queries:
+        - Get ticket details
+        - Get all messages
+        - Get user information
+        
+    Process:
+        1. Verify authentication
+        2. Check view permission
+        3. Load ticket data
+        4. Fetch messages
+        5. Format content
         
     Returns:
         template: ticket.html with:
-            - messages: List of ticket messages
-            - info: Ticket metadata
-        redirect: To tickets list if user can't access ticket
+            - ticket: Basic information
+            - messages: Full thread
+            - users: Participant info
+            - can_reply: Access control
+            
+    Related Functions:
+        - get_messages(): Loads thread
+        - format_content(): Processes text
+        - check_access(): Verifies rights
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -180,23 +304,43 @@ def ticket(ticket_id):
     real_info = {"author": get_name(info[1])[0], "title": info[2], "created_at": info[4], "id": info[0]}
     return render_template("ticket.html", messages=messages, info=real_info)
 
+
 @tickets.route('/close/<ticket_id>', methods=['POST'])
 def close_ticket(ticket_id):
     """
     Close a support ticket.
     
-    Session Requirements:
-        - email: User must be logged in
+    Args:
+        ticket_id: Ticket to close
+        
+    Database Queries:
+        - Verify ownership/admin
+        - Update ticket status
+        - Log closure
+        
+    Process:
+        1. Verify authentication
+        2. Check close permission
+        3. Update status
+        4. Send notifications
+        5. Log action
         
     Access Control:
-        - Only ticket owner or admin can close ticket
-        - Closed tickets can only be viewed by admins
-        
-    Args:
-        ticket_id: ID of ticket to close
-        
+        - Ticket owner can close
+        - Admins can close any
+        - Closed tickets:
+          - Hidden from users
+          - Visible to admins
+          
     Returns:
-        redirect: To tickets list or admin panel
+        redirect: To ticket list with:
+            - success: Closure status
+            - message: Result notice
+            
+    Related Functions:
+        - update_status(): Changes state
+        - notify_closure(): Alerts users
+        - log_action(): Records change
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))

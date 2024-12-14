@@ -1,3 +1,44 @@
+"""
+Admin Routes Module
+=================
+
+This module handles all administrative routes and functionality for the control panel.
+It provides interfaces for user management, server administration, and support ticket handling.
+
+Templates Used:
+-------------
+- admin/admin.html: Admin dashboard homepage
+- admin/users.html: User management interface
+- admin/servers.html: Server overview list
+- admin/server.html: Individual server management
+- admin/tickets.html: Support ticket management
+- admin/user_servers.html: User's server list
+- admin/manage_server.html: Detailed server management
+
+Database Tables Used:
+------------------
+- users: User account management
+- servers: Server configurations
+- tickets: Support ticket tracking
+- ticket_comments: Support communication
+- credits: User credit tracking
+
+External Services:
+---------------
+- Pterodactyl Panel API: Server management and user control
+- Webhook Service: Action logging
+
+Session Requirements:
+------------------
+All routes require:
+- email: User's email address
+- Admin status verification
+
+Access Control:
+-------------
+All routes are protected by is_admin() verification
+"""
+
 from flask import Blueprint, request, render_template, session, flash
 import sys
 
@@ -20,9 +61,18 @@ def admin_index():
     Access Control:
         - User must be admin
         
+    Templates:
+        - admin/admin.html: Main admin dashboard
+        
+    Database Queries:
+        - Verify admin status
+        
     Returns:
         template: admin/admin.html
         str: Error message if not admin
+        
+    Related Functions:
+        - is_admin(): Verifies admin privileges
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -37,13 +87,35 @@ def users():
     Display paginated list of users with efficient search.
     
     Query Parameters:
-    - page: Current page number (default 1)
-    - search: Optional search term
-    
+        - page: Current page number (default 1)
+        - search: Optional search term
+        
+    Templates:
+        - admin/users.html: User management interface
+        
+    Database Queries:
+        - Get paginated user list
+        - Count total users
+        - Get user credits
+        - Get server counts
+        
+    Process:
+        1. Verify admin status
+        2. Parse pagination parameters
+        3. Execute search if term provided
+        4. Fetch user data with credits
+        5. Calculate server allocations
+        
     Returns:
-    - Paginated users list
-    - Total user count
-    - Current page
+        template: admin/users.html with:
+            - users: Paginated user list
+            - total_users: Total user count
+            - current_page: Active page number
+            - search_term: Current search filter
+            
+    Related Functions:
+        - get_user_credits(): Fetches credit balances
+        - count_user_servers(): Gets server counts
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -131,15 +203,31 @@ def admin_servers():
     """
     Display list of all servers in the panel.
     
-    Session Requirements:
-        - email: User must be logged in
+    Templates:
+        - admin/servers.html: Server overview list
         
-    Access Control:
-        - User must be admin
+    API Calls:
+        - Pterodactyl: List all servers
+        
+    Database Queries:
+        - Get server owners
+        - Get server resources
+        
+    Process:
+        1. Verify admin status
+        2. Fetch all servers from panel
+        3. Match servers with owners
+        4. Calculate resource usage
         
     Returns:
-        template: admin/servers.html with list of all servers
-        str: Error message if not admin
+        template: admin/servers.html with:
+            - servers: List of all servers
+            - resources: Server resource usage
+            - owners: Server ownership mapping
+            
+    Related Functions:
+        - get_server_list(): Fetches panel servers
+        - get_server_owner(): Maps server to user
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -154,18 +242,36 @@ def admin_user(user_id):
     """
     Get detailed information about a specific user.
     
-    Session Requirements:
-        - email: User must be logged in
-        
-    Access Control:
-        - User must be admin
-        
     Args:
         user_id: Pterodactyl user ID
         
+    Templates:
+        - admin/user.html: User detail view
+        
+    API Calls:
+        - Pterodactyl: Get user details
+        
+    Database Queries:
+        - Get user credits
+        - Get user servers
+        - Get support tickets
+        
+    Process:
+        1. Verify admin status
+        2. Fetch user from panel
+        3. Get local user data
+        4. Combine information
+        
     Returns:
-        json: User information from Pterodactyl API
-        str: Error message if not admin
+        json: User information including:
+            - panel_info: Pterodactyl data
+            - credits: Credit balance
+            - servers: Server count
+            - tickets: Support history
+            
+    Related Functions:
+        - get_user_info(): Gets panel user data
+        - get_user_resources(): Gets usage stats
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -180,22 +286,38 @@ def admin_server(server_id):
     """
     Display detailed server information and management options.
     
-    Session Requirements:
-        - email: User must be logged in
-        - pterodactyl_id: User's panel ID
-        
-    Access Control:
-        - User must be admin
-        
     Args:
         server_id: Pterodactyl server ID
         
+    Templates:
+        - admin/server.html: Server management interface
+        
+    API Calls:
+        - Pterodactyl: Get server details
+        - Pterodactyl: Get resource usage
+        
+    Database Queries:
+        - Get server configuration
+        - Get owner information
+        - Get available plans
+        
+    Process:
+        1. Verify admin status
+        2. Fetch server details
+        3. Get resource utilization
+        4. Load available plans
+        5. Format display data
+        
     Returns:
         template: admin/server.html with:
-            - info: Server details
-            - products: Available upgrade options
-            - product: Current server configuration
-        str: Error message if not admin
+            - info: Server configuration
+            - usage: Resource utilization
+            - products: Available plans
+            - owner: User information
+            
+    Related Functions:
+        - get_server_info(): Gets server details
+        - get_available_plans(): Lists upgrade options
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -220,16 +342,31 @@ def admin_tickets_index():
     """
     Display list of all open support tickets.
     
-    Session Requirements:
-        - email: User must be logged in
-        - pterodactyl_id: User's panel ID
+    Templates:
+        - admin/tickets.html: Ticket management interface
         
-    Access Control:
-        - User must be admin
+    Database Queries:
+        - Get all open tickets
+        - Get ticket authors
+        - Get comment counts
+        
+    Process:
+        1. Verify admin status
+        2. Fetch open tickets
+        3. Sort by priority
+        4. Load user information
+        5. Count responses
         
     Returns:
-        template: admin/tickets.html with list of open tickets
-        str: Error message if not admin
+        template: admin/tickets.html with:
+            - tickets: Open ticket list
+            - authors: User information
+            - responses: Comment counts
+            - priorities: Priority levels
+            
+    Related Functions:
+        - get_open_tickets(): Fetches tickets
+        - get_ticket_responses(): Counts comments
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -253,19 +390,36 @@ def admin_user_servers(user_id):
     """
     Display all servers owned by a specific user.
     
-    Session Requirements:
-        - email: User must be logged in
-        
-    Access Control:
-        - User must be admin
-        
     Args:
         user_id: User's ID to view servers for
         
+    Templates:
+        - admin/user_servers.html: User's server list
+        
+    API Calls:
+        - Pterodactyl: Get user's servers
+        - Pterodactyl: Get resource usage
+        
+    Database Queries:
+        - Get user information
+        - Get server configurations
+        
+    Process:
+        1. Verify admin status
+        2. Get user details
+        3. Fetch server list
+        4. Calculate resource usage
+        5. Format display data
+        
     Returns:
         template: admin/user_servers.html with:
-            - user_info: Basic user information
-            - servers: List of user's servers
+            - user_info: Account details
+            - servers: Server list
+            - resources: Usage statistics
+            
+    Related Functions:
+        - get_user_servers(): Lists user's servers
+        - calculate_resources(): Sums usage
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -299,17 +453,37 @@ def admin_manage_server(server_id):
     """
     Display admin server management page.
     
-    Session Requirements:
-        - email: User must be logged in
-        
-    Access Control:
-        - User must be admin
-        
     Args:
         server_id: Server ID to manage
         
+    Templates:
+        - admin/manage_server.html: Server management
+        
+    API Calls:
+        - Pterodactyl: Get server details
+        - Pterodactyl: Get resource limits
+        
+    Database Queries:
+        - Get server configuration
+        - Get owner information
+        - Get server history
+        
+    Process:
+        1. Verify admin status
+        2. Load server details
+        3. Get current limits
+        4. Load modification options
+        
     Returns:
-        template: admin/manage_server.html with server details
+        template: admin/manage_server.html with:
+            - server: Server details
+            - limits: Resource limits
+            - history: Server changes
+            - options: Available actions
+            
+    Related Functions:
+        - get_server_details(): Gets configuration
+        - get_server_history(): Lists changes
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -336,24 +510,36 @@ def admin_delete_user(user_id):
     """
     Delete a user and all associated data.
     
-    Session Requirements:
-        - email: User must be logged in
-        
-    Access Control:
-        - User must be admin
-        
     Args:
         user_id: User's ID to delete
+        
+    API Calls:
+        - Pterodactyl: Delete user
+        - Pterodactyl: Delete servers
+        
+    Database Queries:
+        - Delete user record
+        - Delete tickets
+        - Delete comments
+        - Delete credits
         
     Process:
         1. Verify admin status
         2. Delete all user's servers
-        3. Delete user from Pterodactyl
-        4. Delete user's tickets and comments
-        5. Delete user from database
+        3. Remove from panel
+        4. Clear tickets/comments
+        5. Remove from database
+        6. Log deletion
         
     Returns:
-        redirect: To admin users page with status message
+        redirect: To admin users page with:
+            - success: Deletion status
+            - message: Result details
+            
+    Related Functions:
+        - delete_user_servers(): Removes servers
+        - clean_user_data(): Removes records
+        - log_admin_action(): Records deletion
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -401,22 +587,31 @@ def admin_toggle_suspension(user_id):
     """
     Toggle user suspension status.
     
-    Session Requirements:
-        - email: User must be logged in
-        
-    Access Control:
-        - User must be admin
-        
     Args:
         user_id: User's ID to suspend/unsuspend
         
+    API Calls:
+        - Pterodactyl: Update user status
+        
+    Database Queries:
+        - Update user status
+        - Log status change
+        
     Process:
         1. Verify admin status
-        2. Toggle user's suspension status
-        3. Log the action
+        2. Get current status
+        3. Toggle suspension
+        4. Update panel
+        5. Log change
         
     Returns:
-        redirect: To admin users page with status message
+        redirect: To admin users page with:
+            - success: Update status
+            - message: Action result
+            
+    Related Functions:
+        - toggle_user_status(): Updates status
+        - log_status_change(): Records action
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))

@@ -1,3 +1,54 @@
+"""
+Store Management Module
+====================
+
+This module handles all store-related operations in the control panel,
+including product display, payment processing, and credit management.
+
+Templates Used:
+-------------
+- store.html: Product catalog and pricing
+- success.html: Payment confirmation
+- cancel.html: Payment cancellation
+
+Database Tables Used:
+------------------
+- users: Credit balances
+- payments: Transaction history
+- products: Available items
+
+External Services:
+---------------
+- Stripe API:
+  - Payment processing
+  - Checkout sessions
+  - Webhooks
+- Pterodactyl API:
+  - User verification
+  - Resource allocation
+
+Session Requirements:
+------------------
+- email: User's email address
+- pterodactyl_id: User's panel ID
+- pay_id: Stripe session ID (during checkout)
+- price_link: Product ID (during checkout)
+
+Configuration:
+------------
+- STRIPE_SECRET_KEY: API authentication
+- STRIPE_WEBHOOK_SECRET: Webhook verification
+- SITE_URL: Return URL base
+
+Payment Flow:
+-----------
+1. User selects product
+2. Stripe checkout initiated
+3. Payment processed
+4. Credits allocated
+5. Transaction logged
+"""
+
 from flask import Blueprint, request, render_template, session, flash
 import sys
 from threadedreturn import ThreadWithReturnValue
@@ -16,12 +67,28 @@ def storepage():
     """
     Display the store page with available products.
     
-    Session Requirements:
-        - email: User must be logged in
-        - pterodactyl_id: User's panel ID (fetched if not in session)
+    Templates:
+        - store.html: Product catalog
+        
+    Database Queries:
+        - Get user credits
+        - Get available products
+        
+    Process:
+        1. Verify authentication
+        2. Get user's panel ID
+        3. Filter active products
+        4. Format pricing display
         
     Returns:
-        template: store.html with list of available products
+        template: store.html with:
+            - products: Available items
+            - credits: User balance
+            - prices: Formatted costs
+            
+    Related Functions:
+        - get_user_credits(): Gets balance
+        - format_price(): Formats display
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -45,15 +112,34 @@ def create_checkout_session(price_link: str):
     """
     Create a Stripe checkout session for product purchase.
     
-    Session Requirements:
-        - email: User must be logged in
-        - pterodactyl_id: User's panel ID
-        
     Args:
-        price_link: Stripe price ID for the product
+        price_link: Stripe price ID
+        
+    API Calls:
+        - Stripe: Create checkout session
+        
+    Database Queries:
+        - Get product details
+        - Get user information
+        
+    Process:
+        1. Verify authentication
+        2. Validate product
+        3. Create checkout session
+        4. Store session info
+        5. Redirect to payment
+        
+    Session Data:
+        Sets:
+        - pay_id: Checkout session ID
+        - price_link: Product identifier
         
     Returns:
-        redirect: To Stripe checkout page
+        redirect: To Stripe checkout URL
+        
+    Related Functions:
+        - create_session(): Stripe helper
+        - store_session(): Caches info
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
@@ -94,18 +180,38 @@ def success():
     """
     Handle successful payment callback from Stripe.
     
-    Session Requirements:
-        - pay_id: Stripe payment session ID
-        - price_link: Product price ID
+    Templates:
+        - success.html: Confirmation page
+        
+    API Calls:
+        - Stripe: Verify payment
+        
+    Database Queries:
+        - Update user credits
+        - Log transaction
         
     Process:
-        1. Verify payment session
+        1. Verify session data
         2. Check payment status
-        3. Add credits to user account
-        4. Log successful payment
+        3. Calculate credit amount
+        4. Update user balance
+        5. Clear session data
+        6. Log transaction
+        
+    Session Requirements:
+        - pay_id: Checkout session ID
+        - price_link: Product price ID
         
     Returns:
-        url: Redirect URL with status message
+        template: success.html with:
+            - amount: Credits added
+            - balance: New total
+            - transaction: Payment details
+            
+    Related Functions:
+        - verify_payment(): Checks status
+        - add_credits(): Updates balance
+        - log_payment(): Records transaction
     """
     try:
         pay_id = session['pay_id']
@@ -143,7 +249,25 @@ def cancel():
     """
     Handle cancelled payment callback from Stripe.
     
+    Templates:
+        - cancel.html: Cancellation page
+        
+    Process:
+        1. Clear session data
+        2. Log cancellation
+        3. Show message
+        
+    Session Data:
+        Clears:
+        - pay_id
+        - price_link
+        
     Returns:
-        template: cancel.html showing payment cancellation message
+        template: cancel.html with:
+            - message: Cancellation notice
+            
+    Related Functions:
+        - clear_session(): Removes data
+        - log_cancel(): Records event
     """
     return render_template('cancel.html')
