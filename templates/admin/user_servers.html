@@ -262,7 +262,7 @@
                                 RAM: {{ server.attributes.limits.memory|int }} MB
                                 <div class="resource-bar">
                                     <div class="fill {% if server.attributes.limits.memory > 8192 %}danger{% elif server.attributes.limits.memory > 4096 %}warning{% endif %}"
-                                         style="width: {{ (server.attributes.limits.memory / 16384 * 100)|min(100) }}%"></div>
+                                         style="width: {% if (server.attributes.limits.memory / 16384 * 100) > 100 %}100{% else %}{{ (server.attributes.limits.memory / 16384 * 100) }}{% endif %}%"></div>
                                 </div>
                             </p>
                             <p>
@@ -270,7 +270,7 @@
                                 CPU: {{ server.attributes.limits.cpu|int }}%
                                 <div class="resource-bar">
                                     <div class="fill {% if server.attributes.limits.cpu > 200 %}danger{% elif server.attributes.limits.cpu > 100 %}warning{% endif %}"
-                                         style="width: {{ (server.attributes.limits.cpu / 300 * 100)|min(100) }}%"></div>
+                                         style="width: {% if (server.attributes.limits.cpu / 300 * 100) > 100 %}100{% else %}{{ (server.attributes.limits.cpu / 300 * 100) }}{% endif %}%"></div>
                                 </div>
                             </p>
                             <p>
@@ -278,7 +278,7 @@
                                 Disk: {{ server.attributes.limits.disk|int }} MB
                                 <div class="resource-bar">
                                     <div class="fill {% if server.attributes.limits.disk > 20480 %}danger{% elif server.attributes.limits.disk > 10240 %}warning{% endif %}"
-                                         style="width: {{ (server.attributes.limits.disk / 32768 * 100)|min(100) }}%"></div>
+                                         style="width: {% if (server.attributes.limits.disk / 32768 * 100) > 100 %}100{% else %}{{ (server.attributes.limits.disk / 32768 * 100) }}{% endif %}%"></div>
                                 </div>
                             </p>
                             <p>
