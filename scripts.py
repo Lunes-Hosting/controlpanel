@@ -652,18 +652,10 @@ def check_to_unsuspend():
     for server in response['data']:
         user_suspended = check_if_user_suspended(server['attributes']['user'])
         if user_suspended:
-            if not server['attributes']['suspended']:
-                delete_server(server['attributes']['id'])
-                webhook_log("Server deleted due to user suspension")
-            else:
-                suspended_at = server['attributes']['updated_at']
-                suspension_duration = datetime.datetime.now() - datetime.datetime.strptime(suspended_at,
-                                                                                           "%Y-%m-%dT%H:%M:%S+00:00")
-
-                if suspension_duration.days > 5:
-                    webhook_log(f"Deleting server {server['attributes']['name']} due to suspension for more than 5 days.")
-
-                    delete_server(server['attributes']['id'])
+            
+            delete_server(server['attributes']['id'])
+            webhook_log("Server deleted due to user suspension")
+        
         product = convert_to_product(server)
         if product is None:
             webhook_log(f"```{server}``` no product")
