@@ -289,6 +289,10 @@ def reset_password_confirm(token):
 
                 query = "UPDATE users SET password = %s WHERE email = %s"
                 ptero_id = get_ptero_id(email)
+                if ptero_id is None:
+                    flash('Error: User not found in Pterodactyl panel')
+                    return redirect(url_for('user.login_user'))
+                
                 values = (password_hash.decode(), email)
                 cursor.execute(query, values)
 
