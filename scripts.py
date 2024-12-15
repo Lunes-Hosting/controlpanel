@@ -653,8 +653,8 @@ def check_to_unsuspend():
         user_suspended = check_if_user_suspended(server['attributes']['user'])
         if user_suspended:
             if not server['attributes']['suspended']:
-                suspend_server(server['attributes']['id'])
-                webhook_log("Server suspended due to user suspension")
+                delete_server(server['attributes']['id'])
+                webhook_log("Server deleted due to user suspension")
             else:
                 suspended_at = server['attributes']['updated_at']
                 suspension_duration = datetime.datetime.now() - datetime.datetime.strptime(suspended_at,
