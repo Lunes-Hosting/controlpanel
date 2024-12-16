@@ -4,7 +4,7 @@ from threading import Thread
 from config import TOKEN, URL, PTERODACTYL_URL
 from scripts import use_database, add_credits, HEADERS
 import requests
-import random
+import secrets
 
 bot = discord.Bot()
 
@@ -64,7 +64,7 @@ async def info_command(ctx, email: discord.Option(str, "User's email")):
 
 @bot.slash_command(name="randomnumber", description="Generate a random number between 1 and 1000")
 async def randomnumber_command(ctx):
-    number = random.randint(1, 1000)
+    number = secrets.SystemRandom().randint(1, 1000)
     await ctx.respond(f"🎲 Your random number is: **{number}**", ephemeral=False)
 
 @bot.slash_command(name="trigger", description="Show total servers and users")
