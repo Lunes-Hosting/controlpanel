@@ -66,15 +66,14 @@ def rate_limit_key():
     return session.get('random_id')
 
 # Configure rate limiting
-limiter = Limiter(rate_limit_key, app=app, default_limits=["200 per day", "50 per hour"])
+limiter = Limiter(rate_limit_key, app=app, default_limits=["200 per day", "5000 per hour"])
 
 # Apply rate limits to blueprints
 for blueprint, limit in [
     (user, "20 per hour"),
     (servers, "15 per hour"),
     (tickets, "15 per hour"),
-    (store, "10 per hour"),
-    (admin, "600 per hour")
+    (store, "10 per hour")
 ]:
     limiter.limit(limit, key_func=rate_limit_key)(blueprint)
     app.register_blueprint(blueprint, 
