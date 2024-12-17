@@ -67,6 +67,11 @@ async def randomnumber_command(ctx):
     number = random.randint(1, 1000)
     await ctx.respond(f"🎲 Your random number is: **{number}**", ephemeral=False)
 
+@bot.slash_command(name="tudou", description="Sends a random gif of tudou")
+async def tudou_command(ctx):
+    number = random.randint(1, 337)
+    await ctx.respond(f"https://raw.githubusercontent.com/deplantis/tudou/main/tudou/{number}.gif", ephemeral=False)
+
 @bot.slash_command(name="trigger", description="Show total servers and users")
 async def trigger_command(ctx):
     await ctx.defer(ephemeral=True)
