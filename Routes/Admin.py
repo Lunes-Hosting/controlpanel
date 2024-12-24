@@ -44,6 +44,7 @@ from flask import Blueprint, render_template, request, session, redirect, url_fo
 import scripts
 from scripts import after_request
 from products import products
+from config import PTERODACTYL_URL
 import time
 import threading
 import sys
