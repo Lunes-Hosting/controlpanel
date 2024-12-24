@@ -143,7 +143,7 @@ def sync_users_script():
         print(data, "ptero user data")
 
 
-def get_nodes() -> list[dict]:
+def get_nodes(all: bool = False) -> list[dict]:
     """
     Returns cached list of available nodes from Pterodactyl.
     
@@ -154,8 +154,10 @@ def get_nodes() -> list[dict]:
                 "name": str
             }
     """
-    
-    return cache.available_nodes
+    if all:
+        return cache.all_nodes
+    else:
+        return cache.available_nodes
 
 
 def get_eggs() -> list[dict]:
@@ -1092,3 +1094,15 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
     except Exception as e:
         print(f"Server transfer error: {e}")
         return 500
+
+def get_all_servers() -> list[dict]:
+    """
+    Returns list of all servers from Pterodactyl API with ?per_page=10000 parameter.
+    
+    Returns:
+        list[dict]: List of server information
+    """
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS)
+    if response.status_code == 200:
+        return response.json()['data']
+    return []

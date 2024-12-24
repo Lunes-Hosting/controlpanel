@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin - Nodes</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <style>
+        /* Dark theme styles */
+        html, body {
+            background-color: #121212 !important;
+            color: #e0e0e0;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #121212;
+        }
+
+        .page-header {
+            background-color: #1e1e1e;
+            color: white;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .page-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .card {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table thead {
+            background-color: #2a2a2a;
+        }
+
+        table th, table td {
+            padding: 12px;
+            border-bottom: 1px solid #333;
+            color: #e0e0e0;
+        }
+
+        table tr:nth-child(even) {
+            background-color: #252525;
+        }
+
+        table tr:hover {
+            background-color: #2e2e2e;
+            cursor: pointer;
+        }
+
+        .badge {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .bg-success {
+            background-color: #198754;
+        }
+
+        .bg-danger {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    {% include 'admin/admin_taskbar.html' %}
+    
+    <div class="container">
+        <div class="page-header">
+            <h1>Node Management</h1>
+            <span>Total Nodes: {{ nodes|length }}</span>
+        </div>
+        
+        <div class="card">
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Node ID</th>
+                            <th>Name</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for node in nodes %}
+                        <tr onclick="window.location.href='{{ url_for('admin.node', node_id=node.node_id) }}'">
+                            <td>{{ node.node_id }}</td>
+                            <td>{{ node.name }}</td>
+                            <td>
+                                {% if "full" in node.name.lower() %}
+                                    <span class="badge bg-danger">Full</span>
+                                {% else %}
+                                    <span class="badge bg-success">Available</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

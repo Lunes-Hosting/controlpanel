@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin - Node Details</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <style>
+        /* Dark theme styles */
+        html, body {
+            background-color: #121212 !important;
+            color: #e0e0e0;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #121212;
+        }
+
+        .page-header {
+            background-color: #1e1e1e;
+            color: white;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .page-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .card {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .badge {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+
+        .bg-success {
+            background-color: #198754;
+        }
+
+        .bg-danger {
+            background-color: #dc3545;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        .btn:hover {
+            background-color: #0b5ed7;
+        }
+
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 16px 12px;
+        }
+    </style>
+</head>
+<body>
+    {% include 'admin/admin_taskbar.html' %}
+    
+    <div class="container">
+        <div class="page-header">
+            <h1>
+                Node Details: {{ node.name }}
+                {% if "full" in node.name.lower() %}
+                    <span class="badge bg-danger">Full</span>
+                {% else %}
+                    <span class="badge bg-success">Available</span>
+                {% endif %}
+            </h1>
+            <a href="{{ url_for('admin.nodes') }}" style="color: #e0e0e0; text-decoration: none;">Back to Nodes</a>
+        </div>
+        
+        <div class="card">
+            <h2>Node Information</h2>
+            <p><strong>Node ID:</strong> {{ node.node_id }}</p>
+            <p><strong>Name:</strong> {{ node.name }}</p>
+        </div>
+
+        <div class="card">
+            <h2>Transfer Servers</h2>
+            <form action="{{ url_for('admin.transfer_servers', node_id=node.node_id) }}" method="POST">
+                <div class="form-group">
+                    <label for="num_servers">Number of Servers to Transfer:</label>
+                    <input type="number" id="num_servers" name="num_servers" class="form-control" min="1" max="{{ servers|length }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="target_node">Transfer to Node:</label>
+                    <select id="target_node" name="target_node" class="form-control" required>
+                        <option value="">Select Target Node</option>
+                        {% for n in all_nodes %}
+                            {% if n.node_id != node.node_id %}
+                                <option value="{{ n.node_id }}">{{ n.name }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn">Transfer Servers</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Servers on Node</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Server ID</th>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Memory</th>
+                            <th>Disk</th>
+                            <th>CPU</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for server in servers %}
+                        <tr onclick="window.location.href='{{ url_for('admin.admin_server', server_id=server.attributes.id) }}'">
+                            <td>{{ server.attributes.id }}</td>
+                            <td>{{ server.attributes.name }}</td>
+                            <td>
+                                {% if server.attributes.suspended %}
+                                    <span class="badge bg-danger">Suspended</span>
+                                {% else %}
+                                    <span class="badge bg-success">Active</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ server.attributes.limits.memory }} MB</td>
+                            <td>{{ server.attributes.limits.disk }} MB</td>
+                            <td>{{ server.attributes.limits.cpu }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

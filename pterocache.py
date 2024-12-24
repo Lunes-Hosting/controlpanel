@@ -13,6 +13,7 @@ class PteroCache():
                   'Content-Type': 'application/json'}
         self.egg_cache = None
         self.available_nodes = None
+        self.all_nodes = None
         self.update_all()
         
 
@@ -47,8 +48,11 @@ class PteroCache():
         
     def update_node_cache(self):
         available_nodes = []
+        all_nodes = []
         nodes = requests.get(f"{PTERODACTYL_URL}api/application/nodes", headers=self.HEADERS).json()
         for node in nodes['data']:
+            all_nodes.append({"node_id": node['attributes']['id'], "name": node['attributes']['name']})
             if "full" not in node['attributes']['name'].lower():
                 available_nodes.append({"node_id": node['attributes']['id'], "name": node['attributes']['name']})
         self.available_nodes = available_nodes
+        self.all_nodes = all_nodes
