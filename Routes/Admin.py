@@ -43,6 +43,7 @@ All routes are protected by is_admin() verification
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 import scripts
 from scripts import after_request
+from products import products
 import time
 import threading
 import sys
