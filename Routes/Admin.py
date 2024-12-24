@@ -41,6 +41,7 @@ All routes are protected by is_admin() verification
 """
 
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
+from ..config import PTERODACTYL_URL
 import scripts
 from scripts import after_request
 from products import products
@@ -49,6 +50,7 @@ import threading
 import sys
 import json
 import requests
+
 sys.path.append("..")
 
 # Create a blueprint for the user routes

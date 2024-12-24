@@ -53,7 +53,7 @@ from threadedreturn import ThreadWithReturnValue
 sys.path.append("..")
 from scripts import *
 from products import products
-
+import random
 servers = Blueprint('servers', __name__)
 
 def get_user_verification_status(email):
