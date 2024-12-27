@@ -5,6 +5,7 @@ from config import TOKEN, URL, PTERODACTYL_URL
 from scripts import use_database, add_credits, HEADERS
 import requests
 import secrets
+import random
 
 bot = discord.Bot()
 
