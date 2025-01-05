@@ -112,33 +112,37 @@ def sync_users_script():
     
     Process:
     1. Fetches all users from Pterodactyl API
-    2. For each user not in local DB:
+    2. Gets all existing users from local DB in one query
+    3. For each Pterodactyl user not in local DB:
         - Gets their password from panel
         - Creates new user ID
         - Inserts into local DB with default 25 credits
-    
-    Returns:
-        None
     """
     try:
+        # Get all Pterodactyl users
         data = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
+        
+        # Get all existing users from panel DB to prevent duplicates
+        existing_users = use_database("SELECT email FROM users", all=True, database="panel")
+        existing_emails = {user[0].lower() for user in existing_users} if existing_users else set()
+        
+        i = 0
         for user in data['data']:
+            i += 1
+            print(i)
             
-            query = f"SELECT * FROM users WHERE email = %s"
-            user_controlpanel = use_database(query, (user['attributes']['email'],))
-
-            if user_controlpanel is None:
-                user_id = use_database("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
-                password = use_database(f"select password from users where email = %s", (user['attributes']['email'],),
-                                        "panel")
-                query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, "
-                        "%s, %s)")
-
-                values = (
-                    user['attributes']['username'], user['attributes']['email'], password[0], user_id,
-                    user['attributes']['id'],
-                    25)
-                use_database(query, values)
+            user_email = user['attributes']['email'].lower()  # normalize email to lowercase
+            if user_email not in existing_emails:
+                print(f"Adding new user: {user_email}")
+                try:
+                    user_id = use_database("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
+                    password = use_database(f"select password from users where email = %s", (user_email,), "panel")
+                    if password:
+                        query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, %s, %s)")
+                        values = (user['attributes']['username'], user_email, password[0], user_id, user['attributes']['id'], 25)
+                        use_database(query, values)
+                except Exception as e:
+                    print(f"Error adding user {user_email}: {str(e)}")
     except KeyError:
         print(data, "ptero user data")
 

@@ -96,7 +96,7 @@ def check_suspensions():
     check_to_unsuspend()
     print("Suspension check complete")
 
-@scheduler.task('interval', id='sync_users', seconds=3600, misfire_grace_time=900)
+@scheduler.task('interval', id='sync_users', seconds=500, misfire_grace_time=900)
 def sync_user_data():
     """Synchronize user data with Pterodactyl panel."""
     print("Syncing users...")
