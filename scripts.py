@@ -76,7 +76,6 @@ import threading
 import sys
 from pterocache import *
 import bcrypt
-import random
 import mysql.connector
 # Establish a connection to the database
 import mysql.connector
@@ -87,6 +86,7 @@ from werkzeug.datastructures.headers import EnvironHeaders
 from config import *
 from products import products
 import secrets
+import random
 from flask_mail import Mail, Message
 
 
@@ -974,7 +974,7 @@ def generate_verification_token():
     Returns:
         str: Verification token
     """
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
+    return ''.join(secrets.SystemRandom().choices(string.ascii_letters + string.digits, k=20))
 
 
 # Function to send a verification email
@@ -1025,7 +1025,7 @@ def generate_reset_token():
     Returns:
         str: Reset token
     """
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
+    return ''.join(secrets.SystemRandom().choices(string.ascii_letters + string.digits, k=20))
 
 
 def get_node_allocation(node_id: int) -> int:
@@ -1043,7 +1043,7 @@ def get_node_allocation(node_id: int) -> int:
     response = requests.get(url, headers=HEADERS).json()
     
     allocs = response['data']
-    random.shuffle(allocs)
+    secrets.SystemRandom().shuffle(allocs)
     for allocation in allocs:
         if not allocation['attributes']['assigned']:
             return allocation['attributes']['id']

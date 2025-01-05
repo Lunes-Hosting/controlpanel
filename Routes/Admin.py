@@ -44,10 +44,12 @@ from flask import Blueprint, render_template, request, session, redirect, url_fo
 import scripts
 from scripts import after_request
 from products import products
+from config import PTERODACTYL_URL
 import time
 import threading
 import sys
 import json
+import requests
 
 sys.path.append("..")
 
@@ -327,7 +329,7 @@ def admin_server(server_id):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     if not scripts.is_admin(session['email']):
-        return "YOUR NOT ADMIN BRO"
+        return "YOU'RE NOT ADMIN BRO"
     after_request(session=session, request=request.environ, require_login=True)
 
     if 'pterodactyl_id' in session:
