@@ -126,10 +126,8 @@ def sync_users_script():
         existing_users = use_database("SELECT email FROM users", all=True, database="panel")
         existing_emails = {user[0].lower() for user in existing_users} if existing_users else set()
         
-        i = 0
         for user in data['data']:
-            i += 1
-            print(i)
+
             
             user_email = user['attributes']['email'].lower()  # normalize email to lowercase
             if user_email not in existing_emails:
