@@ -82,6 +82,7 @@ import mysql.connector
 import requests
 from flask import url_for, redirect
 from werkzeug.datastructures.headers import EnvironHeaders
+from managers.database_manager import DatabaseManager
 
 from config import *
 from products import products
@@ -123,22 +124,21 @@ def sync_users_script():
         data = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
         
         # Get all existing users from panel DB to prevent duplicates
-        existing_users = use_database("SELECT email FROM users", all=True, database="panel")
+        db = DatabaseManager()
+        existing_users = db.execute_query("SELECT email FROM users", database="panel", fetch_all=True)
         existing_emails = {user[0].lower() for user in existing_users} if existing_users else set()
         
         for user in data['data']:
-
-            
             user_email = user['attributes']['email'].lower()  # normalize email to lowercase
             if user_email not in existing_emails:
                 print(f"Adding new user: {user_email}")
                 try:
-                    user_id = use_database("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
-                    password = use_database(f"select password from users where email = %s", (user_email,), "panel")
+                    user_id = db.execute_query("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
+                    password = db.execute_query("select password from users where email = %s", (user_email,), database="panel")
                     if password:
                         query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, %s, %s)")
                         values = (user['attributes']['username'], user_email, password[0], user_id, user['attributes']['id'], 25)
-                        use_database(query, values)
+                        db.execute_query(query, values)
                 except Exception as e:
                     print(f"Error adding user {user_email}: {str(e)}")
     except KeyError:
@@ -291,8 +291,8 @@ def get_ptero_id(email: str) -> tuple[int] | None:
         tuple[int]: Tuple containing Pterodactyl ID at index 0
         None: If user not found
     """
-    query = f"SELECT pterodactyl_id FROM users WHERE email = %s"
-    res = use_database(query, (email,))
+    db = DatabaseManager()
+    res = db.execute_query("SELECT pterodactyl_id FROM users WHERE email = %s", (email,))
     if res is None:
         return None
     return res
@@ -308,8 +308,8 @@ def get_id(email: str) -> tuple[int] | None:
         tuple[int]: Tuple containing user ID at index 0
         None: If user not found
     """
-    query = f"SELECT id FROM users WHERE email = %s"
-    res = use_database(query, (email,))
+    db = DatabaseManager()
+    res = db.execute_query("SELECT id FROM users WHERE email = %s", (email,))
     if res is None:
         return None
     return res
@@ -325,8 +325,8 @@ def get_name(user_id: int) -> tuple[str] | None:
         tuple[str]: Tuple containing username at index 0
         None: If user not found
     """
-    query = f"SELECT name FROM users WHERE id = %s"
-    res = use_database(query, (user_id,))
+    db = DatabaseManager()
+    res = db.execute_query("SELECT name FROM users WHERE id = %s", (user_id,))
     if res is None:
         return None
     return res
@@ -349,8 +349,8 @@ def login(email: str, password: str):
         None: If login fails
     """
     webhook_log(f"Login attempt with email {email}")
-    query = f"SELECT password FROM users WHERE email = %s"
-    hashed_password = use_database(query, (email,))
+    db = DatabaseManager()
+    hashed_password = db.execute_query("SELECT password FROM users WHERE email = %s", (email,))
 
     if hashed_password is not None:
         # Verify the password
@@ -358,9 +358,7 @@ def login(email: str, password: str):
 
         if is_matched:
             # Retrieve all information of the user
-            all_info = f"SELECT * FROM users WHERE email = %s"
-            info = use_database(all_info, (email,))
-
+            info = db.execute_query("SELECT * FROM users WHERE email = %s", (email,))
             return info
 
     return None
@@ -396,11 +394,12 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
         if text in email:
             webhook_log("Failed to register do to email blacklist <@491266830674034699>")
             return "Failed to register! contact panel@lunes.host if this is a mistake"
+            
     salt = bcrypt.gensalt(rounds=10)
     password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
 
-    query = f"SELECT * FROM users WHERE ip = %s"
-    results = use_database(query, (ip,))
+    db = DatabaseManager()
+    results = db.execute_query("SELECT * FROM users WHERE ip = %s", (ip,))
 
     if results is not None:
         return "Ip is already registered"
@@ -420,13 +419,10 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
         error = data['errors'][0]['detail']
         return error
     except KeyError:
-        user_id = use_database("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
-        query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, ip, credits) VALUES (%s, %s, %s, %s, "
-                 "%s, %s, %s)")
-
+        user_id = db.execute_query("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
+        query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, ip, credits) VALUES (%s, %s, %s, %s, %s, %s, %s)")
         values = (name, email, password_hash, user_id, data['attributes']['id'], ip, 25)
-        use_database(query, values)
-
+        db.execute_query(query, values)
         return response.json()
 
 
@@ -454,7 +450,8 @@ def delete_user(user_id: int) -> int:
     query = "DELETE FROM users WHERE id = %s"
     values = (user_id,)
 
-    use_database(query, values)
+    db = DatabaseManager()
+    db.execute_query(query, values)
 
     response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS)
     response.raise_for_status()
@@ -480,16 +477,14 @@ def add_credits(email: str, amount: int, set_client: bool = True):
     Returns:
         None
     """
-    # Delete the user from the database
-    query = f"SELECT credits FROM users WHERE email = %s"
-
-    current_credits = use_database(query, (email,))
+    db = DatabaseManager()
+    current_credits = db.execute_query("SELECT credits FROM users WHERE email = %s", (email,))
     query = f"UPDATE users SET credits = {int(current_credits[0]) + amount} WHERE email = %s"
-
-    use_database(query, (email,))
+    db.execute_query(query, (email,))
+    
     if set_client:
         query = f"UPDATE users SET role = 'client' WHERE email = %s"
-        use_database(query, (email,))
+        db.execute_query(query, (email,))
 
 
 def remove_credits(email: str, amount: float) -> str | None:
@@ -512,15 +507,13 @@ def remove_credits(email: str, amount: float) -> str | None:
         "SUSPEND": If user doesn't have enough credits
         None: If credits successfully removed
     """
-    query = f"SELECT credits FROM users WHERE email = %s"
-
-    current_credits = use_database(query, (email,))
+    db = DatabaseManager()
+    current_credits = db.execute_query("SELECT credits FROM users WHERE email = %s", (email,))
     new_credits = float(current_credits[0]) - amount
     if new_credits <= 0:
         return "SUSPEND"
     query = f"UPDATE users SET credits = {new_credits} WHERE email = %s"
-
-    use_database(query, (email,))
+    db.execute_query(query, (email,))
     return None
 
 
@@ -584,7 +577,8 @@ def use_credits():
 
             query = f"SELECT email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
 
-            email = use_database(query)
+            db = DatabaseManager()
+            email = db.execute_query(query)
 
             if email is not None:
                 if not server['attributes']['suspended']:
@@ -676,10 +670,12 @@ def check_to_unsuspend():
         if product is not None and product['name'] != "Free Tier":
 
             query = f"SELECT email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
-            email = use_database(query)
+
+            db = DatabaseManager()
+            email = db.execute_query(query)
             
             query = f"SELECT credits FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
-            current_credits = use_database(query)
+            current_credits = db.execute_query(query)
 
             if email is None or current_credits is None:
                 pass
@@ -710,7 +706,8 @@ def check_to_unsuspend():
         elif product is not None:
             if product['name'] == "Free Tier":
                 query = f"SELECT last_seen, email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
-                last_seen, email = use_database(query)
+                db = DatabaseManager()
+                last_seen, email = db.execute_query(query)
                 
                 if last_seen is not None:
                     if datetime.datetime.now() - last_seen > datetime.timedelta(days=30):
@@ -737,7 +734,8 @@ def get_credits(email: str) -> int:
         int: Credits amount
     """
     query = f"SELECT credits FROM users WHERE email = %s"
-    current_credits = use_database(query, (email,))
+    db = DatabaseManager()
+    current_credits = db.execute_query(query, (email,))
 
     return current_credits[0]
 
@@ -753,7 +751,8 @@ def check_if_user_suspended(pterodactyl_id: str) -> bool | None:
         bool: Whether user is suspended
         None: If user not found
     """
-    suspended = use_database(f"SELECT suspended FROM users WHERE pterodactyl_id = %s", (pterodactyl_id,))
+    db = DatabaseManager()
+    suspended = db.execute_query(f"SELECT suspended FROM users WHERE pterodactyl_id = %s", (pterodactyl_id,))
     to_bool = {0: False, 1: True}
     if suspended is None:
         return True
@@ -776,7 +775,8 @@ def update_ip(email: str, ip: EnvironHeaders):
     if real_ip != "localhost":
         query = f"UPDATE users SET ip = '{real_ip}' where email = %s"
 
-        use_database(query, (email,))
+        db = DatabaseManager()
+        db.execute_query(query, (email,))
 
 
 def update_last_seen(email: str, everyone: bool = False):
@@ -793,10 +793,12 @@ def update_last_seen(email: str, everyone: bool = False):
     """
     if everyone is True:
         query = f"UPDATE users SET last_seen = '{datetime.datetime.now()}'"
-        use_database(query)
+        db = DatabaseManager()
+        db.execute_query(query)
     else:
         query = f"UPDATE users SET last_seen = '{datetime.datetime.now()}' WHERE email = %s"
-    use_database(query, (email,))
+    db = DatabaseManager()
+    db.execute_query(query, (email,))
 
 
 def get_last_seen(email: str) -> datetime.datetime:
@@ -810,7 +812,8 @@ def get_last_seen(email: str) -> datetime.datetime:
         datetime.datetime: Last seen time
     """
     query = f"SELECT last_seen FROM users WHERE email = %s"
-    last_seen = use_database(query, (email,))
+    db = DatabaseManager()
+    last_seen = db.execute_query(query, (email,))
     return last_seen[0]
 
 
@@ -859,7 +862,8 @@ def is_admin(email: str) -> bool:
         bool: Whether user is an admin
     """
     query = "SELECT role FROM users WHERE email = %s"
-    role = use_database(query, (email,))
+    db = DatabaseManager()
+    role = db.execute_query(query, (email,))
     return role[0] == "admin"
 
 
@@ -873,61 +877,10 @@ def get_db_connection(database=DATABASE):
     Returns:
         tuple: (connection, cursor)
     """
-    cnx = mysql.connector.connect(
-        host=HOST,
-        user=USER,
-        password=PASSWORD,
-        database=database,
-        charset='utf8mb4',
-        collation='utf8mb4_unicode_ci'
-    )
-    cursor = cnx.cursor(buffered=True)
-    return cnx, cursor
+    # This function is deprecated, use DatabaseManager instead
+    raise DeprecationWarning("This function is deprecated. Use DatabaseManager instead.")
 
-def use_database(query: str, values: tuple = None, database=DATABASE, all: bool = False):
-    """
-    Runs database query, if "SELECT" is in the query it returns unmodified result otherwise returns None
-    
-    Args:
-        query: SQL query
-        values: Query values
-        database: Database name
-        all: Whether to return all results
-    
-    Returns:
-        tuple: Query result
-        None: If query is not SELECT
-        list: All query results
-    """
-    cnx, cursor = get_db_connection(database)
-    try:
-        # Ensure values is a tuple, even if None
-        if values is None:
-            values = ()
-        
-        # Replace '?' placeholders with '%s' for MySQL
-        query = query.replace('?', '%s')
-        
-        # Execute query with parameters
-        cursor.execute(query, values)
-            
-        if "SELECT" in query.upper():
-            if all:
-                result = cursor.fetchall()
-            else:
-                result = cursor.fetchone()
-            cnx.close()
-            return result
-        else:
-            cnx.commit()
-            cnx.close()
-            return None
-    except Exception as e:
-        print(f"Database error: {e}")
-        print(f"Query: {query}")
-        print(f"Values: {values}")
-        cnx.close()
-        return None
+
 
 def webhook_log(message: str):
     """
@@ -1037,16 +990,18 @@ def get_node_allocation(node_id: int) -> int | None:
         int: Random available allocation ID
         None: If no free allocation found
     """
-    
-    url = f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=10000"
-    response = requests.get(url, headers=HEADERS).json()
-    
-    allocs = response['data']
-    secrets.SystemRandom().shuffle(allocs)
-    for allocation in allocs:
-        if not allocation['attributes']['assigned']:
-            return allocation['attributes']['id']
-    return None
+    response = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations", headers=HEADERS)
+    data = response.json()
+    try:
+        allocations = []
+        for allocation in data['data']:
+            if allocation['attributes']['assigned'] is False:
+                allocations.append(allocation['attributes']['id'])
+        if len(allocations) == 0:
+            return None
+        return random.choice(allocations)
+    except KeyError:
+        return None
 
 def transfer_server(server_id: int, target_node_id: int) -> int:
     """
@@ -1061,19 +1016,20 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
     """
     # Get server details
     server_info = get_server_information(server_id)
-    alloc = get_node_allocation(target_node_id)
-    
-    # If no free allocation found, return 400
-    if alloc is None:
-        print("No free allocation found on target node")
-        return 400
-    
-    # Prepare transfer payload
-    transfer_payload = {
-        "node_id": target_node_id,
-        "allocation_id": alloc,
+    if not server_info:
+        return 404
+
+    # Get allocation on target node
+    allocation_id = get_node_allocation(target_node_id)
+    if not allocation_id:
+        return 400  # No free allocation
+
+    # Build transfer request
+    transfer_data = {
+        "allocation": allocation_id,
+        "node": target_node_id
     }
-    print(transfer_payload, 2)
+    print(transfer_data, 2)
     
     # Perform server transfer
     transfer_url = f"{PTERODACTYL_URL}api/application/servers/{server_id}/transfer"
@@ -1082,7 +1038,7 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
         response = requests.post(
             transfer_url, 
             headers=HEADERS, 
-            json=transfer_payload
+            json=transfer_data
         )
         
         # Log the response for debugging
@@ -1111,6 +1067,5 @@ def get_all_servers() -> list[dict]:
         list[dict]: List of server information
     """
     response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS)
-    if response.status_code == 200:
-        return response.json()['data']
-    return []
+    data = response.json()
+    return data['data']

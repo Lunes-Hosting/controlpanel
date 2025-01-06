@@ -45,6 +45,7 @@ import scripts
 from scripts import after_request
 from products import products
 from config import PTERODACTYL_URL
+from managers.database_manager import DatabaseManager
 import time
 import threading
 import sys
@@ -143,40 +144,30 @@ def users():
     
     # Apply search if term exists
     if search_term:
-        base_query += " WHERE (name LIKE ? OR email LIKE ? OR CAST(id AS CHAR) LIKE ?)"
-        count_query += " WHERE (name LIKE ? OR email LIKE ? OR CAST(id AS CHAR) LIKE ?)"
+        base_query += " WHERE (name LIKE %s OR email LIKE %s OR CAST(id AS CHAR) LIKE %s)"
+        count_query += " WHERE (name LIKE %s OR email LIKE %s OR CAST(id AS CHAR) LIKE %s)"
         search_params = [f'%{search_term}%', f'%{search_term}%', f'%{search_term}%']
     
     # Add pagination
-    base_query += " LIMIT ? OFFSET ?"
+    base_query += " LIMIT %s OFFSET %s"
     
     # Prepare final parameters
     if search_term:
         # For count query, use search params
-        count_params = search_params
+        count_params = tuple(search_params)
         # For main query, add pagination params
-        query_params = search_params + [per_page, (page - 1) * per_page]
+        query_params = tuple(search_params + [per_page, (page - 1) * per_page])
     else:
         # No search, just use pagination params
-        count_params = []
-        query_params = [per_page, (page - 1) * per_page]
-    
-    # Debug print
-    print(f"Count Query: {count_query}")
-    print(f"Count Params: {count_params}")
-    print(f"Base Query: {base_query}")
-    print(f"Query Params: {query_params}")
+        count_params = tuple()
+        query_params = (per_page, (page - 1) * per_page)
     
     # Execute count query
-    total_users_result = scripts.use_database(count_query, count_params)
+    total_users_result = DatabaseManager.execute_query(count_query, count_params)
     total_users = total_users_result[0] if total_users_result else 0
     
     # Execute users query
-    users_from_db = scripts.use_database(base_query, query_params, all=True)
-    
-    # Debug print
-    print(f"Total Users: {total_users}")
-    print(f"Users from DB: {users_from_db}")
+    users_from_db = DatabaseManager.execute_query(base_query, query_params, fetch_all=True)
     
     # Process users
     full_users = []
@@ -387,7 +378,10 @@ def admin_tickets_index():
         session['pterodactyl_id'] = ptero_id
 
     user_id = scripts.get_id(session['email'])
-    tickets_list = scripts.use_database("SELECT * FROM tickets WHERE status = 'open'", all=True)
+    tickets_list = DatabaseManager.execute_query(
+        "SELECT * FROM tickets WHERE status = 'open'", 
+        fetch_all=True
+    )
 
     return render_template('admin/tickets.html', tickets=tickets_list)
 
@@ -435,7 +429,7 @@ def admin_user_servers(user_id):
 
     # Get user info
     query = "SELECT name, email FROM users WHERE id = %s"
-    user_info = scripts.use_database(query, (user_id,))
+    user_info = DatabaseManager.execute_query(query, (user_id,))
     if not user_info:
         flash("User not found")
         return redirect(url_for('admin.users'))
@@ -447,7 +441,7 @@ def admin_user_servers(user_id):
 
     # Get user's pterodactyl ID
     query = "SELECT pterodactyl_id FROM users WHERE id = %s"
-    ptero_id = scripts.use_database(query, (user_id,))[0]
+    ptero_id = DatabaseManager.execute_query(query, (user_id,))[0]
 
     # Get user's servers
     servers = scripts.list_servers(ptero_id)
@@ -556,7 +550,7 @@ def admin_delete_user(user_id):
     try:
         # Get user info
         query = "SELECT pterodactyl_id, email FROM users WHERE id = %s"
-        user_info = scripts.use_database(query, (user_id,))
+        user_info = DatabaseManager.execute_query(query, (user_id,))
         if not user_info:
             flash("User not found")
             return redirect(url_for('admin.users'))
@@ -573,11 +567,11 @@ def admin_delete_user(user_id):
         scripts.delete_user(ptero_id)
         
         # Delete user's tickets and comments
-        scripts.use_database("DELETE FROM ticket_comments WHERE user_id = %s", (user_id,))
-        scripts.use_database("DELETE FROM tickets WHERE user_id = %s", (user_id,))
+        DatabaseManager.execute_query("DELETE FROM ticket_comments WHERE user_id = %s", (user_id,))
+        DatabaseManager.execute_query("DELETE FROM tickets WHERE user_id = %s", (user_id,))
         
         # Finally delete user from database
-        scripts.use_database("DELETE FROM users WHERE id = %s", (user_id,))
+        DatabaseManager.execute_query("DELETE FROM users WHERE id = %s", (user_id,))
         
         scripts.webhook_log(f"Admin `{session['email']}` deleted user `{user_email}`")
         flash("User and all associated data deleted successfully")
@@ -628,7 +622,7 @@ def admin_toggle_suspension(user_id):
     try:
         # Get current suspension status
         query = "SELECT suspended, email FROM users WHERE id = %s"
-        result = scripts.use_database(query, (user_id,))
+        result = DatabaseManager.execute_query(query, (user_id,))
         if not result:
             flash("User not found")
             return redirect(url_for('admin.users'))
@@ -637,7 +631,7 @@ def admin_toggle_suspension(user_id):
         new_status = 0 if current_status == 1 else 1
         
         # Update suspension status
-        scripts.use_database("UPDATE users SET suspended = %s WHERE id = %s", (new_status, user_id))
+        DatabaseManager.execute_query("UPDATE users SET suspended = %s WHERE id = %s", (new_status, user_id))
         
         action = "suspended" if new_status == 1 else "unsuspended"
         scripts.webhook_log(f"Admin `{session['email']}` {action} user `{user_email}`")

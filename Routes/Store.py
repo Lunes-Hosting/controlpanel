@@ -37,7 +37,6 @@ Session Requirements:
 Configuration:
 ------------
 - STRIPE_SECRET_KEY: API authentication
-- STRIPE_WEBHOOK_SECRET: Webhook verification
 - SITE_URL: Return URL base
 
 Payment Flow:
