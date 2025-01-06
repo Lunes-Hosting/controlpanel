@@ -717,7 +717,8 @@ def transfer_server_submit(server_id):
     if status_code == 202:
         flash('Server transfer initiated successfully.')
     elif status_code == 400:
-        flash('Unable to process the transfer. The target node may not have available resources.')
+        flash('Selected node is full. Please choose a different node.')
+        return redirect(url_for('servers.transfer_server_route', server_id=server_id))
     else:
         flash('An unexpected error occurred during server transfer.')
     

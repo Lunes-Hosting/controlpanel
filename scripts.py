@@ -1026,7 +1026,7 @@ def generate_reset_token():
     return ''.join(secrets.SystemRandom().choices(string.ascii_letters + string.digits, k=20))
 
 
-def get_node_allocation(node_id: int) -> int:
+def get_node_allocation(node_id: int) -> int | None:
     """
     Gets random allocation for a specific node.
     
@@ -1035,6 +1035,7 @@ def get_node_allocation(node_id: int) -> int:
     
     Returns:
         int: Random available allocation ID
+        None: If no free allocation found
     """
     
     url = f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=10000"
@@ -1045,6 +1046,7 @@ def get_node_allocation(node_id: int) -> int:
     for allocation in allocs:
         if not allocation['attributes']['assigned']:
             return allocation['attributes']['id']
+    return None
 
 def transfer_server(server_id: int, target_node_id: int) -> int:
     """
@@ -1060,7 +1062,11 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
     # Get server details
     server_info = get_server_information(server_id)
     alloc = get_node_allocation(target_node_id)
-    print(alloc, 1)
+    
+    # If no free allocation found, return 400
+    if alloc is None:
+        print("No free allocation found on target node")
+        return 400
     
     # Prepare transfer payload
     transfer_payload = {
