@@ -420,9 +420,16 @@ def create_server_submit():
     
     allocs = resp['data']
     random.shuffle(allocs)
+    alloac_id = None
     for allocation in allocs:
         if not allocation['attributes']['assigned']:
             alloac_id = allocation['attributes']['id']
+            break
+            
+    if alloac_id is None:
+        flash("Selected node is full. Please choose a different node.")
+        return redirect(url_for('servers.create_server'))
+            
     ptero_id = get_ptero_id(session['email'])[0]
     servers_list = list_servers(ptero_id)
     products_local = list(products)
