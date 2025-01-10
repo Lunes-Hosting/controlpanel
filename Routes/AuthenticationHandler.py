@@ -46,13 +46,14 @@ import json
 import datetime
 import requests
 import bcrypt
-import mysql.connector
 
 from flask_limiter import Limiter
 sys.path.append("..")
 from pterocache import *
 from scripts import *
 from cacheext import cache
+from managers.database_manager import DatabaseManager
+from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY
 
 # Create a blueprint for the user routes
 user = Blueprint('user', __name__)
@@ -160,23 +161,20 @@ def index():
     server_count = len(servers)
     monthly_usage = sum(convert_to_product(server)['price'] for server in servers)
 
-    cnx = mysql.connector.connect(
-        host=HOST,
-        user=USER,
-        password=PASSWORD,
-        database=DATABASE,
-        charset='utf8mb4',
-        collation='utf8mb4_unicode_ci'
+    username = DatabaseManager.execute_query(
+        "SELECT name FROM users WHERE email = %s", 
+        (session['email'],)
     )
 
-    cursor = cnx.cursor(buffered=True)
-    cursor.execute("SELECT name FROM users WHERE email = %s", (session['email'],))
-    username = cursor.fetchone()
-    cursor.close()
-    cnx.close()
+    return render_template(
+        "account.html", 
+        credits=int(current_credits), 
+        server_count=server_count,
+        username=username[0], 
+        email=session['email'], 
+        monthly_usage=monthly_usage
+    )
 
-    return render_template("account.html", credits=int(current_credits), server_count=server_count,
-                           username=username[0], email=session['email'], monthly_usage=monthly_usage)
 
 # Route to request a password reset (via email)
 @user.route('/reset_password', methods=['GET', 'POST'])
@@ -277,25 +275,18 @@ def reset_password_confirm(token):
                 salt = bcrypt.gensalt(rounds=10)
                 password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
 
-                cnx = mysql.connector.connect(
-                    host=HOST,
-                    user=USER,
-                    password=PASSWORD,
-                    database=DATABASE,
-                    charset='utf8mb4',
-                    collation='utf8mb4_unicode_ci'
-                )
-                cursor = cnx.cursor()
-
-                query = "UPDATE users SET password = %s WHERE email = %s"
                 ptero_id = get_ptero_id(email)
                 if ptero_id is None:
                     flash('Error: User not found in Pterodactyl panel')
                     return redirect(url_for('user.login_user'))
                 
-                values = (password_hash.decode(), email)
-                cursor.execute(query, values)
+                # Update password in database
+                DatabaseManager.execute_query(
+                    "UPDATE users SET password = %s WHERE email = %s",
+                    (password_hash.decode(), email)
+                )
 
+                # Update password in panel
                 info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS).json()['attributes']
                 body = {
                     "username": info['username'],
@@ -306,10 +297,6 @@ def reset_password_confirm(token):
                 }
 
                 requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body)
-
-                cnx.commit()
-                cursor.close()
-                cnx.close()
 
                 cache.delete(email)
 
@@ -383,14 +370,19 @@ def register_user():
             return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
         verification_token = generate_verification_token()
-
         cache.set(email, verification_token, timeout=TOKEN_EXPIRATION_TIME)
 
-        email_thread = threading.Thread(target=send_verification_email, args=(email, verification_token, current_app._get_current_object()), daemon=True)
+        email_thread = threading.Thread(
+            target=send_verification_email, 
+            args=(email, verification_token, current_app._get_current_object()), 
+            daemon=True
+        )
         email_thread.start()
 
-        query = "UPDATE users SET email_verified_at = %s WHERE email = %s"
-        use_database(query, (datetime.datetime.now(), email))
+        DatabaseManager.execute_query(
+            "UPDATE users SET email_verified_at = %s WHERE email = %s",
+            (datetime.datetime.now(), email)
+        )
 
         flash('A verification email has been sent. Please check your inbox and spam to verify your email.')
         return redirect(url_for('index'))
@@ -426,7 +418,11 @@ def resend_confirmation_email():
 
     cache.set(session['email'], verification_token, timeout=TOKEN_EXPIRATION_TIME)
 
-    email_thread = threading.Thread(target=send_verification_email, args=(session['email'], verification_token, current_app._get_current_object()), daemon=True)
+    email_thread = threading.Thread(
+        target=send_verification_email, 
+        args=(session['email'], verification_token, current_app._get_current_object()), 
+        daemon=True
+    )
     email_thread.start()
 
     flash("Sent a verification email")
@@ -463,23 +459,12 @@ def verify_email(token):
     stored_token = cache.get(email)
 
     if stored_token and stored_token == token:
-        cnx = mysql.connector.connect(
-            host=HOST,
-            user=USER,
-            password=PASSWORD,
-            database=DATABASE,
-            charset='utf8mb4',
-            collation='utf8mb4_unicode_ci'
+        DatabaseManager.execute_query(
+            "UPDATE users SET email_verified_at = %s WHERE email = %s",
+            (datetime.datetime.now(), email)
         )
-        cursor = cnx.cursor(buffered=True)
-
-        query = "UPDATE users SET email_verified_at = %s WHERE email = %s"
-        cursor.execute(query, (datetime.datetime.now(), email))
-        cnx.commit()
 
         cache.delete(email)
-        cursor.close()
-        cnx.close()
 
         flash('Your email has been successfully verified.')
     else:
@@ -549,8 +534,10 @@ def delete_account():
         
     try:
         # Get user info
-        query = "SELECT id, pterodactyl_id FROM users WHERE email = %s"
-        user_info = use_database(query, (session['email'],))
+        user_info = DatabaseManager.execute_query(
+            "SELECT id, pterodactyl_id FROM users WHERE email = %s", 
+            (session['email'],)
+        )
         if not user_info:
             flash("User not found")
             return redirect(url_for('index'))
@@ -567,12 +554,21 @@ def delete_account():
         delete_user(ptero_id)
         
         # Delete user's tickets and comments
-        use_database("DELETE FROM ticket_comments WHERE user_id = %s", (user_id,))
-        use_database("DELETE FROM tickets WHERE user_id = %s", (user_id,))
+        DatabaseManager.execute_query(
+            "DELETE FROM ticket_comments WHERE user_id = %s", 
+            (user_id,)
+        )
+        DatabaseManager.execute_query(
+            "DELETE FROM tickets WHERE user_id = %s", 
+            (user_id,)
+        )
         
         # Finally delete user from database
-        use_database("DELETE FROM users WHERE id = %s", (user_id,))
-        
+        DatabaseManager.execute_query(
+            "DELETE FROM users WHERE id = %s", 
+            (user_id,)
+        )
+
         webhook_log(f"User `{session['email']}` deleted their account")
         session.clear()
         flash("Your account has been permanently deleted.")

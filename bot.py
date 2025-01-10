@@ -2,9 +2,10 @@ import discord
 from discord.ext import commands
 from threading import Thread
 from config import TOKEN, URL, PTERODACTYL_URL
-from scripts import use_database, add_credits, HEADERS
 import requests
 import secrets
+import random
+from managers.database_manager import DatabaseManager
 
 bot = discord.Bot()
 
@@ -19,17 +20,29 @@ async def add_credits_command(ctx, email: discord.Option(str, "User's email"), a
     if not ctx.author.guild_permissions.administrator:
         await ctx.respond("You do not have permission to use this command.", ephemeral=False)
         return
+    
     try:
-        
-        query = "SELECT credits FROM users WHERE email = %s"
-        current_credits = use_database(query, (email,))
+        # Get current credits
+        current_credits = DatabaseManager.execute_query(
+            "SELECT credits FROM users WHERE email = %s",
+            (email,)
+        )
         
         if not current_credits:
             await ctx.respond(f"Error: User with email {email} not found", ephemeral=False)
             return
         
-        add_credits(email, amount, set_client=False)
-        new_credits = use_database(query, (email,))
+        # Update credits
+        DatabaseManager.execute_query(
+            "UPDATE users SET credits = credits + %s WHERE email = %s",
+            (amount, email)
+        )
+        
+        # Get new balance
+        new_credits = DatabaseManager.execute_query(
+            "SELECT credits FROM users WHERE email = %s",
+            (email,)
+        )
         
         message = (f"{'Added' if amount > 0 else 'Removed'} {abs(amount)} credits to/from {email}.\n"
                    f"Old balance: {current_credits[0]} | New balance: {new_credits[0]}")
@@ -43,9 +56,12 @@ async def info_command(ctx, email: discord.Option(str, "User's email")):
     if not ctx.author.guild_permissions.administrator:
         await ctx.respond("You do not have permission to use this command.", ephemeral=True)
         return
+    
     try:
-        query = "SELECT credits, role, pterodactyl_id, suspended FROM users WHERE email = %s"
-        user_info = use_database(query, (email,))
+        user_info = DatabaseManager.execute_query(
+            "SELECT credits, role, pterodactyl_id, suspended FROM users WHERE email = %s",
+            (email,)
+        )
         
         if not user_info:
             await ctx.respond(f"Error: User with email {email} not found", ephemeral=True)
@@ -81,10 +97,15 @@ async def trigger_command(ctx):
 
     try:
         # Get total users from database
-        total_users = use_database("SELECT COUNT(*) FROM users")[0]
+        total_users = DatabaseManager.execute_query("SELECT COUNT(*) FROM users")[0]
         
         # Get total servers from Pterodactyl
-        resp = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS)
+        headers = {
+            'Authorization': f'Bearer {TOKEN}',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        }
+        resp = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=headers)
         total_servers = len(resp.json()['data'])
         
         # Create embed response
@@ -104,4 +125,4 @@ async def trigger_command(ctx):
         await ctx.respond(f"Error fetching statistics: {str(e)}", ephemeral=True)
 
 async def run_bot():
-    await bot.start(TOKEN)  # Replace with your bot token
+    await bot.start(TOKEN)
