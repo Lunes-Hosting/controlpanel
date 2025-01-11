@@ -37,7 +37,7 @@
                 <select id="plan" name="plan" class="plan" size="5" required>
                     {% for product in products %}
                         <option class="plan-option" value="{{ product['id'] }}">
-                            {{ product['name'] }}: Memory {{ product['limits']['memory'] }}GB, Storage {{ product['limits']['disk'] }}MB, CPU {{ product['limits']['cpu'] }}%
+                            {{ product['name'] }}: Memory {{ product['limits']['memory'] }}MB, Storage {{ product['limits']['disk'] }}GB, CPU {{ product['limits']['cpu'] }}%
                         </option>
                     {% endfor %}
                 </select>
