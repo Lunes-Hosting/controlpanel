@@ -155,6 +155,7 @@ def sync_users_script():
             new_password = secrets.token_hex(32)
             hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt(rounds=14))
             db.execute_query("UPDATE users SET password = %s WHERE email = %s", (hashed_password, email))
+            update_last_seen(email)
             
 
 
