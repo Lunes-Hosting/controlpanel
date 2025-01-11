@@ -119,12 +119,12 @@ def sync_users_script():
         - Creates new user ID
         - Inserts into local DB with default 25 credits
     """
+    db = DatabaseManager()
     try:
         # Get all Pterodactyl users
         data = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
         
         # Get all existing users from panel DB to prevent duplicates
-        db = DatabaseManager()
         existing_users = db.execute_query("SELECT email FROM users", database="panel", fetch_all=True)
         existing_emails = {user[0].lower() for user in existing_users} if existing_users else set()
         
@@ -143,6 +143,19 @@ def sync_users_script():
                     print(f"Error adding user {user_email}: {str(e)}")
     except KeyError:
         print(data, "ptero user data")
+        
+        
+    # reset old users passwords
+    query = f"SELECT last_seen, email FROM users"
+    last_seen, email = db.execute_query(query, fetch_all=True)
+    
+    if last_seen is not None:
+        if datetime.datetime.now() - last_seen > datetime.timedelta(days=180):
+            webhook_log(f"Resetting password for {email}")
+            new_password = secrets.token_hex(32)
+            hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt(rounds=14))
+            db.execute_query("UPDATE users SET password = %s WHERE email = %s", (hashed_password, email))
+            
 
 
 def get_nodes(all: bool = False) -> list[dict]:
@@ -395,7 +408,7 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
             webhook_log("Failed to register do to email blacklist <@491266830674034699>")
             return "Failed to register! contact panel@lunes.host if this is a mistake"
             
-    salt = bcrypt.gensalt(rounds=10)
+    salt = bcrypt.gensalt(rounds=14)
     password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
 
     db = DatabaseManager()

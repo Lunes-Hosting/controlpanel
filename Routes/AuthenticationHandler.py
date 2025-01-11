@@ -272,7 +272,7 @@ def reset_password_confirm(token):
 
         if reset_token and reset_token == tokendone:
             if password == confirm_password:
-                salt = bcrypt.gensalt(rounds=10)
+                salt = bcrypt.gensalt(rounds=14)
                 password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
 
                 ptero_id = get_ptero_id(email)
