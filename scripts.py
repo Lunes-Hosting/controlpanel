@@ -83,7 +83,7 @@ import requests
 from flask import url_for, redirect
 from werkzeug.datastructures.headers import EnvironHeaders
 from managers.database_manager import DatabaseManager
-
+from threadedreturn import ThreadWithReturnValue
 from config import *
 from products import products
 import secrets
@@ -119,12 +119,12 @@ def sync_users_script():
         - Creates new user ID
         - Inserts into local DB with default 25 credits
     """
+    db = DatabaseManager()
     try:
         # Get all Pterodactyl users
         data = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
         
         # Get all existing users from panel DB to prevent duplicates
-        db = DatabaseManager()
         existing_users = db.execute_query("SELECT email FROM users", database="panel", fetch_all=True)
         existing_emails = {user[0].lower() for user in existing_users} if existing_users else set()
         
@@ -143,6 +143,20 @@ def sync_users_script():
                     print(f"Error adding user {user_email}: {str(e)}")
     except KeyError:
         print(data, "ptero user data")
+        
+        
+    # reset old users passwords
+    query = f"SELECT last_seen, email FROM users"
+    result = db.execute_query(query, fetch_all=True)
+    for last_seen, email in result:
+        if last_seen is not None:
+            if datetime.datetime.now() - last_seen > datetime.timedelta(days=180):
+                webhook_log(f"Resetting password for {email}")
+                new_password = secrets.token_hex(32)
+                hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt(rounds=14))
+                db.execute_query("UPDATE users SET password = %s WHERE email = %s", (hashed_password, email))
+                update_last_seen(email)
+            
 
 
 def get_nodes(all: bool = False) -> list[dict]:
@@ -177,7 +191,7 @@ def get_eggs() -> list[dict]:
     """
     return cache.egg_cache
 
-def list_servers(pterodactyl_id: int) -> list[dict]:
+def list_servers(pterodactyl_id: int=None) -> list[dict]:
     """
     Returns list of dictionaries of servers with owner of that pterodactyl id.
     
@@ -231,10 +245,13 @@ def list_servers(pterodactyl_id: int) -> list[dict]:
         response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS)
         users_server = []
         data = response.json()
-        for server in data['data']:
-            if server['attributes']['user'] == pterodactyl_id:
-                users_server.append(server)
-        return users_server
+        if pterodactyl_id is not None:
+            for server in data['data']:
+                if server['attributes']['user'] == pterodactyl_id:
+                    users_server.append(server)
+            return users_server
+        else:
+            return data
     except KeyError as e:
         print(e, pterodactyl_id, data)
         return None
@@ -387,16 +404,17 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
         dict: User object from Pterodactyl API if successful
         str: Error message if registration fails
     """
-    webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered")
-    
-    banned_emails = ["@nowni.com"]
+    salt = bcrypt.gensalt(rounds=14)
+    passthread = ThreadWithReturnValue(target=bcrypt.hashpw, args=(password.encode('utf-8'), salt))
+    passthread.start()
+
+    banned_emails = ["@nowni.com", "@qq.com", "eu.org", "seav.tk", "cock.li"]
     for text in banned_emails:
         if text in email:
             webhook_log("Failed to register do to email blacklist <@491266830674034699>")
             return "Failed to register! contact panel@lunes.host if this is a mistake"
-            
-    salt = bcrypt.gensalt(rounds=10)
-    password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
+    webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered")
+    
 
     db = DatabaseManager()
     results = db.execute_query("SELECT * FROM users WHERE ip = %s", (ip,))
@@ -421,6 +439,7 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
     except KeyError:
         user_id = db.execute_query("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
         query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, ip, credits) VALUES (%s, %s, %s, %s, %s, %s, %s)")
+        password_hash = passthread.join()
         values = (name, email, password_hash, user_id, data['attributes']['id'], ip, 25)
         db.execute_query(query, values)
         return response.json()
@@ -1026,8 +1045,8 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
 
     # Build transfer request
     transfer_data = {
-        "allocation": allocation_id,
-        "node": target_node_id
+        "allocation_id": allocation_id,
+        "node_id": target_node_id
     }
     print(transfer_data, 2)
     
