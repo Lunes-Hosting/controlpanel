@@ -28,7 +28,7 @@ from Routes.Admin import *
 from Routes.Tickets import *
 from flask_session import Session
 from multiprocessing import Process
-from bot import run_bot
+from discord_bot.bot import run_bot
 import asyncio
 import random
 from scripts import *
