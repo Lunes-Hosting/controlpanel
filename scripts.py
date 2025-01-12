@@ -1045,8 +1045,8 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
 
     # Build transfer request
     transfer_data = {
-        "allocation": allocation_id,
-        "node": target_node_id
+        "allocation_id": allocation_id,
+        "node_id": target_node_id
     }
     print(transfer_data, 2)
     
