@@ -1,7 +1,7 @@
 import requests
 import config
 from config import PTERODACTYL_ADMIN_KEY, PTERODACTYL_URL
-from utils.logger import logger
+from ..utils.logger import logger
 from managers.database_manager import DatabaseManager
 headers = {
     "Authorization": f"Bearer {PTERODACTYL_ADMIN_KEY}",

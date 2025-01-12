@@ -1,5 +1,5 @@
 from managers.database_manager import DatabaseManager
-from utils.logger import logger
+from ..utils.logger import logger
 class UserDB():
 
     def get_user_info(email):

@@ -2,9 +2,9 @@ import discord # type: ignore
 from discord.commands import slash_command # type: ignore
 from discord.ext import commands # type: ignore
 from managers.database_manager import DatabaseManager
-from utils.ptero import PteroAPI
-from utils.database import UserDB
-from utils.logger import logger
+from ..utils.ptero import PteroAPI
+from ..utils.database import UserDB
+from ..utils.logger import logger
 class Statistics(commands.Cog):
     def __init__(self, bot):
         self.bot = bot

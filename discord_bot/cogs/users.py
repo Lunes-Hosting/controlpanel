@@ -2,8 +2,8 @@ import discord # type: ignore
 from discord.commands import slash_command # type: ignore
 from discord.ext import commands # type: ignore
 from managers.database_manager import DatabaseManager
-from utils.database import UserDB
-from utils.logger import logger
+from ..utils.database import UserDB
+from ..utils.logger import logger
 class Users(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -106,4 +106,4 @@ class Users(commands.Cog):
             logger.error(f'Error with discord command "/unsuspend": {str(e)}')
 
 def setup(bot):
-    bot.add_cog(Users(bot))
+     bot.add_cog(Users(bot))

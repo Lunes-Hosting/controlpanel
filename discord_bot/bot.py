@@ -8,16 +8,7 @@ from config import *
 from .utils.logger import logger
 bot = commands.Bot(command_prefix="!")
 bot = discord.Bot()
-extensions = [
-    'cogs.statistics',
-    'cogs.users',
-    'cogs.funstuff',
-]
 
-
-if __name__ == '__main__': 
-    for extension in extensions:
-        bot.load_extension(extension)
 @bot.event
 async def on_ready():
     logger.info(f'Logged into Discord Bot: {bot.user}')
