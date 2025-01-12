@@ -191,7 +191,7 @@ def get_eggs() -> list[dict]:
     """
     return cache.egg_cache
 
-def list_servers(pterodactyl_id: int) -> list[dict]:
+def list_servers(pterodactyl_id: int=None) -> list[dict]:
     """
     Returns list of dictionaries of servers with owner of that pterodactyl id.
     
@@ -245,10 +245,13 @@ def list_servers(pterodactyl_id: int) -> list[dict]:
         response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS)
         users_server = []
         data = response.json()
-        for server in data['data']:
-            if server['attributes']['user'] == pterodactyl_id:
-                users_server.append(server)
-        return users_server
+        if pterodactyl_id is not None:
+            for server in data['data']:
+                if server['attributes']['user'] == pterodactyl_id:
+                    users_server.append(server)
+            return users_server
+        else:
+            return data
     except KeyError as e:
         print(e, pterodactyl_id, data)
         return None
