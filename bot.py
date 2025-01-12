@@ -99,20 +99,12 @@ async def trigger_command(ctx):
     try:
         # Get total users from database
         total_users = DatabaseManager.execute_query("SELECT COUNT(*) FROM users")[0]
-        list_servers()
-        # Get total servers from Pterodactyl
-        headers = {
-            'Authorization': f'Bearer {TOKEN}',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-        }
-        resp = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=headers).json()
-        total_servers = len(resp['data'])
+        servers = list_servers()
         
         # Create embed response
         embed = discord.Embed(title="System Statistics", color=discord.Color.blue())
         embed.add_field(name="Total Users", value=str(total_users), inline=True)
-        embed.add_field(name="Total Servers", value=str(total_servers), inline=True)
+        embed.add_field(name="Total Servers", value=str(len(servers['data'])), inline=True)
         
         # Send ephemeral response to user
         await ctx.respond(embed=embed, ephemeral=True)
