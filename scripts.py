@@ -147,15 +147,15 @@ def sync_users_script():
         
     # reset old users passwords
     query = f"SELECT last_seen, email FROM users"
-    last_seen, email = db.execute_query(query, fetch_all=True)
-    
-    if last_seen is not None:
-        if datetime.datetime.now() - last_seen > datetime.timedelta(days=180):
-            webhook_log(f"Resetting password for {email}")
-            new_password = secrets.token_hex(32)
-            hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt(rounds=14))
-            db.execute_query("UPDATE users SET password = %s WHERE email = %s", (hashed_password, email))
-            update_last_seen(email)
+    result = db.execute_query(query, fetch_all=True)
+    for last_seen, email in result:
+        if last_seen is not None:
+            if datetime.datetime.now() - last_seen > datetime.timedelta(days=180):
+                webhook_log(f"Resetting password for {email}")
+                new_password = secrets.token_hex(32)
+                hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt(rounds=14))
+                db.execute_query("UPDATE users SET password = %s WHERE email = %s", (hashed_password, email))
+                update_last_seen(email)
             
 
 
