@@ -83,7 +83,7 @@ import requests
 from flask import url_for, redirect
 from werkzeug.datastructures.headers import EnvironHeaders
 from managers.database_manager import DatabaseManager
-
+from threadedreturn import ThreadWithReturnValue
 from config import *
 from products import products
 import secrets
@@ -404,16 +404,17 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
         dict: User object from Pterodactyl API if successful
         str: Error message if registration fails
     """
-    webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered")
-    
-    banned_emails = ["@nowni.com"]
+    salt = bcrypt.gensalt(rounds=14)
+    passthread = ThreadWithReturnValue(target=bcrypt.hashpw, args=(password.encode('utf-8'), salt))
+    passthread.start()
+
+    banned_emails = ["@nowni.com", "@qq.com", "eu.org"]
     for text in banned_emails:
         if text in email:
             webhook_log("Failed to register do to email blacklist <@491266830674034699>")
             return "Failed to register! contact panel@lunes.host if this is a mistake"
-            
-    salt = bcrypt.gensalt(rounds=14)
-    password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
+    webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered")
+    
 
     db = DatabaseManager()
     results = db.execute_query("SELECT * FROM users WHERE ip = %s", (ip,))
@@ -438,6 +439,7 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
     except KeyError:
         user_id = db.execute_query("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
         query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, ip, credits) VALUES (%s, %s, %s, %s, %s, %s, %s)")
+        password_hash = passthread.join()
         values = (name, email, password_hash, user_id, data['attributes']['id'], ip, 25)
         db.execute_query(query, values)
         return response.json()
