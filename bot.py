@@ -6,6 +6,7 @@ import requests
 import secrets
 import random
 from managers.database_manager import DatabaseManager
+from scripts import list_servers
 
 bot = discord.Bot()
 
@@ -98,15 +99,15 @@ async def trigger_command(ctx):
     try:
         # Get total users from database
         total_users = DatabaseManager.execute_query("SELECT COUNT(*) FROM users")[0]
-        
+        list_servers()
         # Get total servers from Pterodactyl
         headers = {
             'Authorization': f'Bearer {TOKEN}',
             'Accept': 'application/json',
             'Content-Type': 'application/json',
         }
-        resp = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=headers)
-        total_servers = len(resp.json()['data'])
+        resp = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=headers).json()
+        total_servers = len(resp['data'])
         
         # Create embed response
         embed = discord.Embed(title="System Statistics", color=discord.Color.blue())
