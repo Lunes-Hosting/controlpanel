@@ -412,7 +412,7 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
     for text in banned_emails:
         if text in email:
             webhook_log(f"Failed to register email {email} do to email blacklist <@491266830674034699>")
-            return "Failed to register! contact panel@lunes.host if this is a mistake"
+            return "Failed to register due to blacklist! contact panel@lunes.host if this is a mistake"
     webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered")
     
 
