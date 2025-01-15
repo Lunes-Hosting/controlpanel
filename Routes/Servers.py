@@ -216,7 +216,7 @@ def server(server_id):
         
     ptero_id = get_user_ptero_id(session)
     servers_list = list_servers(ptero_id[0])
-    
+    verified = get_user_verification_status(session['email'])
     # Filter available products
     products_local = [p for p in products if p['enabled']]
     for server in servers_list:
@@ -227,7 +227,7 @@ def server(server_id):
             
     info = get_server_information(server_id)
     nodes = get_nodes()
-    return render_template('server.html', info=info, products=products_local, nodes=nodes)
+    return render_template('server.html', info=info, products=products_local, nodes=nodes, verified=verified)
 
 @servers.route("/create")
 def create_server():
@@ -269,11 +269,8 @@ def create_server():
         session['pterodactyl_id'] = ptero_id
 
     # Check email verification
-    results = DatabaseManager.execute_query(
-        "SELECT email_verified_at FROM users WHERE email = %s",
-        (session['email'],)
-    )
-    if results[0] is None:
+    verified = get_user_verification_status(session['email'])
+    if not verified:
         return redirect(url_for('servers.servers_index'))
 
     servers_list = list_servers(ptero_id[0])

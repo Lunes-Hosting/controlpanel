@@ -23,29 +23,37 @@
     {% endwith %}
     {% include 'taskbar.html' %}
     <div class="content">
-    <div class="server-details-container">
-        <h1 id="server-name">{{ info['attributes']['name'] }}</h1>
-        <div class="button-group">
-            <a href="{{ url_for('servers.delete_server', server_id=info['attributes']['id']) }}" class="button delete-button">Delete</a>
-            <a href="https://ctrl.lunes.host/server/{{ info['attributes']['uuid'].split('-')[0] }}" class="button manage-button">Manage</a>
-            <a href="{{ url_for('servers.transfer_server_route', server_id=info['attributes']['id']) }}" class="button transfer-button">Transfer</a>
-        </div>
-        <h1 id="update-plan">Update Plan</h1>
-        <form action="{{ url_for('servers.update_server_submit', server_id=info['attributes']['id']) }}" method="post">
-            <div class="plan-selection">
-                <label for="plan">Select a Plan:</label>
-                <select id="plan" name="plan" class="plan" size="5" required>
-                    {% for product in products %}
-                        <option class="plan-option" value="{{ product['id'] }}">
-                            {{ product['name'] }}: Memory {{ product['limits']['memory'] }}MB, Storage {{ product['limits']['disk'] }}GB, CPU {{ product['limits']['cpu'] }}%
-                        </option>
-                    {% endfor %}
-                </select>
+    {% if not verified %}
+        <div class="messages">
+            <div class="message warning">
+                Your email is not verified yet. <a href="{{ url_for('user.resend_confirmation_email') }}" style="color: #5865f2; text-decoration: underline;">Click here to resend verification email</a>
             </div>
-            <br>
-            <input type="submit" value="Submit">
-        </form>
-    </div>
+        </div>
+    {% else %}
+        <div class="server-details-container">
+            <h1 id="server-name">{{ info['attributes']['name'] }}</h1>
+            <div class="button-group">
+                <a href="{{ url_for('servers.delete_server', server_id=info['attributes']['id']) }}" class="button delete-button">Delete</a>
+                <a href="https://ctrl.lunes.host/server/{{ info['attributes']['uuid'].split('-')[0] }}" class="button manage-button">Manage</a>
+                <a href="{{ url_for('servers.transfer_server_route', server_id=info['attributes']['id']) }}" class="button transfer-button">Transfer</a>
+            </div>
+            <h1 id="update-plan">Update Plan</h1>
+            <form action="{{ url_for('servers.update_server_submit', server_id=info['attributes']['id']) }}" method="post">
+                <div class="plan-selection">
+                    <label for="plan">Select a Plan:</label>
+                    <select id="plan" name="plan" class="plan" size="5" required>
+                        {% for product in products %}
+                            <option class="plan-option" value="{{ product['id'] }}">
+                                {{ product['name'] }}: Memory {{ product['limits']['memory'] }}MB, Storage {{ product['limits']['disk'] }}GB, CPU {{ product['limits']['cpu'] }}%
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <br>
+                <input type="submit" value="Submit">
+            </form>
+        </div>
+    {% endif %}
 
     <!-- Transfer Modal -->
     <div id="transferModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
