@@ -199,7 +199,13 @@
             <h1>User Management</h1>
             <span>Total Users: {{ total_users }}</span>
         </div>
-        
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
         <div class="card">
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Search users (name, email, ID)..." value="{{ search_term }}">
