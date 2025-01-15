@@ -379,11 +379,6 @@ def register_user():
         )
         email_thread.start()
 
-        DatabaseManager.execute_query(
-            "UPDATE users SET email_verified_at = %s WHERE email = %s",
-            (datetime.datetime.now(), email)
-        )
-
         flash('A verification email has been sent. Please check your inbox and spam to verify your email.')
         return redirect(url_for('index'))
 
