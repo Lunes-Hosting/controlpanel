@@ -28,14 +28,19 @@ from Routes.Admin import *
 from Routes.Tickets import *
 from flask_session import Session
 from multiprocessing import Process
-from bot import run_bot
+from discord_bot.bot import bot, run_bot
 import asyncio
-import random
+
 from scripts import *
 from cacheext import cache
 from threading import Thread
-#This imports the bot's code ONLY if the user wishes to use it
+from discord_bot.bot import bot, run_bot
 
+extensions = [
+    'discord_bot.cogs.statistics',
+    'discord_bot.cogs.users',
+    'discord_bot.cogs.funstuff',
+]
 # Initialize Flask app and extensions
 app = Flask(__name__, "/static")
 app.config.update(
@@ -123,8 +128,13 @@ def webhook_log(message: str):
     resp = requests.post(WEBHOOK_URL,
                          json={"username": "Web Logs", "content": message})
     print(resp.text)
+
+
+for extension in extensions:
+    print(f'Loading {extension}')
+    bot.load_extension(extension)
 def start_bot_loop():
-    asyncio.run(run_bot())  # This will start the Discord bot in an event loop
+     asyncio.run(run_bot())
 
 if __name__ == '__main__':
     # Create separate processes for Flask and the Discord bot

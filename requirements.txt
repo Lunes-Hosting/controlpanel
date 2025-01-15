@@ -7,9 +7,10 @@ stripe==5.5.0
 Flask-Limiter==3.5.0
 Flask-reCaptcha==0.4.2
 bcrypt~=4.0.1
-Werkzeug~=2.3.6
+Werkzeug~=3.0.6
 flask_caching
 flask_mail
 py-cord
 flask_session
 threadedreturn
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
