@@ -50,7 +50,7 @@ import time
 import threading
 import sys
 import json
-import requests
+from security import safe_requests
 
 sys.path.append("..")
 
@@ -231,7 +231,7 @@ def admin_servers():
         return redirect(url_for("user.login_user"))
     if not scripts.is_admin(session['email']):
         return "YOUR NOT ADMIN BRO"
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
     return render_template("admin/servers.html", servers=resp['data'])
 
 
@@ -275,7 +275,7 @@ def admin_user(user_id):
         return redirect(url_for("user.login_user"))
     if not scripts.is_admin(session['email']):
         return "YOUR NOT ADMIN BRO"
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS).json()
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS).json()
     return resp
 
 

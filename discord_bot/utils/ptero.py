@@ -1,8 +1,9 @@
-import requests
 import config
 from config import PTERODACTYL_ADMIN_KEY, PTERODACTYL_URL
 from ..utils.logger import logger
 from managers.database_manager import DatabaseManager
+from security import safe_requests
+
 headers = {
     "Authorization": f"Bearer {PTERODACTYL_ADMIN_KEY}",
     'Accept': 'application/json',
@@ -13,7 +14,7 @@ class PteroAPI():
 
  def get_all_servers():
     try:
-        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=headers)
+        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=headers)
         response.raise_for_status()
         data = response.json()
         

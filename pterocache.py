@@ -1,7 +1,8 @@
 
 
 from config import *
-import requests
+from security import safe_requests
+
 class PteroCache():
     
     def __init__(self) -> None:
@@ -26,12 +27,12 @@ class PteroCache():
         disabled_eggs = [55, 3]
         try:
             available_eggs = []
-            nests = requests.get(f"{PTERODACTYL_URL}api/application/nests", headers=self.HEADERS)
+            nests = safe_requests.get(f"{PTERODACTYL_URL}api/application/nests", headers=self.HEADERS)
 
             nests_data = nests.json()
             for nest in nests_data['data']:
                 if nest['attributes']['id'] not in disabled_nests:
-                    resp = requests.get(f"{PTERODACTYL_URL}api/application/nests/{nest['attributes']['id']}/eggs", headers=self.HEADERS)
+                    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/nests/{nest['attributes']['id']}/eggs", headers=self.HEADERS)
                     data = resp.json()
                     for egg in data['data']:
                         attributes = egg['attributes']
@@ -49,7 +50,7 @@ class PteroCache():
     def update_node_cache(self):
         available_nodes = []
         all_nodes = []
-        nodes = requests.get(f"{PTERODACTYL_URL}api/application/nodes", headers=self.HEADERS).json()
+        nodes = safe_requests.get(f"{PTERODACTYL_URL}api/application/nodes", headers=self.HEADERS).json()
         for node in nodes['data']:
             all_nodes.append({"node_id": node['attributes']['id'], "name": node['attributes']['name']})
             if "full" not in node['attributes']['name'].lower():
