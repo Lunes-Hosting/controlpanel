@@ -126,8 +126,10 @@ def sync_users_script():
 
         
         # Get all existing users from panel DB to prevent duplicates
-        existing_users = db.execute_query("SELECT * FROM users", fetch_all=True)
+        existing_users = db.execute_query("SELECT * FROM users LIMIT 30", fetch_all=True)
         existing_emails = [user[7].lower() for user in existing_users]
+        print(existing_emails)
+        
 
         for user in ptero_data:
             user_username = user[3]
