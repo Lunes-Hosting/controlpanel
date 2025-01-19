@@ -144,8 +144,9 @@ def sync_users_script():
                     
                     query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, %s, %s)")
                     values = (user_username, user_email, user_password, user_id, user_ptero_id, 25)
-                    # print(query, values)
-                    db.execute_query(query, values)
+                    print(query, values)
+                    time.sleep(1)
+                    # db.execute_query(query, values)
                 except Exception as e:
                     error_message = f"Error adding user {user_email}: {str(e)}"
                     print(error_message)
