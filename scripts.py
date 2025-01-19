@@ -1100,3 +1100,16 @@ def get_all_servers() -> list[dict]:
     response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS)
     data = response.json()
     return data['data']
+
+
+
+def get_all_servers() -> list[dict]:
+    """
+    Returns list of all servers from Pterodactyl API with ?per_page=10000 parameter.
+    
+    Returns:
+        list[dict]: List of server information
+    """
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS)
+    data = response.json()
+    return data['data']
