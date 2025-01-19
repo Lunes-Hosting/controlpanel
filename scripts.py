@@ -126,7 +126,7 @@ def sync_users_script():
         
         # Get all existing users from panel DB to prevent duplicates
         existing_users = db.execute_query("SELECT email FROM users", fetch_all=True)
-        existing_emails = {user[0].lower() for user in existing_users} if existing_users else set()
+        existing_emails = {user[7].lower() for user in existing_users} if existing_users else set()
         
         for user in data['data']:
             user_email = user['attributes']['email'].lower()  # normalize email to lowercase
