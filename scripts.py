@@ -135,7 +135,7 @@ def sync_users_script():
             user_ptero_id = user[0]
             user_res = db.execute_query("SELECT * FROM users WHERE email = %s", (user_email,))
             if user_res is None:
-                print(f"Adding new user: {user_email}")
+                webhook_log(f"Adding new user: {user_email}")
                 try:
                     result = db.execute_query("SELECT MAX(id) FROM users")
                     user_id = (result[0] if result and result[0] is not None else 0) + 1
