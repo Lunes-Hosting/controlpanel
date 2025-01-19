@@ -125,8 +125,10 @@ def sync_users_script():
         data = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
         
         # Get all existing users from panel DB to prevent duplicates
-        existing_users = db.execute_query("SELECT email FROM users", fetch_all=True)
-        existing_emails = {user[7].lower() for user in existing_users} if existing_users else set()
+        existing_users = db.execute_query("SELECT * FROM users", fetch_all=True)
+        existing_emails = []
+        for user in existing_users:
+            existing_emails.append(user[7].lower())
         
         for user in data['data']:
             user_email = user['attributes']['email'].lower()  # normalize email to lowercase
