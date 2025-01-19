@@ -130,7 +130,6 @@ def sync_users_script():
         existing_emails = [user[7].lower() for user in existing_users]
 
         for user in ptero_data:
-            print(user)
             user_username = user[3]
             user_password = user[7]
             user_email = user[4]
