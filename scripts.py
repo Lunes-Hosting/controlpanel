@@ -125,7 +125,7 @@ def sync_users_script():
         data = requests.get(f"{PTERODACTYL_URL}api/application/users?per_page=100000", headers=HEADERS).json()
         
         # Get all existing users from panel DB to prevent duplicates
-        existing_users = db.execute_query("SELECT email FROM users", database="panel", fetch_all=True)
+        existing_users = db.execute_query("SELECT email FROM users", fetch_all=True)
         existing_emails = {user[0].lower() for user in existing_users} if existing_users else set()
         
         for user in data['data']:
@@ -141,6 +141,7 @@ def sync_users_script():
                         db.execute_query(query, values)
                 except Exception as e:
                     print(f"Error adding user {user_email}: {str(e)}")
+                    webhook_log(f"Error adding user {user_email}: {str(e)}")
     except KeyError:
         print(data, "ptero user data")
         
