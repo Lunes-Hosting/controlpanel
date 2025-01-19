@@ -128,26 +128,31 @@ def sync_users_script():
         existing_users = db.execute_query("SELECT * FROM users", fetch_all=True)
         existing_emails = [user[7].lower() for user in existing_users]
 
-for user in data['data']:
-    user_email = user['attributes']['email'].lower()  # normalize email to lowercase
-    if user_email not in existing_emails:
-        print(f"Adding new user: {user_email}")
-        try:
-            result = db.execute_query("SELECT MAX(id) FROM users")
-            user_id = (result[0] if result and result[0] is not None else 0) + 1
-            
-            password = db.execute_query("SELECT password FROM users WHERE email = %s", (user_email,), database="panel")
-            if not password:
-                print(f"No password found for {user_email}, skipping user.")
-                continue
-            
-            query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, %s, %s)")
-            values = (user['attributes']['username'], user_email, password[0], user_id, user['attributes']['id'], 25)
-            db.execute_query(query, values)
-        except Exception as e:
-            error_message = f"Error adding user {user_email}: {str(e)}"
-            print(error_message)
-            webhook_log(error_message)
+        for user in data['data']:
+            user_email = user['attributes']['email'].lower()  # normalize email to lowercase
+            if user_email not in existing_emails:
+                print(f"Adding new user: {user_email}")
+                try:
+                    result = db.execute_query("SELECT MAX(id) FROM users")
+                    user_id = (result[0] if result and result[0] is not None else 0) + 1
+                    
+                    password = db.execute_query("SELECT password FROM users WHERE email = %s", (user_email,), database="panel")
+                    if not password:
+                        print(f"No password found for {user_email}, skipping user.")
+                        continue
+                    
+                    query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, %s, %s)")
+                    values = (user['attributes']['username'], user_email, password[0], user_id, user['attributes']['id'], 25)
+                    db.execute_query(query, values)
+                except Exception as e:
+                    error_message = f"Error adding user {user_email}: {str(e)}"
+                    print(error_message)
+                    webhook_log(error_message)
+                    
+    except Exception as e:
+        error_message = f"Error syncing users: {str(e)}"
+        print(error_message)
+        webhook_log(error_message)
 
         
     # reset old users passwords
