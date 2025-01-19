@@ -129,6 +129,7 @@ def sync_users_script():
         existing_emails = []
         for user in existing_users:
             existing_emails.append(user[7].lower())
+        print(existing_emails)
         
         for user in data['data']:
             user_email = user['attributes']['email'].lower()  # normalize email to lowercase
