@@ -122,7 +122,7 @@ def sync_users_script():
     db = DatabaseManager()
     try:
         # Get all Pterodactyl users
-        ptero_data = db.execute_query("SELECT * FROM users", database="panel" fetch_all=True)
+        ptero_data = db.execute_query("SELECT * FROM users", database="panel", fetch_all=True)
 
         
         # Get all existing users from panel DB to prevent duplicates
