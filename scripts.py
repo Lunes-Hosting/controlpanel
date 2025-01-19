@@ -126,18 +126,15 @@ def sync_users_script():
         ptero_data = db.execute_query("SELECT * FROM users", database="panel", fetch_all=True)
 
         
-        # Get all existing users from panel DB to prevent duplicates
-        existing_users = db.execute_query("SELECT * FROM users", fetch_all=True)
-        existing_emails = [user[7].lower() for user in existing_users]
-        print(existing_emails)
-        
+
 
         for user in ptero_data:
             user_username = user[3]
             user_password = user[7]
             user_email = user[4]
             user_ptero_id = user[0]
-            if user_email not in existing_emails:
+            user_res = db.execute_query("SELECT * FROM users WHERE email = %s", (user_email,))
+            if user_res is None:
                 print(f"Adding new user: {user_email}")
                 try:
                     result = db.execute_query("SELECT MAX(id) FROM users")
@@ -147,8 +144,8 @@ def sync_users_script():
                     query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, %s, %s)")
                     values = (user_username, user_email, user_password, user_id, user_ptero_id, 25)
                     print(query, values)
-                    time.sleep(1)
-                    # db.execute_query(query, values)
+                    # time.sleep(1)
+                    db.execute_query(query, values)
                 except Exception as e:
                     error_message = f"Error adding user {user_email}: {str(e)}"
                     print(error_message)
