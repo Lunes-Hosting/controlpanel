@@ -391,7 +391,7 @@ def login(email: str, password: str):
     """
     webhook_log(f"Login attempt with email {email}")
     db = DatabaseManager()
-    hashed_password = db.execute_query("SELECT password FROM users WHERE email = %s", (email,))
+    hashed_password = db.execute_query("SELECT password FROM users WHERE LOWER(email) = LOWER(%s)", (email,))
 
     if hashed_password is not None:
         # Verify the password
@@ -399,7 +399,7 @@ def login(email: str, password: str):
 
         if is_matched:
             # Retrieve all information of the user
-            info = db.execute_query("SELECT * FROM users WHERE email = %s", (email,))
+            info = db.execute_query("SELECT * FROM users WHERE LOWER(email) = LOWER(%s)", (email,))
             return info
 
     return None
@@ -428,6 +428,8 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
         dict: User object from Pterodactyl API if successful
         str: Error message if registration fails
     """
+    email = email.strip().lower()
+    name = name.strip()
     salt = bcrypt.gensalt(rounds=14)
     passthread = ThreadWithReturnValue(target=bcrypt.hashpw, args=(password.encode('utf-8'), salt))
     passthread.start()
