@@ -121,6 +121,8 @@ def login_user():
         except Exception as e:
             print(e)
             flash("An error occurred during login. Please try again.")
+    if 'email' in session:
+        return redirect(url_for("user.index"))
     return render_template("login.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
 
