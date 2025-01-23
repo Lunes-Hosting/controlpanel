@@ -383,7 +383,8 @@ def register_user():
 
         flash('A verification email has been sent. Please check your inbox and spam to verify your email.')
         return redirect(url_for('index'))
-
+    if 'email' in session:
+        return redirect(url_for("user.index"))
     return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
 
