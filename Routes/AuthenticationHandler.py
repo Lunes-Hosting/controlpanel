@@ -531,8 +531,9 @@ def delete_account():
         return render_template("delete_account.html")
         
     try:
+        db = DatabaseManager()
         # Get user info
-        user_info = DatabaseManager.execute_query(
+        user_info = db.execute_query(
             "SELECT email, pterodactyl_id FROM users WHERE email = %s", 
             (session['email'],)
         )
