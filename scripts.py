@@ -409,6 +409,10 @@ def login(email: str, password: str):
         if is_matched:
             # Retrieve all information of the user
             info = db.execute_query("SELECT * FROM users WHERE LOWER(email) = LOWER(%s)", (email,))
+            is_pending_deletion = db.execute_query("SELECT * FROM pending_deletions WHERE email = %s", (email,))
+
+            if is_pending_deletion is not None:
+                db.execute_query("DELETE FROM pending_deletions WHERE email = %s", (email,))
             return info
 
     return None
