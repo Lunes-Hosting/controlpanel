@@ -81,7 +81,7 @@ import mysql.connector
 # Establish a connection to the database
 import mysql.connector
 import requests
-from flask import url_for, redirect
+from flask import url_for, redirect, current_app
 from werkzeug.datastructures.headers import EnvironHeaders
 from managers.database_manager import DatabaseManager
 from threadedreturn import ThreadWithReturnValue
