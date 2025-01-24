@@ -551,7 +551,7 @@ def delete_account():
             server_id = server['attributes']['id']
             delete_server(server_id)
             
-        db.execute_query("INSERT INTO pending_deletions (email, deletion_requested) VALUES (%s, %s)", (email, datetime.datetime.now()))
+        db.execute_query("INSERT INTO pending_deletions (email, deletion_requested_time) VALUES (%s, %s)", (email, datetime.datetime.now()))
             
         flash("Your account has been flagged for deletion. If you do not log back in within 30 days, your account will be permanently deleted.")
 

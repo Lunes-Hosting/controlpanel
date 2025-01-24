@@ -159,10 +159,10 @@ def sync_users_script():
     #Delete pending users if they are older then 30 days
     results = db.execute_query("SELECT * FROM pending_deletions", fetch_all=True)
     for user in results:
-        if datetime.datetime.now() - user[1] > datetime.timedelta(days=30):
-            db.execute_query("DELETE FROM pending_deletions WHERE email = %s", (user[0],))
+        if datetime.datetime.now() - user[2] > datetime.timedelta(days=30):
+            db.execute_query("DELETE FROM pending_deletions WHERE email = %s", (user[1],))
             res = instantly_delete_user(user[0])
-            webhook_log(f"Deleted pending deletion for {user[0]}, with status code: {res}")
+            webhook_log(f"Deleted pending deletion for {user[1]}, with status code: {res}")
     
 
         
