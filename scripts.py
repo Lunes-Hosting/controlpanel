@@ -524,7 +524,7 @@ def instantly_delete_user(email: str) -> int:
  
     db.execute_query(query, values)
 
-    response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS)
+    response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{ptero_id}", headers=HEADERS)
     response.raise_for_status()
 
     return response.status_code
