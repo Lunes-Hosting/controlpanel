@@ -412,6 +412,7 @@ def login(email: str, password: str):
             is_pending_deletion = db.execute_query("SELECT * FROM pending_deletions WHERE email = %s", (email,))
 
             if is_pending_deletion is not None:
+                send_email(email, "Account Reactivated", "Your account has been reactivated!", current_app._get_current_object())
                 db.execute_query("DELETE FROM pending_deletions WHERE email = %s", (email,))
             return info
 
@@ -527,7 +528,7 @@ def instantly_delete_user(email: str) -> int:
 
  
     db.execute_query(query, values)
-
+    send_email(email, "Account Deleted", "Your account has been deleted!", current_app._get_current_object())
     response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{ptero_id}", headers=HEADERS)
     response.raise_for_status()
 
@@ -659,6 +660,7 @@ def use_credits():
                 if not server['attributes']['suspended']:
                     result = remove_credits(email[0], product['price'] / 30 / 24)
                     if result == "SUSPEND":
+                        send_email(email[0], "Server Suspended", "Your server has been suspended due to lack of credits!", current_app._get_current_object())
                         suspend_server(server['attributes']['id'])
 
             else:

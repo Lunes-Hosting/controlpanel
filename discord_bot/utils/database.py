@@ -1,4 +1,5 @@
 from managers.database_manager import DatabaseManager
+from scripts import send_email
 from ..utils.logger import logger
 class UserDB():
 
@@ -14,6 +15,7 @@ class UserDB():
         
     def suspend_user(email):
         try:
+            send_email(email, "Account Suspended", "Your account has been suspended.", current_app._get_current_object())
             DatabaseManager.execute_query("UPDATE users SET suspended = 1 WHERE email = %s",(email,))
             return "User suspended"
         except Exception as e:
@@ -22,6 +24,7 @@ class UserDB():
         
     def unsuspend_user(email):
         try:
+            send_email(email, "Account Unsuspended", "Your account has been unsuspended.", current_app._get_current_object())
             DatabaseManager.execute_query("UPDATE users SET suspended = 0 WHERE email = %s",(email,))
             return "User unsuspended"
         except Exception as e:
