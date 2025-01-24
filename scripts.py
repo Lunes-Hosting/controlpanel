@@ -501,7 +501,7 @@ def instantly_delete_user(email: str) -> int:
     }
     """
     db = DatabaseManager()
-    ptero_id = get_ptero_id(email)
+    ptero_id = get_ptero_id(email)[0]
     user_id = get_id(email)[0]
     servers = list_servers(ptero_id)
     for server in servers:
