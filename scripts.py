@@ -121,40 +121,49 @@ def sync_users_script():
         - Inserts into local DB with default 25 credits
     """
     db = DatabaseManager()
-    try:
-        # Get all Pterodactyl users
-        ptero_data = db.execute_query("SELECT * FROM users", database="panel", fetch_all=True)
+    # try:
+    #     # Get all Pterodactyl users
+    #     ptero_data = db.execute_query("SELECT * FROM users", database="panel", fetch_all=True)
 
         
 
 
-        for user in ptero_data:
-            user_username = user[3]
-            user_password = user[7]
-            user_email = user[4]
-            user_ptero_id = user[0]
-            user_res = db.execute_query("SELECT * FROM users WHERE email = %s", (user_email,))
-            if user_res is None:
-                webhook_log(f"Adding new user: {user_email}")
-                try:
-                    result = db.execute_query("SELECT MAX(id) FROM users")
-                    user_id = (result[0] if result and result[0] is not None else 0) + 1
+    #     for user in ptero_data:
+    #         user_username = user[3]
+    #         user_password = user[7]
+    #         user_email = user[4]
+    #         user_ptero_id = user[0]
+    #         user_res = db.execute_query("SELECT * FROM users WHERE email = %s", (user_email,))
+    #         if user_res is None:
+    #             webhook_log(f"Adding new user: {user_email}")
+    #             try:
+    #                 result = db.execute_query("SELECT MAX(id) FROM users")
+    #                 user_id = (result[0] if result and result[0] is not None else 0) + 1
                     
                     
-                    query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, %s, %s)")
-                    values = (user_username, user_email, user_password, user_id, user_ptero_id, 25)
-                    print(query, values)
-                    # time.sleep(1)
-                    db.execute_query(query, values)
-                except Exception as e:
-                    error_message = f"Error adding user {user_email}: {str(e)}"
-                    print(error_message)
-                    webhook_log(error_message)
+    #                 query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, %s, %s)")
+    #                 values = (user_username, user_email, user_password, user_id, user_ptero_id, 25)
+    #                 print(query, values)
+    #                 # time.sleep(1)
+    #                 db.execute_query(query, values)
+    #             except Exception as e:
+    #                 error_message = f"Error adding user {user_email}: {str(e)}"
+    #                 print(error_message)
+    #                 webhook_log(error_message)
                     
-    except Exception as e:
-        error_message = f"Error syncing users: {str(e)}"
-        print(error_message)
-        webhook_log(error_message)
+    # except Exception as e:
+    #     error_message = f"Error syncing users: {str(e)}"
+    #     print(error_message)
+    #     webhook_log(error_message)
+    
+    #Delete pending users if they are older then 30 days
+    results = db.execute_query("SELECT * FROM pending_deletions", fetch_all=True)
+    for user in results:
+        if datetime.datetime.now() - user[1] > datetime.timedelta(days=30):
+            db.execute_query("DELETE FROM pending_deletions WHERE email = %s", (user[0],))
+            res = instantly_delete_user(user[0])
+            webhook_log(f"Deleted pending deletion for {user[0]}, with status code: {res}")
+    
 
         
     # reset old users passwords
@@ -471,7 +480,7 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
         return response.json()
 
 
-def delete_user(user_id: int) -> int:
+def instantly_delete_user(email: str) -> int:
     """
     Deletes a user from both the panel database and Pterodactyl.
     
@@ -491,7 +500,29 @@ def delete_user(user_id: int) -> int:
         ]
     }
     """
+    ptero_id = get_ptero_id(email)
+    user_id = get_id(email)[0]
+    servers = list_servers(ptero_id)
+    for server in servers:
+        server_id = server['attributes']['id']
+        delete_server(server_id)
     # Delete the user from the database
+    DatabaseManager.execute_query(
+        "DELETE FROM ticket_comments WHERE user_id = %s", 
+        (user_id,)
+    )
+    DatabaseManager.execute_query(
+        "DELETE FROM tickets WHERE user_id = %s", 
+        (user_id,)
+    )
+        
+        # Finally delete user from database
+    DatabaseManager.execute_query(
+        "DELETE FROM users WHERE id = %s", 
+        (user_id,)
+    )
+
+        
     query = "DELETE FROM users WHERE id = %s"
     values = (user_id,)
 
@@ -836,14 +867,13 @@ def update_last_seen(email: str, everyone: bool = False):
     Returns:
         None
     """
+    db = DatabaseManager()
     if everyone is True:
         query = f"UPDATE users SET last_seen = '{datetime.datetime.now()}'"
-        db = DatabaseManager()
         db.execute_query(query)
     else:
         query = f"UPDATE users SET last_seen = '{datetime.datetime.now()}' WHERE email = %s"
-    db = DatabaseManager()
-    db.execute_query(query, (email,))
+        db.execute_query(query, (email,))
 
 
 def get_last_seen(email: str) -> datetime.datetime:

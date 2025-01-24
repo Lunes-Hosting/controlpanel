@@ -530,14 +530,16 @@ def delete_account():
     try:
         # Get user info
         user_info = DatabaseManager.execute_query(
-            "SELECT id, pterodactyl_id FROM users WHERE email = %s", 
+            "SELECT email, pterodactyl_id FROM users WHERE email = %s", 
             (session['email'],)
         )
         if not user_info:
             flash("User not found")
             return redirect(url_for('index'))
             
-        user_id, ptero_id = user_info
+        email, ptero_id = user_info
+        webhook_log(f"User `{email}` deleted their account")
+        session.clear()
         
         # Get and delete all user's servers
         servers = list_servers(ptero_id)
@@ -545,29 +547,10 @@ def delete_account():
             server_id = server['attributes']['id']
             delete_server(server_id)
             
-        # Delete user from Pterodactyl
-        delete_user(ptero_id)
-        
-        # Delete user's tickets and comments
-        DatabaseManager.execute_query(
-            "DELETE FROM ticket_comments WHERE user_id = %s", 
-            (user_id,)
-        )
-        DatabaseManager.execute_query(
-            "DELETE FROM tickets WHERE user_id = %s", 
-            (user_id,)
-        )
-        
-        # Finally delete user from database
-        DatabaseManager.execute_query(
-            "DELETE FROM users WHERE id = %s", 
-            (user_id,)
-        )
+        db.execute_query("INSERT INTO pending_deletions (email, deletion_requested) VALUES (%s, %s)", (email, datetime.datetime.now()))
+            
+        flash("Your account has been flagged for deletion. If you do not log back in within 30 days, your account will be permanently deleted.")
 
-        webhook_log(f"User `{session['email']}` deleted their account")
-        session.clear()
-        flash("Your account has been permanently deleted.")
-        
     except Exception as e:
         print(f"Error deleting account: {e}")
         flash("Error deleting account. Please contact support.")
