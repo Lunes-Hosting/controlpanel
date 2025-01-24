@@ -3,69 +3,116 @@
 <head>
     <title>Delete Account</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/register.css') }}">
     <style>
         .delete-container {
-            max-width: 600px;
-            margin: 50px auto;
-            padding: 20px;
             background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 50px;
+            padding: 40px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            animation: fadeIn 1s ease-in-out;
+            margin: 50px auto;
         }
         
         .warning {
             background-color: #fff3cd;
             color: #856404;
-            padding: 15px;
-            margin-bottom: 20px;
+            padding: 20px;
+            margin-bottom: 25px;
             border: 1px solid #ffeeba;
-            border-radius: 4px;
+            border-radius: 15px;
         }
         
         .danger {
             background-color: #f8d7da;
             color: #721c24;
-            padding: 15px;
-            margin-bottom: 20px;
+            padding: 20px;
+            margin-bottom: 25px;
             border: 1px solid #f5c6cb;
-            border-radius: 4px;
+            border-radius: 15px;
+        }
+        
+        .danger ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .danger li {
+            margin-bottom: 8px;
         }
         
         .delete-btn {
             background-color: #dc3545;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
+            padding: 12px 25px;
+            border-radius: 25px;
             cursor: pointer;
             font-size: 16px;
-            margin-right: 10px;
+            margin-right: 15px;
+            transition: all 0.3s ease;
+            font-weight: bold;
         }
         
         .delete-btn:hover {
             background-color: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
         }
         
         .cancel-btn {
             background-color: #6c757d;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
+            padding: 12px 25px;
+            border-radius: 25px;
             cursor: pointer;
             font-size: 16px;
             text-decoration: none;
             display: inline-block;
+            transition: all 0.3s ease;
+            font-weight: bold;
         }
         
         .cancel-btn:hover {
             background-color: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
         }
         
         .button-group {
-            margin-top: 20px;
+            margin-top: 30px;
             text-align: center;
+        }
+        
+        h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        h3 {
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+        
+        h4 {
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
@@ -77,11 +124,11 @@
         
         <div class="warning">
             <h3>⚠️ Warning</h3>
-            <p>You are about to delete your account. This action cannot be undone.</p>
+            <p>You are about to request account deletion. If you do not log in within 30 days, your account will be permanently deleted.</p>
         </div>
         
         <div class="danger">
-            <h4>The following will be permanently deleted:</h4>
+            <h4>The following will be permanently deleted after 30 days:</h4>
             <ul>
                 <li>All your game servers</li>
                 <li>All your support tickets and comments</li>
@@ -90,7 +137,7 @@
             </ul>
         </div>
         
-        <form method="POST" onsubmit="return confirm('Are you absolutely sure you want to delete your account? This action CANNOT be undone!');">
+        <form method="POST" onsubmit="return confirm('Are you sure you want to delete your account? If you do not log in within 30 days, it will be permanently deleted!');">
             <div class="button-group">
                 <button type="submit" class="delete-btn">Delete My Account</button>
                 <a href="{{ url_for('index') }}" class="cancel-btn">Cancel</a>
