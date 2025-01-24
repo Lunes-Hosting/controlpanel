@@ -500,6 +500,7 @@ def instantly_delete_user(email: str) -> int:
         ]
     }
     """
+    db = DatabaseManager()
     ptero_id = get_ptero_id(email)
     user_id = get_id(email)[0]
     servers = list_servers(ptero_id)
@@ -507,26 +508,20 @@ def instantly_delete_user(email: str) -> int:
         server_id = server['attributes']['id']
         delete_server(server_id)
     # Delete the user from the database
-    DatabaseManager.execute_query(
+    db.execute_query(
         "DELETE FROM ticket_comments WHERE user_id = %s", 
         (user_id,)
     )
-    DatabaseManager.execute_query(
+    db.execute_query(
         "DELETE FROM tickets WHERE user_id = %s", 
         (user_id,)
     )
         
-        # Finally delete user from database
-    DatabaseManager.execute_query(
-        "DELETE FROM users WHERE id = %s", 
-        (user_id,)
-    )
-
-        
+ 
     query = "DELETE FROM users WHERE id = %s"
     values = (user_id,)
 
-    db = DatabaseManager()
+ 
     db.execute_query(query, values)
 
     response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS)
