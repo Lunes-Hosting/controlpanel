@@ -16,7 +16,7 @@ class FunStuff(commands.Cog):
       except Exception as e:
             await ctx.respond(f"Error generating random number: {str(e)}", ephemeral=True)
 
-    @slash_command(name="todou", description="Random Tudou Gif")
+    @slash_command(name="tudou", description="Random Tudou Gif")
     async def todou_command(self, ctx):
         try:
             number = random.randint(1, 337)
