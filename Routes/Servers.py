@@ -352,7 +352,7 @@ def create_server_submit():
         'response': recaptcha_response
     }
 
-    response = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data)
+    response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data)
     result = response.json()
     if not result['success']:
         flash("Failed captcha please try again")
