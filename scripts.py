@@ -75,7 +75,7 @@ import time
 import string
 import threading
 import sys
-from pterocache import *
+from pterocache import PteroCache
 import bcrypt
 import mysql.connector
 # Establish a connection to the database
@@ -90,7 +90,6 @@ from products import products
 import secrets
 import random
 from flask_mail import Mail, Message
-
 
 cache = PteroCache()
 
@@ -192,6 +191,7 @@ def sync_users_script():
             
 
 
+@cache.memoize(timeout=300)  # Cache for 5 minutes
 def get_nodes(all: bool = False) -> list[dict]:
     """
     Returns cached list of available nodes from Pterodactyl.
@@ -209,6 +209,7 @@ def get_nodes(all: bool = False) -> list[dict]:
         return cache.available_nodes
 
 
+@cache.memoize(timeout=300)  # Cache for 5 minutes
 def get_eggs() -> list[dict]:
     """
     Returns cached list of server eggs from Pterodactyl.
@@ -224,6 +225,7 @@ def get_eggs() -> list[dict]:
     """
     return cache.egg_cache
 
+@cache.memoize(timeout=60)  # Cache for 1 minute
 def list_servers(pterodactyl_id: int=None) -> list[dict]:
     """
     Returns list of dictionaries of servers with owner of that pterodactyl id.
@@ -289,6 +291,7 @@ def list_servers(pterodactyl_id: int=None) -> list[dict]:
         print(e, pterodactyl_id, data)
         return None
 
+@cache.memoize(timeout=60)  # Cache for 1 minute
 def get_server_information(server_id: int) -> dict:
     """
     Returns dictionary of server information from pterodactyl api.
@@ -976,7 +979,7 @@ def webhook_log(message: str):
 
 def send_email(email: str, title:str, message: str, inner_app):
     """
-    Sends an email to the user.
+    Sends an email to the user asynchronously using APScheduler.
     
     Args:
         email: User's email
@@ -987,13 +990,23 @@ def send_email(email: str, title:str, message: str, inner_app):
     Returns:
         None
     """
-    with inner_app.app_context():
-        mail = Mail(inner_app)
-        print("started emails")
-        msg = Message(title, recipients=[email])
-        msg.body = message
-        mail.send(msg)
-        print(f"sent email to {email}")
+    def _send_email_task():
+        with inner_app.app_context():
+            mail = Mail(inner_app)
+            print("started emails")
+            msg = Message(title, recipients=[email])
+            msg.body = message
+            mail.send(msg)
+            print(f"sent email to {email}")
+    
+    # Add task to scheduler
+    scheduler = inner_app.apscheduler
+    scheduler.add_job(
+        func=_send_email_task,
+        trigger='date',
+        id=f'send_email_{email}_{int(time.time())}',
+        run_date=datetime.datetime.now()
+    )
 
 # Function to generate a verification token
 def generate_verification_token():
@@ -1019,14 +1032,9 @@ def send_verification_email(email: str, verification_token: str, inner_app):
     Returns:
         None
     """
-    with inner_app.app_context():
-        mail = Mail(inner_app)
-        print("started emails")
-        msg = Message('Email Verification', recipients=[email])
-        msg.body = f'Please click the link below to verify your email:\n\n {HOSTED_URL}verify_email/{verification_token}'
-        mail.send(msg)
-        print(f"sent email to {email}")
-        
+    send_email(email, "Email Verification", f'Please click the link below to verify your email\
+        :\n\n {HOSTED_URL}verify_email/{verification_token}', inner_app)
+
 def send_reset_email(email: str, reset_token: str, inner_app):
     """
     Sends a password reset email to the user.
@@ -1039,11 +1047,8 @@ def send_reset_email(email: str, reset_token: str, inner_app):
     Returns:
         None
     """
-    with inner_app.app_context():
-        mail = Mail(inner_app)
-        msg = Message('Password Reset Request', recipients=[email])
-        msg.body = f'Please click the link below to reset your password:\n\n {HOSTED_URL}reset_password/{reset_token}'
-        mail.send(msg)
+    send_email(email, "Password Reset Request", f'Please click the link below to reset your password\
+        :\n\n {HOSTED_URL}reset_password/{reset_token}', inner_app)
 
 
 # Function to generate a random reset token
@@ -1137,6 +1142,7 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
         print(f"Server transfer error: {e}")
         return 500
 
+@cache.memoize(timeout=60)  # Cache for 1 minute
 def get_all_servers() -> list[dict]:
     """
     Returns list of all servers from Pterodactyl API with ?per_page=10000 parameter.
