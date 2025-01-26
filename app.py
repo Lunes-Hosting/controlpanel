@@ -90,16 +90,18 @@ app.register_blueprint(admin, url_prefix="/admin")
 @scheduler.task('interval', id='credit_usage', seconds=3600, misfire_grace_time=900)
 def process_credits():
     """Process hourly credit usage for all servers."""
-    print("Processing credits...")
-    use_credits()
-    print("Credit processing complete")
+    with app.app_context():
+        print("Processing credits...")
+        use_credits()
+        print("Credit processing complete")
 
 @scheduler.task('interval', id='server_unsuspend', seconds=180, misfire_grace_time=900)
 def check_suspensions():
     """Check for servers that can be unsuspended."""
-    print("Checking suspensions...")
-    check_to_unsuspend()
-    print("Suspension check complete")
+    with app.app_context():
+        print("Checking suspensions...")
+        check_to_unsuspend()
+        print("Suspension check complete")
 
 @scheduler.task('interval', id='sync_users', seconds=60, misfire_grace_time=900)
 def sync_user_data():
