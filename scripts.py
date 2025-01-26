@@ -447,7 +447,9 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
     salt = bcrypt.gensalt(rounds=14)
     passthread = ThreadWithReturnValue(target=bcrypt.hashpw, args=(password.encode('utf-8'), salt))
     passthread.start()
-
+    if "+" in email:
+        webhook_log(f"Failed to register email {email} do to email blacklist <@491266830674034699>")
+        return "Failed to register due to blacklist! contact panel@lunes.host if this is a mistake"
     banned_emails = ["@nowni.com", "@qq.com", "eu.org", "seav.tk", "cock.li", "@vbbb.us.kg", "@mailbuzz.buzz", "gongjua.com", "maillazy.com"]
     for text in banned_emails:
         if text in email:
