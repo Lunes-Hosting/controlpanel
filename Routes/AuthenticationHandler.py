@@ -190,6 +190,7 @@ def reset_password():
         
     Form Data:
         - email: User's email address
+        - g-recaptcha-response: ReCAPTCHA token
         
     Templates:
         - reset_password.html: Password reset request form
@@ -209,10 +210,19 @@ def reset_password():
         - generate_reset_token(): Creates secure token
     """
     if request.method == 'POST':
-        email = request.form.get('email')
+        recaptcha_response = request.form.get('g-recaptcha-response')
+        data = {
+            'secret': RECAPTCHA_SECRET_KEY,
+            'response': recaptcha_response
+        }
 
-        # Check if the email exists in your user database
-        # Replace this with your own logic to validate the email
+        response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data)
+        result = response.json()
+        if not result['success']:
+            flash("Failed captcha please try again")
+            return render_template("reset_password.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
+
+        email = request.form.get('email')
 
         # Generate a reset token
         reset_token = generate_reset_token()
@@ -225,7 +235,7 @@ def reset_password():
         flash('An email with instructions to reset your password has been sent.')
         return redirect(url_for('user.login_user'))
 
-    return render_template('reset_password.html')
+    return render_template('reset_password.html', RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
 
 @user.route('/reset_password/<token>', methods=['GET', 'POST'])
