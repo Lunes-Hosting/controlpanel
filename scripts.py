@@ -191,7 +191,6 @@ def sync_users_script():
             
 
 
-@cache.memoize(timeout=300)  # Cache for 5 minutes
 def get_nodes(all: bool = False) -> list[dict]:
     """
     Returns cached list of available nodes from Pterodactyl.
@@ -209,7 +208,6 @@ def get_nodes(all: bool = False) -> list[dict]:
         return cache.available_nodes
 
 
-@cache.memoize(timeout=300)  # Cache for 5 minutes
 def get_eggs() -> list[dict]:
     """
     Returns cached list of server eggs from Pterodactyl.
@@ -225,7 +223,6 @@ def get_eggs() -> list[dict]:
     """
     return cache.egg_cache
 
-@cache.memoize(timeout=60)  # Cache for 1 minute
 def list_servers(pterodactyl_id: int=None) -> list[dict]:
     """
     Returns list of dictionaries of servers with owner of that pterodactyl id.
@@ -291,7 +288,6 @@ def list_servers(pterodactyl_id: int=None) -> list[dict]:
         print(e, pterodactyl_id, data)
         return None
 
-@cache.memoize(timeout=60)  # Cache for 1 minute
 def get_server_information(server_id: int) -> dict:
     """
     Returns dictionary of server information from pterodactyl api.
@@ -1142,7 +1138,6 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
         print(f"Server transfer error: {e}")
         return 500
 
-@cache.memoize(timeout=60)  # Cache for 1 minute
 def get_all_servers() -> list[dict]:
     """
     Returns list of all servers from Pterodactyl API with ?per_page=10000 parameter.
