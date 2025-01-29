@@ -3,17 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/taskbar.css') }}">
     <script src="https://cdn.tailwindcss.com"></script>
-    <!--<script src="https://kit.fontawesome.com/37a0f8002e.js" crossorigin="anonymous"></script>-->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css"/>
+    <style>
+        /* Custom styles for sidebar and animations */
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: -250px;
+            transition: left 0.3s ease-in-out;
+            background-color: #1f2937; /* bg-gray-800 */
+            color: white;
+            z-index: 1000;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .sidebar-visible .sidebar {
+            left: 0;
+        }
+        .toggle-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            background-color: #374151; /* bg-gray-700 */
+            color: white;
+            border: none;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.3s ease-in-out;
+        }
+        .toggle-btn.moved {
+            transform: translateX(250px);
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            color: white;
+            text-decoration: none;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .nav-link:hover {
+            background-color: #374151; /* bg-gray-700 */
+            transform: translateX(5px);
+        }
+        .nav-text {
+            margin-left: 12px;
+            font-size: 16px;
+        }
+        .logout {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+        }
+    </style>
 </head>
-<body class="bg-base-200 text-base-100">
+<body class="bg-gray-900 text-white" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
+    <!-- Toggle Button -->
     <button class="toggle-btn" id="toggleSidebar">
         <i class="fa fa-bars"></i>
     </button>
+
+    <!-- Sidebar -->
     <nav class="sidebar" id="sidebar">
+        <p class="p-4 font-bold text-xl lg:text-3xl">Lunes panel</p>
         <ul class="menu">
             <li>
                 <a href="{{ url_for('index') }}" class="nav-link">
@@ -61,18 +118,14 @@
             </li>
         </ul>
     </nav>
+
     <script>
+        // Toggle sidebar visibility
         const toggleBtn = document.getElementById('toggleSidebar');
         const body = document.body;
-    
+
         toggleBtn.addEventListener('click', () => {
-            if (body.classList.contains('sidebar-hidden')) {
-                body.classList.remove('sidebar-hidden');
-                body.classList.add('sidebar-visible');
-            } else {
-                body.classList.remove('sidebar-visible');
-                body.classList.add('sidebar-hidden');
-            }
+            body.classList.toggle('sidebar-visible');
             toggleBtn.classList.toggle('moved');
         });
     </script>
