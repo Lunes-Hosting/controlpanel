@@ -94,27 +94,27 @@ def process_credits():
         print("Processing credits...")
         use_credits()
         print("Credit processing complete")
-if False:
-    @scheduler.task('interval', id='server_unsuspend', seconds=180, misfire_grace_time=900)
-    def check_suspensions():
-        """Check for servers that can be unsuspended."""
-        with app.app_context():
-            print("Checking suspensions...")
-            check_to_unsuspend()
-            print("Suspension check complete")
+
+@scheduler.task('interval', id='server_unsuspend', seconds=180, misfire_grace_time=900)
+def check_suspensions():
+    """Check for servers that can be unsuspended."""
+    with app.app_context():
+        print("Checking suspensions...")
+        check_to_unsuspend()
+        print("Suspension check complete")
 
 
-    @scheduler.task('interval', id='sync_users', seconds=60, misfire_grace_time=900)
-    def sync_user_data():
-        """Synchronize user data with Pterodactyl panel."""
-        print("Syncing users...")
-        sync_users_script()
-        pterocache.update_all()
-        print("User sync complete")
+@scheduler.task('interval', id='sync_users', seconds=60, misfire_grace_time=900)
+def sync_user_data():
+    """Synchronize user data with Pterodactyl panel."""
+    print("Syncing users...")
+    sync_users_script()
+    pterocache.update_all()
+    print("User sync complete")
 
 
 
-    scheduler.start()
+scheduler.start()
 
 @app.route('/')
 def index():
