@@ -5,17 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Login</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer></script>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 </head>
-<body data-theme="synthwave">
+<body class="bg-gray-900 text-white" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
     <div id="flash-messages">
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                {% for message in messages %}
-               <div class="alert alert-error">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+               <div class="bg-red-500 text-white px-4 py-2 rounded-md flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     <span>{{ message }}</span>
                 </div>
                {% endfor %}
@@ -23,40 +25,36 @@
         {% endwith %}
     </div>
     
-    <div class="hero min-h-screen bg-base-200">
-        <div class="hero-content flex-col lg:flex-row-reverse">
-            <div class="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
-                <div class="card-body">
-                    <div class="text-center lg:text-center">
-                        <h1 class="text-5xl">Welcome Back!</h1>
-                        <p class="py-6">Login to your account or Create an account!</p>
-                        <div class="alert alert-info text-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            <span>Accounts inactive for 6+ months will have their passwords reset.</span>
-                        </div>
-                    </div>
-                    <form action="{{ url_for('user.login_user') }}" method="POST"> 
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text">Email</span>
-                            </label>
-                            <input type="text" placeholder="myemail@gmail.com" class="input input-bordered" name="email" />
-                        </div>
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text">Password</span>
-                            </label>
-                            <input type="password" class="input input-bordered" name="password" />
-                            <label class="label"><a href="{{ url_for('user.reset_password') }}" class="label-text-alt link link-hover">Forgot password?</a></label>
-                            <label class="label"><a href="{{ url_for('user.register_user') }}" class="label-text-alt link link-hover">Create account</a></label>
-                        </div>
-                        <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
-                        <div class="form-control mt-4">
-                            <button type="submit" class="btn btn-neutral w-full">Submit</button>
-                        </div>
-                    </form>
+    <div class="min-h-screen flex items-center justify-center bg-gray-900">
+        <div class="max-w-md w-full bg-gray-800 p-8 rounded-lg shadow-lg">
+            <div class="text-center">
+                <h1 class="text-4xl font-bold mb-4">Welcome Back!</h1>
+                <p class="text-gray-400 mb-6">Login to your account or Create an account!</p>
+                <div class="bg-blue-500 text-white px-4 py-2 rounded-md flex items-center text-sm mb-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>Accounts inactive for 6+ months will have their passwords reset.</span>
                 </div>
             </div>
+            <form action="{{ url_for('user.login_user') }}" method="POST"> 
+                <div class="mb-4">
+                    <label class="block text-gray-400 text-sm font-bold mb-2" for="email">Email</label>
+                    <input type="text" id="email" name="email" placeholder="myemail@gmail.com" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-400 text-sm font-bold mb-2" for="password">Password</label>
+                    <input type="password" id="password" name="password" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <div class="flex justify-between mt-2">
+                        <a href="{{ url_for('user.reset_password') }}" class="text-sm text-blue-500 hover:underline">Forgot password?</a>
+                        <a href="{{ url_for('user.register_user') }}" class="text-sm text-blue-500 hover:underline">Create account</a>
+                    </div>
+                </div>
+                <div class="g-recaptcha mb-6 w-full" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
+                <div class="mb-4">
+                    <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-200">Submit</button>
+                </div>
+            </form>
         </div>
     </div>
 
