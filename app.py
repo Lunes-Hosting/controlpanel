@@ -141,6 +141,7 @@ def start_bot_loop():
 if __name__ == '__main__':
     # Create separate processes for Flask and the Discord bot
     webhook_log("**----------------DASHBOARD HAS STARTED UP----------------**")
-    bot_thread = Thread(target=start_bot_loop, daemon=True)
-    bot_thread.start()
+    if ENABLE_BOT:
+        bot_thread = Thread(target=start_bot_loop, daemon=True)
+        bot_thread.start()
     app.run(debug=False, host="0.0.0.0", port=1137)
