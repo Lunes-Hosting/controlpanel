@@ -1,145 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
-   <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      
-      <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/create_server.css') }}">
-      <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-      <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
-      <script src="https://cdn.tailwindcss.com"></script>
-      <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer></script>
-      <title>Lunes Host | Create Server</title>
-      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
-      <style>
-         .highlighted {
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lunes Host | Create Server</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
+    <style>
+        .highlighted {
             border: 2px solid #6366f1;
             background-color: #4f46e5;
             color: white;
-         }
-      </style>
-   </head>
-   <body data-theme="synthwave">
-      <div class="hero min-h-screen bg-base-200">
-         <div class="hero-content flex-col lg:flex-col">
-            {% with messages = get_flashed_messages() %}
-               {% if messages %}
-                  {% for message in messages %}
-                     <div class="alert alert-error shadow-lg mb-4">
-                        <div>
-                           <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                           <span>{{ message }}</span>
-                        </div>
-                     </div>
-                  {% endfor %}
-               {% endif %}
-            {% endwith %}
-            <ul class="steps w-full mb-4">
-                <li class="step step-info" id="step-1-btn">Server Creation</li>
-                <li class="step" id="step-2-btn">Choose Plan</li>
-                <li class="step">Launch</li>
-            </ul>
-            <form action="{{ url_for('servers.create_server_submit') }}" method="post">
-               <!-- Step 1: Server Details -->
-               <div id="step-1" class="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
-                  <div class="text-center lg:text-center">
-                     <h1 class="text-5xl">Create Server</h1>
-                     <p class="py-6">Create a server and start hosting!</p>
-                  </div>
-                  <div class="card-body">
-                     <div class="form-control">
-                        <label class="label">
-                        <span class="label-text">Name:</span>
-                        </label>
-                        <input type="text" name="name" class="input input-bordered" required />
-                     </div>
-                     <div class="form-control">
-                        <label class="label">
-                        <span class="label-text">Node:</span>
-                        </label>
-                        <select class="select select-ghost w-full max-w-xs" name="node_id" id="node_id" required>
-                           <option value="" disabled selected>Select Node</option>
-                           {% for node in nodes %}
-                           <option value="{{ node['node_id'] }}">{{ node['name'] }}</option>
-                           {% endfor %}
-                        </select>
-                     </div>
-                     <div class="form-control">
-                        <label class="label">
-                        <span class="label-text">Software:</span>
-                        </label>
-                        <select class="select select-ghost w-full max-w-xs" name="egg_id" id="egg_id">
-                           <option value="" disabled selected>Select Software</option>
-                           {% for egg in eggs %}
-                           <option value="{{ egg['egg_id'] }}">{{ egg['name'] }}</option>
-                           {% endfor %}
-                        </select>
-                     </div>
-                     <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
-                     <div class="form-control mt-4">
-                        <button type="button" id="next-step" class="btn btn-neutral w-full">Next</button>
-                     </div>
-                  </div>
-               </div>
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white font-sans" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
+    <!-- Flash Messages -->
+    <div class="max-w-4xl mx-auto p-4 sm:p-6">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="bg-red-500 text-white px-4 py-2 rounded-md mb-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
 
-               <!-- Step 2: Choose Plan -->
-               <div id="step-2" class="hidden card flex-shrink-0 w-full shadow-2xl bg-base-100">
-                  <div class="text-center lg:text-center">
-                     <h1 class="text-5xl">Choose Plan</h1>
-                     <p class="py-6">Select a plan that suits your needs.</p>
-                  </div>
-                  <div class="card-body">
-                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
-                        {% for product in products %}
-                        <div class="card bg-base-200 shadow-lg cursor-pointer plan-card hover:shadow-xl transition-shadow" data-plan-id="{{ product['id'] }}">
-                           <div class="card-body">
-                              <h2 class="card-title">{{ product['name'] }}</h2>
-                              <p>Memory: {{ product['limits']['memory'] }}MB</p>
-                              <p>Storage: {{ product['limits']['disk'] }}MB</p>
-                              <p>CPU: 
-                                  {% if product['limits']['cpu'] == 0 %}
-                                  Unmetered (Fair use*)
-                                  {% else %}
-                                  {{ product['limits']['cpu'] }}%
-                                  {% endif %}
-                              </p>
-                              <p>Cost (credits/month): {{product['price']}} subtracted hourly</p>
-                           </div>
-                        </div>
+    <!-- Multi-Step Form -->
+    <div class="max-w-4xl mx-auto p-4 sm:p-6">
+        <!-- Steps Indicator -->
+        <ul class="flex justify-center gap-4 mb-8">
+            <li class="step step-info" id="step-1-btn">Server Creation</li>
+            <li class="step" id="step-2-btn">Choose Plan</li>
+            <li class="step">Launch</li>
+        </ul>
+
+        <!-- Step 1: Server Details -->
+        <form action="{{ url_for('servers.create_server_submit') }}" method="post">
+            <div id="step-1" class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h1 class="text-3xl sm:text-4xl font-bold text-center mb-6">Create Server</h1>
+                <p class="text-center text-gray-400 mb-8">Create a server and start hosting!</p>
+
+                <!-- Server Name -->
+                <div class="mb-6">
+                    <label for="name" class="block text-sm font-medium text-gray-300 mb-2">Name</label>
+                    <input 
+                        type="text" 
+                        name="name" 
+                        id="name" 
+                        required 
+                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                </div>
+
+                <!-- Node Selection -->
+                <div class="mb-6">
+                    <label for="node_id" class="block text-sm font-medium text-gray-300 mb-2">Node</label>
+                    <select 
+                        name="node_id" 
+                        id="node_id" 
+                        required 
+                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="" disabled selected>Select Node</option>
+                        {% for node in nodes %}
+                            <option value="{{ node['node_id'] }}">{{ node['name'] }}</option>
                         {% endfor %}
-                     </div>
-                     <div class="form-control mt-4">
-                        <input type="hidden" name="plan" id="selected-plan" required>
-                        <button type="submit" class="btn btn-neutral w-full">Submit</button>
-                     </div>
-                  </div>
-               </div>
-            </form>
-         </div>
-      </div>
+                    </select>
+                </div>
 
-      <script>
-         const step1Btn = document.getElementById('step-1-btn');
-         const step2Btn = document.getElementById('step-2-btn');
-         const step1 = document.getElementById('step-1');
-         const step2 = document.getElementById('step-2');
-         const nextStepBtn = document.getElementById('next-step');
-         const planCards = document.querySelectorAll('.plan-card');
-         const selectedPlanInput = document.getElementById('selected-plan');
+                <!-- Software Selection -->
+                <div class="mb-6">
+                    <label for="egg_id" class="block text-sm font-medium text-gray-300 mb-2">Software</label>
+                    <select 
+                        name="egg_id" 
+                        id="egg_id" 
+                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="" disabled selected>Select Software</option>
+                        {% for egg in eggs %}
+                            <option value="{{ egg['egg_id'] }}">{{ egg['name'] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-         nextStepBtn.addEventListener('click', () => {
-             step1.classList.add('hidden');
-             step2.classList.remove('hidden');
-             step2Btn.classList.add('step-info');
-         });
+                <!-- reCAPTCHA -->
+                <div class="mb-6">
+                    <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
+                </div>
 
-         planCards.forEach(card => {
-             card.addEventListener('click', () => {
-                 planCards.forEach(c => c.classList.remove('highlighted'));
-                 card.classList.add('highlighted');
-                 selectedPlanInput.value = card.getAttribute('data-plan-id');
-             });
-         });
-      </script>
-   </body>
+                <!-- Next Button -->
+                <button 
+                    type="button" 
+                    id="next-step" 
+                    class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors duration-200"
+                >
+                    Next
+                </button>
+            </div>
+
+            <!-- Step 2: Choose Plan -->
+            <div id="step-2" class="hidden bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h1 class="text-3xl sm:text-4xl font-bold text-center mb-6">Choose Plan</h1>
+                <p class="text-center text-gray-400 mb-8">Select a plan that suits your needs.</p>
+
+                <!-- Plan Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                    {% for product in products %}
+                        <div 
+                            class="bg-gray-700 p-4 rounded-lg shadow-lg cursor-pointer plan-card hover:shadow-xl transition-shadow"
+                            data-plan-id="{{ product['id'] }}"
+                        >
+                            <h2 class="text-xl font-semibold mb-2">{{ product['name'] }}</h2>
+                            <p class="text-sm text-gray-300">Memory: {{ product['limits']['memory'] }}MB</p>
+                            <p class="text-sm text-gray-300">Storage: {{ product['limits']['disk'] }}MB</p>
+                            <p class="text-sm text-gray-300">
+                                CPU: 
+                                {% if product['limits']['cpu'] == 0 %}
+                                    Unmetered (Fair use*)
+                                {% else %}
+                                    {{ product['limits']['cpu'] }}%
+                                {% endif %}
+                            </p>
+                            <p class="text-sm text-gray-300">Cost (credits/month): {{ product['price'] }} subtracted hourly</p>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Hidden Input for Selected Plan -->
+                <input type="hidden" name="plan" id="selected-plan" required>
+
+                <!-- Submit Button -->
+                <button 
+                    type="submit" 
+                    class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors duration-200"
+                >
+                    Submit
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const step1Btn = document.getElementById('step-1-btn');
+        const step2Btn = document.getElementById('step-2-btn');
+        const step1 = document.getElementById('step-1');
+        const step2 = document.getElementById('step-2');
+        const nextStepBtn = document.getElementById('next-step');
+        const planCards = document.querySelectorAll('.plan-card');
+        const selectedPlanInput = document.getElementById('selected-plan');
+
+        // Next Step Button
+        nextStepBtn.addEventListener('click', () => {
+            step1.classList.add('hidden');
+            step2.classList.remove('hidden');
+            step2Btn.classList.add('step-info');
+        });
+
+        // Plan Card Selection
+        planCards.forEach(card => {
+            card.addEventListener('click', () => {
+                planCards.forEach(c => c.classList.remove('highlighted'));
+                card.classList.add('highlighted');
+                selectedPlanInput.value = card.getAttribute('data-plan-id');
+            });
+        });
+    </script>
+</body>
 </html>
