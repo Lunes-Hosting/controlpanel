@@ -5,109 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Your Servers</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
-    <style>
-        body {
-            background-color: #1e293b;
-            display: flex;
-            height: 100vh;
-            margin: 0;
-            padding: 0;
-        }
-        .sidebar {
-            width: 250px;
-            background-color: #2d3748;
-            height: 100%;
-            position: fixed;
-            top: 0;
-            left: 0;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            padding: 10px 0;
-        }
-        .content {
-            margin-left: 0px;
-            padding: 20px;
-            flex-grow: 1;
-            background-color: #1e293b;
-        }
-        .container {
-            max-width: 100%;
-            padding: 20px;
-            border-radius: 10px;
-            background-color: #2d3748;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .card-body {
-            color: #fff; /* Ensures the text is white for visibility */
-        }
-    </style>
 </head>
-<body data-theme="synthwave">
+<body class="bg-gray-900 text-white font-sans" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
     {% include 'taskbar.html' %}
 
     <!-- Flash Messages -->
-    <div id="flash-messages">
+    <div id="flash-messages" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
         {% with messages = get_flashed_messages() %}
             {% if messages %}
-               {% for message in messages %}
-               <div class="alert alert-error mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>{{ message }}</span>
-                </div>
-               {% endfor %}
+                {% for message in messages %}
+                    <div class="bg-red-500 text-white px-4 py-2 rounded-md mb-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
             {% endif %}
         {% endwith %}
     </div>
-    
+
     <!-- Main Content -->
-    <div class="content">
-        <div class="container">
-            <h1 class="text-4xl font-bold mb-6 text-center text-white">Your Servers</h1>
-            <div class="text-center mb-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 class="text-3xl font-bold text-center text-blue-400">Your Servers</h1>
+        <div class="bg-gray-800 rounded-lg p-6 sm:p-8 mt-6">
+            <!-- Page Heading -->
+            
+
+            <!-- Create Server Button or Messages -->
+            <div class="text-center mb-8">
                 {% if verified %}
                     {% if suspended %}
-                    <div class="alert alert-error mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <span>Your account is suspended. You cannot create new servers.</span>
-                    </div>
+                        <div class="bg-red-500 text-white px-4 py-2 rounded-md mb-4 flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <span>Your account is suspended. You cannot create new servers.</span>
+                        </div>
                     {% else %}
-                    <a href="{{ url_for('servers.create_server') }}">
-                        <button class="btn btn-info text-base-100">Create Server</button>
-                    </a>
+                        <a href="{{ url_for('servers.create_server') }}">
+                            <button class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md transition duration-200">
+                                Create Server
+                            </button>
+                        </a>
                     {% endif %}
                 {% else %}
-                    <div class="alert alert-warning mb-4">
+                    <div class="bg-yellow-500 text-white px-4 py-2 rounded-md mb-4 flex items-center justify-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                         </svg>
-                        <span>Your email is not verified yet. <a href="{{ url_for('user.resend_confirmation_email') }}" class="link link-primary">Click here to resend verification email</a></span>
+                        <span>Your email is not verified yet. <a href="{{ url_for('user.resend_confirmation_email') }}" class="text-blue-300 hover:underline">Click here to resend verification email</a></span>
                     </div>
                 {% endif %}
             </div>
 
             <!-- Server Cards -->
-            <section class="py-8">
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {% for server in servers %}
-                    <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}">
-                        <div class="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                            <div class="card-body p-6 text-center">
-                                <h3 class="text-xl font-semibold mb-4 text-white">{{ server['attributes']['name'] }}</h3>
-                                <p class="text-sm text-gray-300">Click to view details</p>
-                            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {% for server in servers %}
+                    <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}" class="block bg-gray-700 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <div class="p-6 text-center">
+                            <h3 class="text-xl font-semibold mb-2">{{ server['attributes']['name'] }}</h3>
+                            <p class="text-sm text-gray-400">Click to view details</p>
                         </div>
                     </a>
-                    {% endfor %}
-                </div>
-            </section>
+                {% endfor %}
+            </div>
         </div>
     </div>
 

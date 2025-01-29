@@ -4,46 +4,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Account Page</title>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/account.css') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css"/>
 </head>
-<body>
+<body class="bg-gray-900 text-white" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
     {% include 'taskbar.html' %}
 
     <div class="content">
-        <div class="container mx-auto mt-12 p-6">
+        <div class="container mx-auto mt-12 p-4 sm:p-6">
+            <!-- Flash Messages -->
             {% with messages = get_flashed_messages() %}
-            {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-info mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6" />
-                    </svg>
-                    <span>{{ message }}</span>
-                </div>
-            {% endfor %}
-            {% endif %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="bg-blue-500 text-white px-4 py-2 rounded-md mb-4 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6" />
+                            </svg>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
             {% endwith %}
 
-            <h1 class="text-3xl font-bold text-center text-info">Welcome to Your Account</h1>
-            <div class="account-info">
-                <h2>Account Information</h2>
-                <p><strong>Username:</strong> {{ username }}</p>
-                <p><strong>Email:</strong> {{ email }}</p>
-                <p><strong>Credits:</strong> {{ credits }}</p>
-                <p><strong>Server Count:</strong> {{ server_count }}</p>
-                <p><strong>Monthly Usage:</strong> {{ monthly_usage }}</p>
-                
-                <div class="danger-zone" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd;">
-                    <h3 style="color: #dc3545;">Danger Zone</h3>
-                    <p style="color: #6c757d;">Once you delete your account, there is no going back. Please be certain.</p>
-                    <a href="{{ url_for('user.delete_account') }}" class="btn btn-danger" style="background-color: #dc3545; color: white; text-decoration: none; padding: 8px 16px; border-radius: 4px; margin-top: 10px;">Delete Account</a>
+            <!-- Account Information -->
+            <h1 class="text-3xl font-bold text-center text-blue-400">Welcome to Your Account</h1>
+            <div class="account-info mt-6 bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-bold text-blue-400 mb-4">Account Information</h2>
+                <div class="space-y-3">
+                    <p><strong class="text-gray-400">Username:</strong> <span class="text-white">{{ username }}</span></p>
+                    <p><strong class="text-gray-400">Email:</strong> <span class="text-white">{{ email }}</span></p>
+                    <p><strong class="text-gray-400">Credits:</strong> <span class="text-white">{{ credits }}</span></p>
+                    <p><strong class="text-gray-400">Server Count:</strong> <span class="text-white">{{ server_count }}</span></p>
+                    <p><strong class="text-gray-400">Monthly Usage:</strong> <span class="text-white">{{ monthly_usage }}</span></p>
+                </div>
+
+                <!-- Danger Zone -->
+                <div class="danger-zone mt-8 pt-6 border-t border-gray-700">
+                    <h3 class="text-xl font-bold text-red-500">Danger Zone</h3>
+                    <p class="text-gray-400 mt-2">Once you delete your account, there is no going back. Please be certain.</p>
+                    <a href="{{ url_for('user.delete_account') }}" class="inline-block mt-4 px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition duration-200">Delete Account</a>
                 </div>
             </div>
+
+            <!-- Logout Button -->
             <div class="button-container mt-6 text-center">
-                <a href="{{url_for('user.logout')}}" class="btn btn-info text-white">Log out</a>
+                <a href="{{ url_for('user.logout') }}" class="inline-block px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-200">Log out</a>
             </div>
         </div>
     </div>

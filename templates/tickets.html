@@ -4,45 +4,82 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Create Ticket</title>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/tickets.css') }}">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
 </head>
-<body>
+<body class="bg-gray-900 text-white font-sans" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
     {% include 'taskbar.html' %}
 
-    <div class="content container mx-auto p-6">
-        <h2>THIS IS NOT COMPLETE</h2>
-        <h1>Create a ticket</h1>
-        <form action="{{ url_for('tickets.create_ticket_submit') }}" method="post">
-            <label for="title">Title</label>
-            <input type="text" id="title" name="title" required>
-            
-            <label for="message">Your message</label>
-            <input type="text" id="message" name="message">
-            
-            <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
-            
-            <input type="submit" value="Submit">
-        </form>
+    <!-- Main Content -->
+    <div class="max-w-xl mx-auto p-4 sm:p-6">
+        <!-- Page Heading -->
+        <h1 class="text-3xl sm:text-4xl font-bold mb-8 text-center">Create a Ticket</h1>
 
+        <!-- Create Ticket Form -->
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
+            <form action="{{ url_for('tickets.create_ticket_submit') }}" method="post">
+                <!-- Title Input -->
+                <div class="mb-6">
+                    <label for="title" class="block text-sm font-medium text-gray-300 mb-2">Title</label>
+                    <input 
+                        type="text" 
+                        id="title" 
+                        name="title" 
+                        required 
+                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                </div>
+
+                <!-- Message Input -->
+                <div class="mb-6">
+                    <label for="message" class="block text-sm font-medium text-gray-300 mb-2">Your Message</label>
+                    <textarea 
+                        id="message" 
+                        name="message" 
+                        rows="4" 
+                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    ></textarea>
+                </div>
+
+                <!-- reCAPTCHA -->
+                <div class="mb-6">
+                    <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
+                </div>
+
+                <!-- Submit Button -->
+                <button 
+                    type="submit" 
+                    class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors duration-200"
+                >
+                    Submit
+                </button>
+            </form>
+        </div>
+
+        <!-- Flash Messages -->
         {% with messages = get_flashed_messages() %}
             {% if messages %}
-                <div class="messages">
+                <div class="mb-8">
                     {% for message in messages %}
-                        {{ message }}
+                        <div class="bg-blue-500 text-white px-4 py-2 rounded-md flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>{{ message }}</span>
+                        </div>
                     {% endfor %}
                 </div>
             {% endif %}
         {% endwith %}
 
-        <div class="grid-container">
+        <!-- Ticket List -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for ticket in tickets %}
-                <a href="{{ url_for('tickets.ticket', ticket_id=ticket[0]) }}">
-                    <div class="server-box">
-                        <h3>{{ ticket[2] }}</h3>
-                        <p>{{ ticket[3] }}</p>
+                <a href="{{ url_for('tickets.ticket', ticket_id=ticket[0]) }}" class="block">
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <h3 class="text-xl font-semibold mb-2 text-white">{{ ticket[2] }}</h3>
+                        <p class="text-gray-400">{{ ticket[3] }}</p>
                     </div>
                 </a>
             {% endfor %}
