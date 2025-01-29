@@ -145,4 +145,4 @@ if __name__ == '__main__':
     if ENABLE_BOT:
         bot_thread = Thread(target=start_bot_loop, daemon=True)
         bot_thread.start()
-    app.run(debug=False, host="0.0.0.0", port=1137)
+    app.run(debug=False, host="0.0.0.0", port=1137, threaded=True)
