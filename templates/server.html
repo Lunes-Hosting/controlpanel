@@ -138,32 +138,27 @@
         function transferServer() {
             const nodeId = document.getElementById('nodeSelect').value;
 
-            const data = {
-                node_id: parseInt(nodeId)
-            };
-
-            fetch(`/api/application/servers/{{ info['attributes']['id'] }}/transfer`, {
+            fetch(`{{ url_for('servers.transfer_server_submit', server_id=info['attributes']['id']) }}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify({
+                    node_id: parseInt(nodeId)
+                })
             })
             .then(response => {
-                if (response.status === 202) {
-                    alert('Server transfer initiated successfully');
-                } else if (response.status === 400) {
-                    alert('Unable to process the transfer. The target node may not have any available allocations or is not available.');
-                } else if (response.status === 504) {
-                    alert('The target node did not respond. Please try again later.');
-                } else {
-                    alert('An error occurred while transferring the server');
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(text || 'An error occurred while transferring the server');
+                    });
                 }
+                alert('Server transfer initiated successfully');
                 closeTransferModal();
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while transferring the server');
+                alert(error.message);
                 closeTransferModal();
             });
         }
