@@ -47,7 +47,7 @@ Handles allocation of:
 - Bandwidth
 """
 
-from flask import Blueprint, request, render_template, session, flash, redirect, url_for
+from flask import Blueprint, request, render_template, session, flash, redirect, url_for, jsonify
 import sys
 from threadedreturn import ThreadWithReturnValue
 sys.path.append("..")
@@ -619,20 +619,21 @@ def transfer_server_submit(server_id):
     after_request(session, request.environ, True)
     
     if not verify_server_ownership(server_id, session['email']):
-        return "You can't transfer this server - you don't own it!"
+        return "You can't transfer this server - you don't own it!", 403
     
-    # Get target node from form
-    node_id = request.form.get('node_id')
+    # Get target node from JSON data
+    data = request.get_json()
+    if not data or 'node_id' not in data:
+        return "Missing node_id in request", 400
+        
+    node_id = data['node_id']
     
     # Attempt server transfer
     status_code = transfer_server(int(server_id), int(node_id))
     
     if status_code == 202:
-        flash('Server transfer initiated successfully.')
+        return jsonify({'message': 'Server transfer initiated successfully.'}), 200
     elif status_code == 400:
-        flash('Selected node is full. Please choose a different node.')
-        return redirect(url_for('servers.transfer_server_route', server_id=server_id))
+        return jsonify({'message': 'Selected node is full. Please choose a different node.'}), 400
     else:
-        flash('An unexpected error occurred during server transfer.')
-    
-    return redirect(url_for('servers.server', server_id=server_id))
+        return jsonify({'message': 'An unexpected error occurred during server transfer.'}), 500
