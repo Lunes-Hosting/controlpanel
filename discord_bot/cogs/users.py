@@ -4,6 +4,7 @@ from discord.ext import commands # type: ignore
 from managers.database_manager import DatabaseManager
 from ..utils.database import UserDB
 from ..utils.logger import logger
+from flask import inner_app
 class Users(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -79,6 +80,7 @@ class Users(commands.Cog):
             await ctx.respond("You do not have permission to use this command.", ephemeral=True)
             return
         try:
+            with inner_app.app_context():
                UserDB.suspend_user(email)
                embed = discord.Embed(title="User Suspended", color=discord.Color.red())
                embed.add_field(name="Email:", value=str(email), inline=False)
@@ -95,6 +97,7 @@ class Users(commands.Cog):
             await ctx.respond("You do not have permission to use this command.", ephemeral=True)
             return
         try:
+            with inner_app.app_context():
                UserDB.unsuspend_user(email)
                embed = discord.Embed(title="User Unsuspended", color=discord.Color.green())
                embed.add_field(name="Email:", value=str(email), inline=False)
