@@ -178,7 +178,7 @@ def index():
         "account.html", 
         credits=int(current_credits), 
         server_count=server_count,
-        username=username[0], 
+        username=username, 
         email=session['email'], 
         monthly_usage=monthly_usage
     )
