@@ -39,6 +39,7 @@ Cache Keys:
 - reset_[token]: Stores password reset tokens
 """
 
+import asyncio
 from flask import Blueprint, request, render_template, session, flash, current_app, redirect, url_for
 import sys
 import threading
@@ -157,16 +158,21 @@ def index():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
 
-    after_request(session, request.environ, True)
-    current_credits = get_credits(session['email'])
-    servers = list_servers(get_ptero_id(session['email'])[0])
+    asyncio.run(after_request_async(session, request.environ, True))
+    current_credits, ptero_id, username = account_get_information(session["email"])
+    #print(current_credits)
+    #print(ptero_id)
+    #print(username)
+    #current_credits = get_credits(session['email']) #use_db
+    #servers = improve_list_servers(get_ptero_id(session['email'])[0])
+    servers = improve_list_servers(ptero_id)
     server_count = len(servers)
     monthly_usage = sum(convert_to_product(server)['price'] for server in servers)
 
-    username = DatabaseManager.execute_query(
-        "SELECT name FROM users WHERE email = %s", 
-        (session['email'],)
-    )
+    #username = DatabaseManager.execute_query(
+    #    "SELECT name FROM users WHERE email = %s", 
+    #    (session['email'],)
+    #)
 
     return render_template(
         "account.html", 

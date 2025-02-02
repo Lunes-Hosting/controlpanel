@@ -891,7 +891,12 @@ def check_to_unsuspend():
                     update_last_seen(email)
 
 
+def account_get_information(email: str):
+    query = f"SELECT credits, pterodactyl_id, name FROM users WHERE email = %s"
+    db = DatabaseManager()
+    information = db.execute_query(query, (email,))
 
+    return information[0], information[1], information[2]
 
 def get_credits(email: str) -> int:
     """
