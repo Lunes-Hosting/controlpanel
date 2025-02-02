@@ -67,9 +67,14 @@ mail = Mail(app)
 scheduler = APScheduler()
 scheduler.init_app(app)
 
+
+
+
+
 def rate_limit_key():
     """Generate a unique key for rate limiting based on user's session."""
     return session.get('random_id')
+
 
 # Configure rate limiting
 limiter = Limiter(rate_limit_key, app=app, default_limits=["200 per day", "5000 per hour"])
@@ -83,7 +88,7 @@ for blueprint, limit in [
 ]:
     limiter.limit(limit, key_func=rate_limit_key)(blueprint)
     app.register_blueprint(blueprint, 
-                         url_prefix=f"/{blueprint.name}" if blueprint.name != "user" else None)
+                        url_prefix=f"/{blueprint.name}" if blueprint.name != "user" else None)
 
 # Register admin blueprint separately (no rate limit)
 app.register_blueprint(admin, url_prefix="/admin")
@@ -131,28 +136,29 @@ def webhook_log(message: str):
     """
     resp = requests.post(WEBHOOK_URL,
                          json={"username": "Web Logs", "content": message})
-    print(resp.text)
+    print(resp.text) 
 
 
-# Load bot extensions
-extensions = ['discord_bot.cogs.statistics', 'discord_bot.cogs.users']
+if not DEBUG_FRONTEND_MODE:
+    # Load bot extensions
+    extensions = ['discord_bot.cogs.statistics', 'discord_bot.cogs.users']
 
-for extension in extensions:
-    print(f'Loading {extension}')
-    if extension == 'discord_bot.cogs.users':
-        # Special handling for users cog to pass Flask app
-        module = importlib.import_module(extension)
-        module.setup(bot, app)
-    else:
-        bot.load_extension(extension)
+    for extension in extensions:
+        print(f'Loading {extension}')
+        if extension == 'discord_bot.cogs.users':
+            # Special handling for users cog to pass Flask app
+            module = importlib.import_module(extension)
+            module.setup(bot, app)
+        else:
+            bot.load_extension(extension)
 
-def start_bot_loop():
-     asyncio.run(run_bot())
+    def start_bot_loop():
+        asyncio.run(run_bot())
 
 if __name__ == '__main__':
     # Create separate processes for Flask and the Discord bot
     webhook_log("**----------------DASHBOARD HAS STARTED UP----------------**")
-    if ENABLE_BOT:
+    if ENABLE_BOT and not DEBUG_FRONTEND_MODE:
         bot_thread = Thread(target=start_bot_loop, daemon=True)
         bot_thread.start()
-    app.run(debug=False, host="0.0.0.0", port=1137, threaded=True)
+    app.run(debug=DEBUG_FRONTEND_MODE, host="0.0.0.0", port=1137, threaded=True)
