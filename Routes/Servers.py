@@ -60,6 +60,23 @@ import random
 
 servers = Blueprint('servers', __name__)
 
+
+def get_user_verification_and_ptero_id(email):
+        
+    result = DatabaseManager.execute_query(
+        "SELECT email_verified_at, pterodactyl_id FROM users WHERE email = %s",
+        (email,)
+    )
+
+    if result:
+        verified = False
+        if result[0] is not None:
+            verified = True
+
+        return (verified, result[1])
+    
+    return (None, None)
+
 def get_user_verification_status(email):
     """
     Check if user's email is verified.
@@ -130,6 +147,31 @@ def verify_server_ownership(server_id, user_email):
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     ptero_id = get_ptero_id(user_email)
     return resp['attributes']['user'] == ptero_id[0] if ptero_id else False
+
+def verify_server_ownership_by_ptero_id(server_id, ptero_id):
+    """
+    Verify server ownership.
+    
+    Args:
+        server_id: Pterodactyl server ID
+        user_email: User's email address
+        
+    API Calls:
+        - Pterodactyl: Get server details
+        
+    Process:
+        1. Fetch server details
+        2. Get user's panel ID
+        3. Compare owner IDs
+        
+    Returns:
+        bool: True if user owns server
+        
+    Related Functions:
+        - get_ptero_id(): Gets user's panel ID
+    """
+    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
+    return resp['attributes']['user'] == ptero_id if ptero_id else False
 
 @servers.route('/')
 def servers_index():
@@ -215,25 +257,32 @@ def server(server_id):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
         
-    after_request(session, request.environ, True)
+    asyncio.run(after_request_async(session, request.environ, True))
     
-    if not verify_server_ownership(server_id, session['email']):
+    verified, ptero_id = get_user_verification_and_ptero_id(session["email"])
+    #print(verified)
+    #print(ptero_id)
+    #ptero_id = get_user_ptero_id(session) #uses db
+    #verified = get_user_verification_status(session['email']) #uses db
+    #print(verified)
+    #print(ptero_id)
+    if not verify_server_ownership_by_ptero_id(server_id, ptero_id):
         return "You can't view this server - you don't own it!"
         
-    ptero_id = get_user_ptero_id(session)
-    servers_list = list_servers(ptero_id[0])
-    verified = get_user_verification_status(session['email'])
+    
+    servers_list = improve_list_servers(ptero_id) #improved
+    
     # Filter available products
     products_local = [p for p in products if p['enabled']]
     for server in servers_list:
-        if (server['attributes']['user'] == ptero_id[0] and 
+        if (server['attributes']['user'] == ptero_id and 
             server['attributes']['limits']['memory'] == 128):
             products_local.remove(products[0])
             break
             
     info = get_server_information(server_id)
     nodes = get_nodes()
-    return render_template('server.html', info=info, products=products_local, nodes=nodes, verified=verified)
+    return render_template('server.html', info=info, products=products_local, nodes=tuple(nodes), verified=verified)
 
 @servers.route("/create")
 def create_server():
