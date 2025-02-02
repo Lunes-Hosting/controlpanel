@@ -4,13 +4,12 @@ from discord.ext import commands # type: ignore
 from managers.database_manager import DatabaseManager
 from ..utils.database import UserDB
 from ..utils.logger import logger
-from flask import current_app
-from app import app  # Import the Flask app instance
 
 class Users(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot, flask_app=None):
         self.bot = bot
         self._last_member = None
+        self.flask_app = flask_app
 
     @slash_command(name="add_credits", description="Add or remove credits from a user's account")
     async def add_credits_command(self, ctx, email: discord.Option(str, "User's email"), amount: discord.Option(int, "Credits amount (negative to subtract)")): # type: ignore
@@ -78,7 +77,11 @@ class Users(commands.Cog):
 
     @slash_command(name="suspend", description="Suspend a user")
     async def suspend_command(self, ctx, email: discord.Option(str, "User's email")): # type: ignore
-        with app.app_context():  # Use the actual app instance instead of current_app
+        if self.flask_app is None:
+            await ctx.respond("Error: Flask app not initialized", ephemeral=True)
+            return
+            
+        with self.flask_app.app_context():
             if not ctx.author.guild_permissions.administrator:
                 await ctx.respond("You do not have permission to use this command.", ephemeral=True)
                 return
@@ -96,7 +99,11 @@ class Users(commands.Cog):
 
     @slash_command(name="unsuspend", description="Unsuspend a user")
     async def unsuspend_command(self, ctx, email: discord.Option(str, "User's email")): # type: ignore
-        with current_app.app_context():
+        if self.flask_app is None:
+            await ctx.respond("Error: Flask app not initialized", ephemeral=True)
+            return
+            
+        with self.flask_app.app_context():
             if not ctx.author.guild_permissions.administrator:
                 await ctx.respond("You do not have permission to use this command.", ephemeral=True)
                 return
@@ -112,5 +119,5 @@ class Users(commands.Cog):
                 await ctx.respond(f"Error unsuspending user: {str(e)}", ephemeral=True)
                 logger.error(f'Error with discord command "/unsuspend": {str(e)}')
 
-def setup(bot):
-     bot.add_cog(Users(bot))
+def setup(bot, flask_app=None):
+     bot.add_cog(Users(bot, flask_app))

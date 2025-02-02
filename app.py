@@ -30,6 +30,7 @@ from flask_session import Session
 from multiprocessing import Process
 from discord_bot.bot import bot, run_bot
 import asyncio
+import importlib
 
 from scripts import *
 from cacheext import cache
@@ -133,9 +134,18 @@ def webhook_log(message: str):
     print(resp.text)
 
 
+# Load bot extensions
+extensions = ['discord_bot.cogs.statistics', 'discord_bot.cogs.users']
+
 for extension in extensions:
     print(f'Loading {extension}')
-    bot.load_extension(extension)
+    if extension == 'discord_bot.cogs.users':
+        # Special handling for users cog to pass Flask app
+        module = importlib.import_module(extension)
+        module.setup(bot, app)
+    else:
+        bot.load_extension(extension)
+
 def start_bot_loop():
      asyncio.run(run_bot())
 
