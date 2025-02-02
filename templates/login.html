@@ -7,7 +7,8 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer></script>
-    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <!--<link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>-->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}"/>
 </head>
 <body class="bg-gray-900 text-white" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
     <div id="flash-messages">
