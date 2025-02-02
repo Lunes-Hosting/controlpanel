@@ -5,6 +5,8 @@ from managers.database_manager import DatabaseManager
 from ..utils.database import UserDB
 from ..utils.logger import logger
 from flask import current_app
+from app import app  # Import the Flask app instance
+
 class Users(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -76,7 +78,7 @@ class Users(commands.Cog):
 
     @slash_command(name="suspend", description="Suspend a user")
     async def suspend_command(self, ctx, email: discord.Option(str, "User's email")): # type: ignore
-        with current_app.app_context():
+        with app.app_context():  # Use the actual app instance instead of current_app
             if not ctx.author.guild_permissions.administrator:
                 await ctx.respond("You do not have permission to use this command.", ephemeral=True)
                 return
