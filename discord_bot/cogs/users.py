@@ -76,37 +76,39 @@ class Users(commands.Cog):
 
     @slash_command(name="suspend", description="Suspend a user")
     async def suspend_command(self, ctx, email: discord.Option(str, "User's email")): # type: ignore
-        if not ctx.author.guild_permissions.administrator:
-            await ctx.respond("You do not have permission to use this command.", ephemeral=True)
-            return
-        try:
-            with current_app.app_context():
-               UserDB.suspend_user(email)
-               embed = discord.Embed(title="User Suspended", color=discord.Color.red())
-               embed.add_field(name="Email:", value=str(email), inline=False)
-               await ctx.respond(embed=embed, ephemeral=True)
-               logger.info(f"Suspended user {email}")
-               return
-        except Exception as e:
-            await ctx.respond(f"Error suspending user: {str(e)}", ephemeral=True)
-            logger.error(f'Error with discord command "/suspend": {str(e)}')
+        with current_app.app_context():
+            if not ctx.author.guild_permissions.administrator:
+                await ctx.respond("You do not have permission to use this command.", ephemeral=True)
+                return
+            try:
+                
+                UserDB.suspend_user(email)
+                embed = discord.Embed(title="User Suspended", color=discord.Color.red())
+                embed.add_field(name="Email:", value=str(email), inline=False)
+                await ctx.respond(embed=embed, ephemeral=True)
+                logger.info(f"Suspended user {email}")
+                return
+            except Exception as e:
+                await ctx.respond(f"Error suspending user: {str(e)}", ephemeral=True)
+                logger.error(f'Error with discord command "/suspend": {str(e)}')
 
     @slash_command(name="unsuspend", description="Unsuspend a user")
     async def unsuspend_command(self, ctx, email: discord.Option(str, "User's email")): # type: ignore
-        if not ctx.author.guild_permissions.administrator:
-            await ctx.respond("You do not have permission to use this command.", ephemeral=True)
-            return
-        try:
-            with current_app.app_context():
-               UserDB.unsuspend_user(email)
-               embed = discord.Embed(title="User Unsuspended", color=discord.Color.green())
-               embed.add_field(name="Email:", value=str(email), inline=False)
-               await ctx.respond(embed=embed, ephemeral=True)
-               logger.info(f"Unsuspended user {email}")
-               return
-        except Exception as e:
-            await ctx.respond(f"Error unsuspending user: {str(e)}", ephemeral=True)
-            logger.error(f'Error with discord command "/unsuspend": {str(e)}')
+        with current_app.app_context():
+            if not ctx.author.guild_permissions.administrator:
+                await ctx.respond("You do not have permission to use this command.", ephemeral=True)
+                return
+            try:
+                
+                UserDB.unsuspend_user(email)
+                embed = discord.Embed(title="User Unsuspended", color=discord.Color.green())
+                embed.add_field(name="Email:", value=str(email), inline=False)
+                await ctx.respond(embed=embed, ephemeral=True)
+                logger.info(f"Unsuspended user {email}")
+                return
+            except Exception as e:
+                await ctx.respond(f"Error unsuspending user: {str(e)}", ephemeral=True)
+                logger.error(f'Error with discord command "/unsuspend": {str(e)}')
 
 def setup(bot):
      bot.add_cog(Users(bot))
