@@ -47,6 +47,7 @@ Handles allocation of:
 - Bandwidth
 """
 
+import asyncio
 from flask import Blueprint, request, render_template, session, flash, redirect, url_for, jsonify
 import sys
 from threadedreturn import ThreadWithReturnValue
@@ -161,16 +162,21 @@ def servers_index():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
         
-    after_request(session, request.environ, True)
+    asyncio.run(after_request_async(session, request.environ, True))
     ptero_id = get_user_ptero_id(session)
-    verified = get_user_verification_status(session['email'])
-    
-    servers_list = []
-    if verified:
-        servers_list = list_servers(ptero_id[0])
-        
     # Check if user is suspended
-    suspended = check_if_user_suspended(str(ptero_id[0])) if ptero_id else False
+    
+    verified, suspended = get_user_verification_status_and_suspension_status(session["email"])
+    #print(suspended)
+    #print(verified)
+
+    #verified = get_user_verification_status(session['email']) #uses db to get verification
+    #suspended = check_if_user_suspended(str(ptero_id[0]))  #uses db to get suspended
+    #print(suspended)
+    #print(verified)
+    servers_list = ()
+    if verified:
+        servers_list = improve_list_servers(ptero_id[0])
         
     return render_template('servers.html', servers=servers_list, verified=verified, suspended=suspended)
 

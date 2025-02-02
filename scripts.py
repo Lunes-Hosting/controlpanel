@@ -223,6 +223,96 @@ def get_eggs() -> list[dict]:
     """
     return cache.egg_cache
 
+def improve_list_servers(pterodactyl_id: int = None) -> tuple[dict]:
+    """
+    
+    Example Response:
+    {
+        "object": "user",
+        "attributes": {
+            "id": 2,
+            "external_id": null,
+            "uuid": "4cbba6d2-923b-4630-b7ac-8b9dcf204bb0",
+            "username": "gustavo_fring",
+            "email": "frostyornot@gmail.com",
+            "first_name": "gustavo_fring",
+            "last_name": "gustavo_fring",
+            "language": "en",
+            "root_admin": true,
+            "2fa": false,
+            "created_at": "2022-09-28T20:52:34+00:00",
+            "updated_at": "2024-07-10T03:29:42+00:00",
+            "relationships": {
+            "servers": {
+                "object": "list",
+                "data": [
+                {
+                    "object": "server",
+                    "attributes": {
+                    "id": 2765,
+                    "external_id": null,
+                    "uuid": "01ed4077-d73e-4988-8e62-370a77df3fe6",
+                    "identifier": "01ed4077",
+                    "name": "</h1>",
+                    "description": "",
+                    "status": null,
+                    "suspended": false,
+                    "limits": {
+                        "memory": 512,
+                        "swap": 0,
+                        "disk": 0,
+                        "io": 500,
+                        "cpu": 0,
+                        "threads": null,
+                        "oom_disabled": true
+                    },
+                    "feature_limits": {
+                        "databases": 0,
+                        "allocations": 0,
+                        "backups": 0
+                    },
+                    "user": 2,
+                    "node": 11,
+                    "allocation": 8105,
+                    "nest": 6,
+                    "egg": 16,
+                    "container": {
+                        "startup_command": "{{STARTUP_COMMAND}}",
+                        "image": "ghcr.io/parkervcp/yolks:python_3.11",
+                        "installed": 1,
+                        "environment": {
+                        "STARTUP_COMMAND": "eval git reset --hard HEAD && git checkout main && git pull && pip install -r requirements.txt -U && python3 main.py",
+                        "STARTUP": "{{STARTUP_COMMAND}}",
+                        "P_SERVER_LOCATION": "US",
+                        "P_SERVER_UUID": "01ed4077-d73e-4988-8e62-370a77df3fe6",
+                        "P_SERVER_ALLOCATION_LIMIT": 0
+                        }
+                    },
+                    "updated_at": "2024-08-31T02:42:51+00:00",
+                    "created_at": "2023-10-30T01:48:27+00:00"
+                    }
+                }
+                ]
+            }
+            }
+        }
+    }
+    """
+    print("in use!")
+    resp = requests.get(
+        f"{PTERODACTYL_URL}api/application/users/{int(pterodactyl_id)}?include=servers", 
+        headers=HEADERS
+    ).json()
+
+    relationship = resp["attributes"]["relationships"]["servers"]["data"]
+
+    # Using list comprehension for faster filtering
+    server_list = [server for server in relationship if int(server["attributes"]["user"]) == pterodactyl_id]
+
+    return (server_list)
+
+
+
 def list_servers(pterodactyl_id: int=None) -> list[dict]:
     """
     Returns list of dictionaries of servers with owner of that pterodactyl id.
@@ -840,6 +930,25 @@ def check_if_user_suspended(pterodactyl_id: str) -> bool | None:
     return to_bool[suspended[0]]
 
 
+def get_user_verification_status_and_suspension_status(email):
+    result = DatabaseManager.execute_query(
+        "SELECT email_verified_at, suspended FROM users WHERE email = %s",
+        (email,)
+    )
+
+    if result:
+        verified = False
+        if result[0] is not None:
+            verified = True
+
+        return (verified, result[1] == 1)
+    
+    return (None, None)
+
+
+#print(get_user_verification_status_and_suspension_status("frostyornot@gmail.com"))
+#print(check_if_user_suspended(2))
+
 def update_ip(email: str, ip: EnvironHeaders):
     """
     Updates the ip by getting the header with key "CF-Connecting-IP" default is "localhost".
@@ -895,6 +1004,39 @@ def get_last_seen(email: str) -> datetime.datetime:
     last_seen = db.execute_query(query, (email,))
     return last_seen[0]
 
+
+async def after_request_async(session, request: EnvironHeaders, require_login: bool = False):
+    """
+    This function is called after every request
+    
+    Args:
+        session: Session object
+        request: Request object
+        require_login: Whether to require login
+    
+    Returns:
+        None
+    """
+    if require_login is True:
+        email = session.get("email")
+        if email is None:
+            return redirect(url_for("user.login_user"))
+        else:
+            print(email)
+            t1 = threading.Thread(target=update_last_seen, args=(email,), daemon=True)
+            t2 = threading.Thread(target=update_ip, args=(email, request), daemon=True)
+            ptero_id = get_ptero_id(session['email'])
+            session['pterodactyl_id'] = ptero_id
+            t1.start()
+            t2.start()
+
+    random_id = session.get("random_id")
+    if random_id is None:
+        characters = string.ascii_letters + string.digits  # You can add more characters if needed
+
+        random_string = ''.join(secrets.SystemRandom().choice(characters) for _ in range(50))
+
+        session['random_id'] = random_string
 
 def after_request(session, request: EnvironHeaders, require_login: bool = False):
     """
