@@ -35,13 +35,16 @@ import importlib
 from scripts import *
 from cacheext import cache
 from threading import Thread
-from discord_bot.bot import bot, run_bot
 
-extensions = [
-    'discord_bot.cogs.statistics',
-    'discord_bot.cogs.users',
-    'discord_bot.cogs.funstuff',
-]
+if ENABLE_BOT and not DEBUG_FRONTEND_MODE:
+    from discord_bot.bot import bot, run_bot
+
+    extensions = [
+        'discord_bot.cogs.statistics',
+        'discord_bot.cogs.users',
+        'discord_bot.cogs.funstuff',
+    ]
+
 # Initialize Flask app and extensions
 app = Flask(__name__, "/static")
 app.config.update(
@@ -67,60 +70,68 @@ mail = Mail(app)
 scheduler = APScheduler()
 scheduler.init_app(app)
 
-
-
-
-
 def rate_limit_key():
     """Generate a unique key for rate limiting based on user's session."""
     return session.get('random_id')
 
+if not DEBUG_FRONTEND_MODE:
+    # Configure rate limiting
+    limiter = Limiter(rate_limit_key, app=app, default_limits=["200 per day", "5000 per hour"])
 
-# Configure rate limiting
-limiter = Limiter(rate_limit_key, app=app, default_limits=["200 per day", "5000 per hour"])
 
-# Apply rate limits to blueprints
-for blueprint, limit in [
-    (user, "20 per hour"),
-    (servers, "15 per hour"),
-    (tickets, "15 per hour"),
-    (store, "10 per hour")
-]:
-    limiter.limit(limit, key_func=rate_limit_key)(blueprint)
-    app.register_blueprint(blueprint, 
-                        url_prefix=f"/{blueprint.name}" if blueprint.name != "user" else None)
+    # Apply rate limits to blueprints
+    for blueprint, limit in [
+        (user, "20 per hour"),
+        (servers, "15 per hour"),
+        (tickets, "15 per hour"),
+        (store, "10 per hour")
+    ]:
+        limiter.limit(limit, key_func=rate_limit_key)(blueprint)
+        app.register_blueprint(blueprint, 
+                            url_prefix=f"/{blueprint.name}" if blueprint.name != "user" else None)
 
+else:
+    for blueprint, limit in [
+        (user, "20 per hour"),
+        (servers, "15 per hour"),
+        (tickets, "15 per hour"),
+        (store, "10 per hour")
+    ]:
+        app.register_blueprint(blueprint, 
+                            url_prefix=f"/{blueprint.name}" if blueprint.name != "user" else None)
 # Register admin blueprint separately (no rate limit)
 app.register_blueprint(admin, url_prefix="/admin")
 
-@scheduler.task('interval', id='credit_usage', seconds=3600, misfire_grace_time=900)
-def process_credits():
-    """Process hourly credit usage for all servers."""
-    with app.app_context():
-        print("Processing credits...")
-        use_credits()
-        print("Credit processing complete")
 
-@scheduler.task('interval', id='server_unsuspend', seconds=180, misfire_grace_time=900)
-def check_suspensions():
-    """Check for servers that can be unsuspended."""
-    with app.app_context():
-        print("Checking suspensions...")
-        check_to_unsuspend()
-        print("Suspension check complete")
+if not DEBUG_FRONTEND_MODE:
+    @scheduler.task('interval', id='credit_usage', seconds=3600, misfire_grace_time=900)
+    def process_credits():
+        """Process hourly credit usage for all servers."""
+        with app.app_context():
+            print("Processing credits...")
+            use_credits()
+            print("Credit processing complete")
 
-
-@scheduler.task('interval', id='sync_users', seconds=60, misfire_grace_time=900)
-def sync_user_data():
-    """Synchronize user data with Pterodactyl panel."""
-    print("Syncing users...")
-    sync_users_script()
-    pterocache.update_all()
-    print("User sync complete")
+    @scheduler.task('interval', id='server_unsuspend', seconds=180, misfire_grace_time=900)
+    def check_suspensions():
+        """Check for servers that can be unsuspended."""
+        with app.app_context():
+            print("Checking suspensions...")
+            check_to_unsuspend()
+            print("Suspension check complete")
 
 
+    @scheduler.task('interval', id='sync_users', seconds=60, misfire_grace_time=900)
+    def sync_user_data():
+        """Synchronize user data with Pterodactyl panel."""
+        print("Syncing users...")
+        sync_users_script()
+        pterocache.update_all()
+        print("User sync complete")
 
-scheduler.start()
+
+
+    scheduler.start()
 
 @app.route('/')
 def index():
@@ -129,17 +140,16 @@ def index():
         return redirect(url_for("user.login_user"))
     after_request(session=session, request=request.environ, require_login=True)
 
-
-def webhook_log(message: str):
-    """
-    Send a message to the webhook log.
-    """
-    resp = requests.post(WEBHOOK_URL,
-                         json={"username": "Web Logs", "content": message})
-    print(resp.text) 
-
-
 if not DEBUG_FRONTEND_MODE:
+    def webhook_log(message: str):
+        """
+        Send a message to the webhook log.
+        """
+        resp = requests.post(WEBHOOK_URL,
+                            json={"username": "Web Logs", "content": message})
+        print(resp.text) 
+
+
     # Load bot extensions
     extensions = ['discord_bot.cogs.statistics', 'discord_bot.cogs.users']
 
