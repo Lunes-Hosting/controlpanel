@@ -171,7 +171,10 @@ def verify_server_ownership_by_ptero_id(server_id, ptero_id):
         - get_ptero_id(): Gets user's panel ID
     """
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
-    return resp['attributes']['user'] == ptero_id if ptero_id else False
+    try:
+        return resp['attributes']['user'] == ptero_id if ptero_id else False
+    except:
+        return False
 
 @servers.route('/')
 def servers_index():

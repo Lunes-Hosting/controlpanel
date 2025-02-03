@@ -174,9 +174,6 @@ def index():
     #    "SELECT name FROM users WHERE email = %s", 
     #    (session['email'],)
     #)
-
-    print(servers[0])
-
     return render_template(
         "account.html", 
         credits=int(current_credits), 
