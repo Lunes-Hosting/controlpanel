@@ -55,7 +55,7 @@
                     <div>
                         <div class="flex flex-row justify-start items-center gap-2">
                             <img class="w-16 rounded-md" src="https://gravatar.com/avatar/{{ hash }}">
-                            <h2 class="text-2xl font-bold text-gray-300 mb-4">Hello <br> {{ username }}</h2>
+                            <h2 class="text-2xl font-bold text-gray-300 mb-4">Hello <span>{{ username }}</span></h2>
                         </div>
                         <div class="space-y-3">
                             <p><strong class="text-gray-400">Email:</strong> <span class="text-white">{{ email }}</span></p>
@@ -109,9 +109,9 @@
                 <h1 class="font-semibold text-2xl m-0 p-0">Manage Servers</h1>
             </div>-->
             <div class="flex flex-row items-center justify-center text-nowrap gap-4 py-3">
-                <div class="flex flex-row items-center gap-2">
-                    <i class="fa-solid fa-server fa-2xl text-blue-400 m-0 p-0"></i>
-                    <h1 class="font-semibold text-2xl m-0 p-0">Manage Server</h1>
+                <div class="flex flex-row items-center md:gap-2">
+                    <i class="fa-solid fa-server fa-lg md:fa-2xl text-blue-400 m-0 p-0"></i>
+                    <h1 class="text-2xl m-0 p-0">Manage Server</h1>
                 </div>
                 <hr class="border-gray-200 border-1 w-full">
 
