@@ -13,7 +13,7 @@ class PteroAPI():
 
  def get_all_servers():
     try:
-        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=headers)
+        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=headers, timeout=60)
         response.raise_for_status()
         data = response.json()
         
