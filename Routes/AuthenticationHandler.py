@@ -40,6 +40,7 @@ Cache Keys:
 """
 
 import asyncio
+from hashlib import sha256
 from flask import Blueprint, request, render_template, session, flash, current_app, redirect, url_for
 import sys
 import threading
@@ -174,13 +175,17 @@ def index():
     #    (session['email'],)
     #)
 
+    print(servers[0])
+
     return render_template(
         "account.html", 
         credits=int(current_credits), 
         server_count=server_count,
         username=username, 
+        hash=sha256(session['email'].encode('utf-8')).hexdigest(),
         email=session['email'], 
-        monthly_usage=monthly_usage
+        monthly_usage=monthly_usage,
+        servers=servers
     )
 
 

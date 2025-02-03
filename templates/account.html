@@ -8,57 +8,160 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
     <!--<link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>-->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"/>
 </head>
 <body class="bg-gray-900 text-white" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
-    {% include 'taskbar.html' %}
+    
+    
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="bg-blue-500 text-white px-4 py-2 mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6" />
+                    </svg>
+                    <span>{{ message }}</span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
-    <div class="content">
-        <div class="container mx-auto mt-12 p-4 sm:p-6">
-            <!-- Flash Messages -->
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="bg-blue-500 text-white px-4 py-2 rounded-md mb-4 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6" />
-                            </svg>
-                            <span>{{ message }}</span>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+    <nav class="sticky w-full bg-gradient-to-t from-gray-900/0 to-blue-900/100 top-0 z-50 backdrop-blur-xs">
+        <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-row items-center justify-between h-16">
+                <a href="/" class="group flex items-center space-x-3">
+                    <div class="relative"><img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" rel="preload" class="h-auto w-10 rounded-lg" width="32" height="32"></div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Lunes</h2>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="content max-w-5xl mx-auto">
+        <div class="container mx-auto p-4 sm:p-6">
 
             <!-- Account Information -->
-            <h1 class="text-4xl font-bold text-center text-blue-400">Welcome to Your Account</h1>
-            <div class="account-info mt-6 bg-gray-800 p-6 rounded-none shadow-xl">
-                <h2 class="text-2xl font-bold text-blue-400 mb-4">Account Information</h2>
-                <div class="space-y-3">
-                    <p><strong class="text-gray-400">Username:</strong> <span class="text-white">{{ username }}</span></p>
-                    <p><strong class="text-gray-400">Email:</strong> <span class="text-white">{{ email }}</span></p>
-                    <p><strong class="text-gray-400">Credits:</strong> <span class="text-white">{{ credits }}</span></p>
-                    <p><strong class="text-gray-400">Server Count:</strong> <span class="text-white">{{ server_count }}</span></p>
-                    <p><strong class="text-gray-400">Monthly Usage:</strong> <span class="text-white">{{ monthly_usage }}</span></p>
-                </div>
 
-                <div class="danger-zone mt-8 pt-6 border-t border-gray-700">
-                    <h3 class="text-xl font-bold text-green-500">Manage & Create Servers</h3>
-                    <p class="text-gray-400 mt-2">Let's Game!</p>
-                    <a href="{{ url_for('servers.servers_index') }}" class="inline-block mt-4 px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-200">Manage Your Servers</a>
-                </div>
+            <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
+                <i class="fa-solid fa-house fa-2xl text-blue-400 m-0 p-0"></i>
+                <h1 class="font-semibold text-2xl m-0 p-0">Manage Account</h1>
+            </div>
 
-                <div class="danger-zone mt-8 pt-6 border-t border-gray-700">
-                    <h3 class="text-xl font-bold text-blue-500">Log Out</h3>
-                    <p class="text-gray-400 mt-2">You are always welcome back!</p>
-                    <a href="{{ url_for('user.logout') }}" class="inline-block mt-4 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-200">Log out</a>
-                </div>
+            <div class="account-info my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md">
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 space-x-4">
+                    <div>
+                        <div class="flex flex-row justify-start items-center gap-2">
+                            <img class="w-16 rounded-md" src="https://gravatar.com/avatar/{{ hash }}">
+                            <h2 class="text-2xl font-bold text-gray-300 mb-4">Hello <br> {{ username }}</h2>
+                        </div>
+                        <div class="space-y-3">
+                            <p><strong class="text-gray-400">Email:</strong> <span class="text-white">{{ email }}</span></p>
+                            <p><strong class="text-gray-400">Credits:</strong> <span class="text-white">{{ credits }}</span></p>
+                            <p><strong class="text-gray-400">Server Count:</strong> <span class="text-white">{{ server_count }}</span></p>
+                            <p><strong class="text-gray-400">Monthly Usage:</strong> <span class="text-white">{{ monthly_usage }}</span></p>
+                        </div>                        
+                    </div>
 
-                <!-- Danger Zone -->
-                <div class="danger-zone mt-8 pt-6 border-t border-gray-700">
-                    <h3 class="text-xl font-bold text-red-500">Danger Zone</h3>
-                    <p class="text-gray-400 mt-2">Once you delete your account, there is no going back. Please be certain.</p>
-                    <a href="{{ url_for('user.delete_account') }}" class="inline-block mt-4 px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition duration-200">Delete Account</a>
+                    <div class="hidden sm:inline relative">
+                        <div class="absolute border border-1 border-blue-500 inset-y-0 left-0 w-px"></div> <!-- Divider -->
+                    </div>
+
+                    <hr class="inline sm:hidden border border-2 border-blue-500" />
+
+                    <div class="flex flex-col gap-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-500">Ticket</h3>
+                            <p class="text-gray-400">Issues?</p>
+                            <a href="{{ url_for('user.logout') }}" class="flex flex-row items-center justify-center inline-block mt-2 px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition duration-200">
+                                <i class="fa-solid fa-ticket"></i>
+                                Open a Ticket</a>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-green-500">Store</h3>
+                            <p class="text-gray-400">Purchase Credits for Servers</p>
+                            <a href="{{ url_for('user.logout') }}" class="flex flex-row items-center justify-center inline-block mt-2 px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-200">
+                                <i class="fa-solid fa-store"></i>
+                                Take me there!</a>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-blue-500">Log Out</h3>
+                            <p class="text-gray-400">You are always welcome back!</p>
+                            <a href="{{ url_for('user.logout') }}" class="flex flex-row items-center justify-center inline-block mt-2 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-200">
+                                <i class="fa-solid fa-door-open"></i>
+                                Log out</a>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-red-700">Danger Zone</h3>
+                            <p class="text-gray-400">Once you delete your account, there is no going back. Please be certain.</p>
+                            <a href="{{ url_for('user.delete_account') }}" class="flex flex-row items-center inline-block mt-2 px-6 py-2 bg-red-700 text-white rounded-md hover:bg-red-800 transition duration-200">
+                                <i class="fa-solid fa-trash"></i>
+                                Delete Account</a>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
+                <i class="fa-solid fa-server fa-2xl text-blue-400 m-0 p-0"></i>
+                <h1 class="font-semibold text-2xl m-0 p-0">Manage Servers</h1>
+            </div>
+
+            <div class="my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {% for server in servers %}
+                    <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}" class="block bg-gray-800 hover:scale-105 transition transition-transform rounded-lg shadow-xl hover:shadow-2xl transition-shadow duration-300">
+                        <div class="p-6 text-center">
+                            <h3 class="text-xl font-semibold mb-2">{{ server['attributes']['name'] }}</h3>
+                            <p class="text-sm text-gray-400">Click to view details</p>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
+                <i class="fa-solid fa-barcode fa-2xl text-blue-400 m-0 p-0"></i>
+                <h1 class="font-semibold text-2xl m-0 p-0">Other</h1>
+            </div>
+
+            <div class="my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md">
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 space-x-4">
+                    <div>
+                        <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" rel="preload" class="h-auto w-40 rounded-lg" width="32" height="32">         
+                        <p class="text-2xl font-bold">Lunes Hosting</p>
+                    </div>
+
+                    <div class="hidden sm:inline relative">
+                        <div class="absolute border border-1 border-blue-500 inset-y-0 left-0 w-px"></div> <!-- Divider -->
+                    </div>
+
+                    <hr class="inline sm:hidden border border-2 border-blue-500" />
+
+                    <div class="flex flex-col gap-4">
+                        <a href="https://discord.gg/AzWXXe8t" class="max-w-xs bg-indigo-600 hover:bg-indigo-700 py-2 px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
+                            <i class="fa-brands fa-discord"></i>
+                            <span>Join Discord</span>
+                        </a>
+                        <a href="https://lunes.host/tos/" class="max-w-xs bg-gray-600 hover:bg-gray-700 py-2 px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
+                            <i class="fa-solid fa-file-contract"></i>
+                            <span>Terms of Service</span>
+                        </a>
+                        <a href="https://lunes.host/privacy/" class="max-w-xs bg-gray-600 hover:bg-gray-700 py-2 px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            <span>Privacy Polcy</span>
+                        </a>
+                        <a href="mailto:panel@lunes.host" class="max-w-xs bg-gray-600 hover:bg-gray-700 py-2 px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
+                            <i class="fa-solid fa-envelope"></i>
+                            <span>Email Us</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+
         </div>
     </div>
 </body>
