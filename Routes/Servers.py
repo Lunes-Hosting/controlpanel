@@ -318,20 +318,20 @@ def create_server():
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    after_request(session, request.environ, True)
+    asyncio.run(after_request_async(session, request.environ, True))
 
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
     else:
-        ptero_id = get_ptero_id(session['email'])
+        ptero_id = get_ptero_id(session['email']) #uses db
         session['pterodactyl_id'] = ptero_id
 
     # Check email verification
-    verified = get_user_verification_status(session['email'])
+    verified = get_user_verification_status(session['email']) #uses db
     if not verified:
         return redirect(url_for('servers.servers_index'))
 
-    servers_list = list_servers(ptero_id[0])
+    servers_list = improve_list_servers(ptero_id[0])
     
     nodes = get_nodes()
     eggs = get_eggs()
