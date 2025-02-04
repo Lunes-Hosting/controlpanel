@@ -222,7 +222,7 @@ WHERE
         })
     
     real_info = {
-        "author": get_name(data[4])[0],
+        "author": data[1],
         "title": data[5],
         "created_at": data[7],
         "id": data[3]
