@@ -170,21 +170,38 @@ def ticket(ticket_id):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     
-    user_info = DatabaseManager.execute_query(
-        "SELECT * from users where email = %s",
-        (session['email'],)
+    data = DatabaseManager.execute_query(
+        """SELECT 
+    users.id, users.name, users.role, 
+    tickets.*
+FROM 
+    users
+INNER JOIN 
+    tickets ON users.id = tickets.user_id
+WHERE 
+    users.email = %s AND tickets.id = %s;""",
+    (session["email"], ticket_id, ),
     )
+    print(data)
+
+    #user_info = DatabaseManager.execute_query(
+    #    "SELECT * from users where email = %s",
+    #    (session['email'],)
+    #)
+    #print(user_info)
     
     # Get ticket info
-    info = DatabaseManager.execute_query(
-        "SELECT * FROM tickets where id = %s",
-        (ticket_id,)
-    )
+    #info = DatabaseManager.execute_query(
+    #    "SELECT * FROM tickets where id = %s",
+    #    (ticket_id,)
+    #)
+    #print(info)
+
     
     # Check permissions
-    if info[3] == "closed" and not is_admin(session['email']):
+    if data[6] == "closed" and not is_admin(session['email']):
         return redirect(url_for('tickets.tickets_index'))
-    if user_info[2] != "admin" and info[1] != user_info[0]:
+    if data[2] != "admin" and data[4] != data[0]:
         return redirect(url_for('tickets.tickets_index'))
     
     # Get messages
@@ -193,6 +210,8 @@ def ticket(ticket_id):
         (ticket_id,),
         fetch_all=True
     )
+    print(messages_tuple)
+    print(data)
     
     messages = []
     for message in messages_tuple:
@@ -203,10 +222,10 @@ def ticket(ticket_id):
         })
     
     real_info = {
-        "author": get_name(info[1])[0],
-        "title": info[2],
-        "created_at": info[4],
-        "id": info[0]
+        "author": get_name(data[4])[0],
+        "title": data[5],
+        "created_at": data[7],
+        "id": data[3]
     }
     
     return render_template("ticket.html", messages=messages, info=real_info, hash=sha256(session['email'].encode('utf-8')).hexdigest())
