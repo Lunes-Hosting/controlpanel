@@ -46,6 +46,8 @@ Message Formatting:
 - Image attachments
 """
 
+import asyncio
+from hashlib import sha256
 from flask import Blueprint, request, render_template, session, flash, current_app, redirect, url_for
 import sys, time, datetime
 from threadedreturn import ThreadWithReturnValue
@@ -61,18 +63,22 @@ def tickets_index():
     """Display list of open tickets for the authenticated user."""
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    after_request(session=session, request=request.environ, require_login=True)
+    asyncio.run(after_request_async(session=session, request=request.environ, require_login=True))
     
-    if 'pterodactyl_id' not in session:
-        ptero_id = get_ptero_id(session['email'])
-        session['pterodactyl_id'] = ptero_id
+    #if 'pterodactyl_id' not in session: scope wise; this code is not significant.
+    #    ptero_id = get_ptero_id(session['email'])
+    #    session['pterodactyl_id'] = ptero_id
 
-    user_id = get_id(session['email'])
+    #user_id = get_id(session['email'])
     tickets_list = DatabaseManager.execute_query(
-        "SELECT * FROM tickets WHERE (user_id = %s AND status = 'open')",
-        (user_id[0],),
+        #"SELECT * FROM tickets WHERE (user_id = %s AND status = 'open')",
+        "SELECT t.* FROM tickets t JOIN users u ON t.user_id = u.id WHERE (u.email = %s AND t.status = 'open');",
+        #(user_id[0],),
+        (session["email"],),
         fetch_all=True
     )
+
+    print(tickets_list[0])
 
     return render_template('tickets.html', tickets=tickets_list)
 
@@ -203,7 +209,7 @@ def ticket(ticket_id):
         "id": info[0]
     }
     
-    return render_template("ticket.html", messages=messages, info=real_info)
+    return render_template("ticket.html", messages=messages, info=real_info, hash=sha256(session['email'].encode('utf-8')).hexdigest())
 
 @tickets.route('/close/<ticket_id>', methods=['POST'])
 def close_ticket(ticket_id):

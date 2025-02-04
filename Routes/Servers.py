@@ -393,7 +393,7 @@ def delete_server(server_id):
 
     if resp['attributes']['user'] == ptero_id[0]:
         requests.delete(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS)
-        return redirect(url_for('servers.servers_index'))
+        return redirect(url_for('user.index'))
     else:
         return "You can't delete this server you dont own it!"
 
@@ -458,7 +458,7 @@ def create_server_submit():
             res = remove_credits(session['email'], credits_used)
             if res == "SUSPEND":
                 flash("You are out of credits")
-                return redirect(url_for('servers.servers_index'))
+                return redirect(url_for('users.index'))
 
     if not found_product:
         return "You already have free server"
@@ -488,7 +488,7 @@ def create_server_submit():
 
     res = requests.post(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, json=body)
     webhook_log(f"Server was just created: ```{res.json()}```")
-    return redirect(url_for('servers.servers_index'))
+    return redirect(url_for('users.index'))
 
 @servers.route('/adminupdate/<server_id>', methods=['POST'])
 def admin_update_server_submit(server_id):
