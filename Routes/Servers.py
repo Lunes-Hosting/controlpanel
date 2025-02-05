@@ -77,6 +77,22 @@ def get_user_verification_and_ptero_id(email):
     
     return (None, None)
 
+def get_user_verification_ptero_id_and_credits(email):
+    #credits
+    result = DatabaseManager.execute_query(
+        "SELECT email_verified_at, pterodactyl_id, credits FROM users WHERE email = %s",
+        (email,)
+    )
+
+    if result:
+        verified = False
+        if result[0] is not None:
+            verified = True
+
+        return (verified, result[1], result[2])
+    
+    return (None, None, None)
+
 def get_user_verification_status(email):
     """
     Check if user's email is verified.
@@ -262,7 +278,7 @@ def server(server_id):
         
     asyncio.run(after_request_async(session, request.environ, True))
     
-    verified, ptero_id = get_user_verification_and_ptero_id(session["email"])
+    verified, ptero_id, credits = get_user_verification_ptero_id_and_credits(session["email"])
     #print(verified)
     #print(ptero_id)
     #ptero_id = get_user_ptero_id(session) #uses db
@@ -285,7 +301,7 @@ def server(server_id):
             
     info = get_server_information(server_id)
     nodes = get_nodes()
-    return render_template('server.html', info=info, products=products_local, nodes=tuple(nodes), verified=verified)
+    return render_template('server.html', info=info, products=products_local, nodes=tuple(nodes), verified=verified, credits=int(credits))
 
 @servers.route("/create")
 def create_server():
