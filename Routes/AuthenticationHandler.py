@@ -174,6 +174,15 @@ def index():
     #    "SELECT name FROM users WHERE email = %s", 
     #    (session['email'],)
     #)
+
+    products_local = tuple(products)
+    fixed_list: list[dict] = []
+    for product in products_local:
+        x = product.get("price_link", None)
+        if x is not None:
+            fixed_list.append(product)
+            #products_local.remove(product)
+
     return render_template(
         "account.html", 
         credits=int(current_credits), 
@@ -182,7 +191,8 @@ def index():
         hash=sha256(session['email'].encode('utf-8')).hexdigest(),
         email=session['email'], 
         monthly_usage=monthly_usage,
-        servers=servers
+        servers=servers,
+        products=fixed_list
     )
 
 
@@ -469,11 +479,12 @@ def verify_email(token):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
 
-    after_request(session=session, request=request.environ, require_login=True)
+    asyncio.run(after_request_async(session=session, request=request.environ, require_login=True))
 
     email = session['email']
     stored_token = cache.get(email)
-
+    print(stored_token)
+    print(token)
     if stored_token and stored_token == token:
         DatabaseManager.execute_query(
             "UPDATE users SET email_verified_at = %s WHERE email = %s",

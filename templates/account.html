@@ -6,8 +6,8 @@
     <title>Lunes Host | Account Page</title>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
-    <!--<link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>-->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}"/>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"/>
 </head>
 <body class="bg-gray-900 text-white" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
@@ -108,12 +108,12 @@
                 <i class="fa-solid fa-server fa-2xl text-blue-400 m-0 p-0"></i>
                 <h1 class="font-semibold text-2xl m-0 p-0">Manage Servers</h1>
             </div>-->
-            <div class="flex flex-row items-center justify-center text-nowrap gap-4 py-3">
+            <div class="flex flex-row items-center justify-center text-nowrap gap-8 py-3">
                 <div class="flex flex-row items-center justify-center gap-2">
                     <i class="fa-solid fa-server fa-lg fa-2xl text-blue-400 m-0 p-0"></i>
-                    <h1 class="text-2xl m-0 p-0">Manage Server</h1>
+                    <h1 class="text-2xl m-0 p-0 font-semibold">Manage Server</h1>
                 </div>
-                <hr class="border-gray-200 border-1 w-full hidden sm:inline">
+                <hr class="border-neutral-600 border-t w-full hidden sm:inline">
 
                 <a href="/servers/create" class="max-w-xs bg-blue-500 hover:bg-blue-600 py-2 px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
                     <i class="fa-solid fa-plus"></i>
@@ -134,6 +134,65 @@
                     {% endfor %}
                 </div>
             </div>
+
+            <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
+                <i class="fa-solid fa-store fa-2xl text-green-400 m-0 p-0"></i>
+                <h1 class="font-semibold text-2xl m-0 p-0">Store</h1>
+            </div>
+
+            <div class="flex-1 items-center justify-center my-4 p-8 bg-gray-900 border-2 border-green-500 shadow-xl shadow-green-500/20 rounded-md">
+                <div class="grid grid-cols-4 gap-8">
+                  <div class="col-span-2">
+                    <div class="flex flex-col gap-2 sm:gap-4 sm:w-[100%]">
+                      <div>
+                        <p class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-left">Lunes Credits</p>
+                        <p class="italic text-left sm:text-xs md:text-sm lg:text-xs">*Lunes Credits is the currency we use to meter premium products we offer</p>
+                      </div>
+                      <div>
+                        <label id="slider-value" for="labels-range-input" class="text-left block mb-2 text-sm font-medium text-gray-900 dark:text-white">100 Lunes Credits</label>
+                        <input id="labels-range-input" step="1" type="range" value="0" min="0" max="{{ products|length - 1 }}" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-span-2">
+                    <div class="flex justify-center items-center text-center">
+                      <p id="costValue" class="text-3xl md:text-3xl lg:text-6xl font-bold">$1.00+</p>
+                    </div>
+                  </div>
+                </div>
+                <a id="purchaseLink" href="{{ url_for('user.logout') }}" class="flex flex-row items-center justify-center inline-block mt-2 px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-200">
+                    <i class="fa-solid fa-door-open"></i>
+                    <span class="">Purchase</span></a>
+              </div>
+              <script>
+                const priceLinkDict = [
+                    {% for product in products %}
+                    {% if product['price_link'] %}
+                    {"link":"{{ url_for('store.create_checkout_session', price_link=product['price_link'] or 0) }}", "credits":"{{ "%.2f"|format(product['price']) }}"},
+                    {% endif %}
+                    {% endfor %}
+                ]
+                const rangeInput = document.getElementById('labels-range-input');
+                const sliderValue = document.getElementById('slider-value');
+                const costValue = document.getElementById('costValue');
+                const purchaseBtn = document.getElementById('purchaseLink');
+              
+                rangeInput.addEventListener('input', () => {
+                  sliderValue.textContent = priceLinkDict[rangeInput.value]["credits"] + " Lunes Credits";
+                  costValue.textContent = "$"+calculateCost(priceLinkDict[rangeInput.value]["credits"]);
+                  purchaseBtn.setAttribute("href", priceLinkDict[rangeInput.value]["link"]);
+                });
+              
+                // Initialize the display value
+                sliderValue.textContent = priceLinkDict[rangeInput.value]["credits"] + " Lunes Credits";
+                costValue.textContent = "$"+calculateCost(priceLinkDict[rangeInput.value]["credits"]);
+        
+        
+                function calculateCost(miles) {
+                  const cost = miles / 100;
+                  return cost.toFixed(2);
+                }
+              </script>
 
             <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
                 <i class="fa-solid fa-barcode fa-2xl text-blue-400 m-0 p-0"></i>
