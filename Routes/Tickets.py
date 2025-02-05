@@ -78,8 +78,6 @@ def tickets_index():
         fetch_all=True
     )
 
-    print(tickets_list[0])
-
     return render_template('tickets.html', tickets=tickets_list)
 
 @tickets.route('/create/submit', methods=['POST'])
@@ -182,7 +180,6 @@ WHERE
     users.email = %s AND tickets.id = %s;""",
     (session["email"], ticket_id, ),
     )
-    print(data)
 
     #user_info = DatabaseManager.execute_query(
     #    "SELECT * from users where email = %s",
@@ -206,17 +203,20 @@ WHERE
     
     # Get messages
     messages_tuple = DatabaseManager.execute_query(
-        "SELECT * FROM ticket_comments where ticket_id = %s",
+        """
+        SELECT ticket_comments.*, users.name 
+        FROM ticket_comments
+        JOIN users ON ticket_comments.user_id = users.id
+        WHERE ticket_comments.ticket_id = %s
+        """,
         (ticket_id,),
         fetch_all=True
     )
-    print(messages_tuple)
-    print(data)
     
     messages = []
     for message in messages_tuple:
         messages.append({
-            "author": get_name(message[2])[0],
+            "author": message[5],
             "message": message[3],
             "created_at": message[4]
         })
