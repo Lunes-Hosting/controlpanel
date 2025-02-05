@@ -160,7 +160,7 @@ def index():
         return redirect(url_for("user.login_user"))
 
     asyncio.run(after_request_async(session, request.environ, True))
-    current_credits, ptero_id, username = account_get_information(session["email"])
+    current_credits, ptero_id, username, verified, suspended = account_get_information(session["email"])
     #print(current_credits)
     #print(ptero_id)
     #print(username)
@@ -182,7 +182,9 @@ def index():
         hash=sha256(session['email'].encode('utf-8')).hexdigest(),
         email=session['email'], 
         monthly_usage=monthly_usage,
-        servers=servers
+        servers=servers,
+        verified=verified,
+        suspended=suspended
     )
 
 
@@ -432,7 +434,8 @@ def resend_confirmation_email():
     after_request(session=session, request=request.environ, require_login=True)
     verification_token = generate_verification_token()
 
-    cache.set(session['email'], verification_token, timeout=TOKEN_EXPIRATION_TIME)
+    #cache.set(session['email'], verification_token, timeout=TOKEN_EXPIRATION_TIME)
+    cache.set(verification_token, session["email"], timeout=TOKEN_EXPIRATION_TIME )
 
     email_thread = threading.Thread(
         target=send_verification_email, 
@@ -469,18 +472,18 @@ def verify_email(token):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
 
-    after_request(session=session, request=request.environ, require_login=True)
+    asyncio.run(after_request_async(session=session, request=request.environ, require_login=True))
 
-    email = session['email']
-    stored_token = cache.get(email)
+    #email = session['email']
+    email = cache.get(token)
 
-    if stored_token and stored_token == token:
+    if email:
         DatabaseManager.execute_query(
             "UPDATE users SET email_verified_at = %s WHERE email = %s",
             (datetime.datetime.now(), email)
         )
 
-        cache.delete(email)
+        cache.delete(token)
 
         flash('Your email has been successfully verified.')
     else:

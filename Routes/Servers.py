@@ -329,7 +329,7 @@ def create_server():
     # Check email verification
     verified = get_user_verification_status(session['email']) #uses db
     if not verified:
-        return redirect(url_for('servers.servers_index'))
+        return redirect(url_for('user.index'))
 
     servers_list = improve_list_servers(ptero_id[0])
     
@@ -441,7 +441,7 @@ def create_server_submit():
         return redirect(url_for('servers.create_server'))
             
     ptero_id = get_ptero_id(session['email'])[0]
-    servers_list = list_servers(ptero_id)
+    servers_list = improve_list_servers(ptero_id)
     products_local = list(products)
     for server_inc in servers_list:
         if server_inc['attributes']['user'] == ptero_id:

@@ -892,11 +892,15 @@ def check_to_unsuspend():
 
 
 def account_get_information(email: str):
-    query = f"SELECT credits, pterodactyl_id, name FROM users WHERE email = %s"
+    query = f"SELECT credits, pterodactyl_id, name, email_verified_at, suspended FROM users WHERE email = %s"
+    
     db = DatabaseManager()
     information = db.execute_query(query, (email,))
 
-    return information[0], information[1], information[2]
+    verified = False
+    if information[3] is not None:
+        verified = True
+    return information[0], information[1], information[2], verified, information[4] == 1
 
 def get_credits(email: str) -> int:
     """
