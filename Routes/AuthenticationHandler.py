@@ -91,7 +91,7 @@ def login_user():
         - after_request(): Updates session data
         - get_ptero_id(): Gets Pterodactyl panel ID
     """
-    after_request(session=session, request=request.environ)
+    asyncio.run(after_request_async(session=session, request=request.environ))
     if request.method == "POST":
         recaptcha_response = request.form.get('g-recaptcha-response')
         data = {
@@ -174,6 +174,15 @@ def index():
     #    "SELECT name FROM users WHERE email = %s", 
     #    (session['email'],)
     #)
+
+    products_local = tuple(products)
+    fixed_list: list[dict] = []
+    for product in products_local:
+        x = product.get("price_link", None)
+        if x is not None:
+            fixed_list.append(product)
+            #products_local.remove(product)
+
     return render_template(
         "account.html", 
         credits=int(current_credits), 
@@ -183,6 +192,7 @@ def index():
         email=session['email'], 
         monthly_usage=monthly_usage,
         servers=servers,
+        products=fixed_list,
         verified=verified,
         suspended=suspended
     )
@@ -431,7 +441,7 @@ def resend_confirmation_email():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
 
-    after_request(session=session, request=request.environ, require_login=True)
+    asyncio.run(after_request_async(session=session, request=request.environ, require_login=True))
     verification_token = generate_verification_token()
 
     #cache.set(session['email'], verification_token, timeout=TOKEN_EXPIRATION_TIME)
@@ -472,6 +482,7 @@ def verify_email(token):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
 
+    asyncio.run(after_request_async(session=session, request=request.environ, require_login=True))
     asyncio.run(after_request_async(session=session, request=request.environ, require_login=True))
 
     #email = session['email']

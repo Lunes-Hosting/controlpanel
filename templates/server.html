@@ -99,22 +99,28 @@
 
                 <a href="/" class="max-w-xs bg-blue-600 hover:bg-blue-700 py-2 px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
                     <i class="fa-solid fa-arrow-left"></i>
-                    <span>Head Home</span>
+                    <span class="hidden md:inline">Head Home</span>
                 </a>
 
             </div>
 
 
+            
             <!-- Server Details -->
             <div class="my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md my-3">
                 <h1 class="text-3xl sm:text-4xl font-bold mb-4">{{ info['attributes']['name'] }}</h1>
                 <div class="flex flex-wrap gap-4 mb-6">
-                    <a href="{{ url_for('servers.delete_server', server_id=info['attributes']['id']) }}" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors duration-200">Delete</a>
+                    <button onclick="openDeleteModal()" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors duration-200">Delete</button>
                     <a href="https://ctrl.lunes.host/server/{{ info['attributes']['uuid'].split('-')[0] }}" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors duration-200">Manage</a>
                     <button onclick="openTransferModal()" class="bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 transition-colors duration-200">Transfer</button>
                 </div>
 
                 <!-- Update Plan Section -->
+                {% if credits == 0 %}
+                <div style="opacity: 40%;">
+                {% else %}
+                <div>
+                {% endif %}
                 <h2 class="text-2xl font-bold mb-4">Update Plan</h2>
                 <form action="{{ url_for('servers.update_server_submit', server_id=info['attributes']['id']) }}" method="post">
                     <div class="mb-4">
@@ -122,20 +128,28 @@
                         <select id="plan" name="plan" class="w-full px-4 py-2 bg-gray-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             {% for product in products %}
                                 <option value="{{ product['id'] }}">
-                                    {{ product['name'] }}: Memory {{ product['limits']['memory'] }}MB, Storage {{ product['limits']['disk'] }}GB, CPU {{ product['limits']['cpu'] }}%
+                                    <p>{{ product['name'] }}: Memory {{ product['limits']['memory'] }}MB, Storage {{ product['limits']['disk'] }}GB, CPU {{ product['limits']['cpu'] }}% </p>
+                                    <p>({{product["price"]}} Credit/Mo)</p>
                                 </option>
                             {% endfor %}
                         </select>
                     </div>
-                    <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors duration-200">Submit</button>
+                    <{% if credits == 0 %}div{%else%}button{%endif%} type="submit" class="w-full bg-blue-500 text-center text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors duration-200">Submit</{% if credits == 0 %}div{%else%}button{%endif%}>
                 </form>
+                </div>
+                {% if credits == 0 %}
+                <div class="mt-2 flex flex-row text-gray-300 gap-2 items-center">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <p>Upgrading your server can be done via purchasing credits.</p>
+                </div>
+                {% endif %}
             </div>
         {% endif %}
     </div>
 
     <!-- Transfer Modal -->
     <div id="transferModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content bg-gray-900 border border-2 border-blue-500 shadow-md shadow-blue-800">
             <h3 class="text-xl font-bold mb-4">Transfer Server</h3>
             <div class="mb-4">
                 <label for="nodeSelect" class="block text-sm font-medium text-gray-300 mb-2">Target Node:</label>
@@ -149,7 +163,22 @@
             </div>
             <div class="flex justify-end gap-2">
                 <button onclick="closeTransferModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors duration-200">Cancel</button>
-                <button onclick="transferServer()" class="bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 transition-colors duration-200">Transfer</button>
+                <button onclick="transferServer()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors duration-200">Transfer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="deleteModal" class="modal">
+        <div class="modal-content bg-gray-900 border border-2 border-blue-500 shadow-md shadow-blue-800">
+            <h3 class="text-xl font-bold mb-4">Transfer Server</h3>
+            <div class="mb-4">
+                <label for="nodeSelect" class="block text-sm font-medium text-gray-300 mb-2">HEADS UP:</label>
+                <p class="text-xl" >By deleting the server, all data on the server will be <span class="underline">permanently wiped.</span></p>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeDeleteModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors duration-200">Cancel</button>
+    
+                <a href="{{ url_for('servers.delete_server', server_id=info['attributes']['id']) }}" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors duration-200">Delete</a>
             </div>
         </div>
     </div>
@@ -161,6 +190,14 @@
 
         function closeTransferModal() {
             document.getElementById('transferModal').style.display = 'none';
+        }
+
+        function openDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'block';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
         }
 
         function transferServer() {
