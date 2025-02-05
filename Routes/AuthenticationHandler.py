@@ -91,7 +91,7 @@ def login_user():
         - after_request(): Updates session data
         - get_ptero_id(): Gets Pterodactyl panel ID
     """
-    after_request(session=session, request=request.environ)
+    asyncio.run(after_request_async(session=session, request=request.environ))
     if request.method == "POST":
         recaptcha_response = request.form.get('g-recaptcha-response')
         data = {
@@ -429,7 +429,7 @@ def resend_confirmation_email():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
 
-    after_request(session=session, request=request.environ, require_login=True)
+    asyncio.run(after_request_async(session=session, request=request.environ, require_login=True))
     verification_token = generate_verification_token()
 
     cache.set(session['email'], verification_token, timeout=TOKEN_EXPIRATION_TIME)
