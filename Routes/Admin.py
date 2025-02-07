@@ -444,7 +444,7 @@ def admin_user_servers(user_id):
     ptero_id = DatabaseManager.execute_query(query, (user_id,))[0]
 
     # Get user's servers
-    servers = scripts.list_servers(ptero_id)
+    servers = scripts.improve_list_servers(ptero_id)
 
     return render_template('admin/user_servers.html', servers=servers, user_info=user_info)
 
