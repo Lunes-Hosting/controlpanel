@@ -474,7 +474,7 @@ def create_server_submit():
             res = remove_credits(session['email'], credits_used)
             if res == "SUSPEND":
                 flash("You are out of credits")
-                return redirect(url_for('users.index'))
+                return redirect(url_for('user.index'))
 
     if not found_product:
         return "You already have free server"
