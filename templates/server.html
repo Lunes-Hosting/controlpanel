@@ -128,7 +128,7 @@
                         <select id="plan" name="plan" class="w-full px-4 py-2 bg-gray-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             {% for product in products %}
                                 <option value="{{ product['id'] }}">
-                                    <p>{{ product['name'] }}: Memory {{ product['limits']['memory'] }}MB, Storage {{ product['limits']['disk'] }}GB, CPU {{ product['limits']['cpu'] }}% </p>
+                                    <p>{{ product['name'] }}: Memory {{ product['limits']['memory'] }}MB, Storage {{ product['limits']['disk'] }}MB, {% if product['limits']['cpu'] != 0 %} 15% CPU {%else%} Unmetered CPU {% endif %}</p>
                                     <p>({{product["price"]}} Credit/Mo)</p>
                                 </option>
                             {% endfor %}
@@ -170,7 +170,7 @@
 
     <div id="deleteModal" class="modal">
         <div class="modal-content bg-gray-900 border border-2 border-blue-500 shadow-md shadow-blue-800">
-            <h3 class="text-xl font-bold mb-4">Transfer Server</h3>
+            <h3 class="text-xl font-bold mb-4">Delete Server</h3>
             <div class="mb-4">
                 <label for="nodeSelect" class="block text-sm font-medium text-gray-300 mb-2">HEADS UP:</label>
                 <p class="text-xl" >By deleting the server, all data on the server will be <span class="underline">permanently wiped.</span></p>

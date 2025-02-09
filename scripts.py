@@ -299,7 +299,6 @@ def improve_list_servers(pterodactyl_id: int = None) -> tuple[dict]:
         }
     }
     """
-    print("in use!")
     resp = requests.get(
         f"{PTERODACTYL_URL}api/application/users/{int(pterodactyl_id)}?include=servers", 
         headers=HEADERS
