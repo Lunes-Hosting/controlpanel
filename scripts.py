@@ -774,9 +774,9 @@ def delete_server(server_id) -> int:
     """
     response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS)
     if response.status_code == 204:
-        webhook_log(f"Server {server_id} deleted successfully.")
+        webhook_log(f"Server {server_id} deleted successfully via Script delete_server function.", 0)
     else:
-        webhook_log(f"Failed to delete server {server_id}. Status code: {response.status_code}")
+        webhook_log(f"Failed to delete server {server_id}. Status code: {response.status_code}", 1)
     return response.status_code
 
 

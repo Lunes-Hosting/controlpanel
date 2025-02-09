@@ -396,8 +396,7 @@ def delete_server(server_id):
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    webhook_log(f"Server with id: {server_id} was deleted by user")
-    after_request(session, request.environ, True)
+    asyncio.run(after_request_async(session, request.environ, True))
 
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     
@@ -408,9 +407,11 @@ def delete_server(server_id):
     )
 
     if resp['attributes']['user'] == ptero_id[0]:
+        webhook_log(f"Server with id: {server_id} was deleted by user", 0)
         requests.delete(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS)
         return redirect(url_for('user.index'))
     else:
+        webhook_log(f"Server with id {server_id} attempted deleted from user {session["email"]}", 1)
         return "You can't delete this server you dont own it!"
 
 @servers.route('/create/submit', methods=['POST'])

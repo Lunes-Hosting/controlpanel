@@ -584,12 +584,14 @@ def delete_account():
             delete_server(server_id)
         
         send_email(email, "Account Deletion", "Your account has been flagged for deletion. If you do not log back in within 30 days, your account will be permanently deleted.", current_app._get_current_object())
+        webhook_log(f"USER Account of {email} is Flagged for Deletion!", 0)
         db.execute_query("INSERT INTO pending_deletions (email, deletion_requested_time) VALUES (%s, %s)", (email, datetime.datetime.now()))
             
         flash("Your account has been flagged for deletion. If you do not log back in within 30 days, your account will be permanently deleted.")
 
     except Exception as e:
         print(f"Error deleting account: {e}")
+        webhook_log(f"Couldn't delete account of {email}. Error -> {e}", 2)
         flash("Error deleting account. Please contact support.")
         return redirect(url_for('index'))
         
