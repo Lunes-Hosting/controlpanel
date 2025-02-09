@@ -82,6 +82,7 @@ import mysql.connector
 import mysql.connector
 import requests
 from flask import url_for, redirect, current_app
+import logging
 from werkzeug.datastructures.headers import EnvironHeaders
 from managers.database_manager import DatabaseManager
 from threadedreturn import ThreadWithReturnValue
@@ -1112,19 +1113,49 @@ def get_db_connection(database=DATABASE):
 
 
 
-def webhook_log(message: str):
+STATUS_MAP = {
+    -1: {"color": 0x95A5A6, "title": "No Code"},   # Gray
+    0: {"color": 0x3498DB, "title": "Info"},      # Blue
+    1: {"color": 0xF1C40F, "title": "Warning"}, # Yellow
+    2: {"color": 0xE74C3C, "title": "Error"},    # Red
+}
+
+logger = logging.getLogger(__name__)
+
+def webhook_log(message: str, status: int = -1):
     """
-    Sends a message to the webhook.
-    
+    Sends a log message to a Discord webhook with formatting.
+
     Args:
-        message: Message to send
-    
+        message: Message to send.
+        status: Status of Message (-1: Debug, 0: Info, 1: Warning, 2: Error).
+
     Returns:
         None
     """
-    resp = requests.post(WEBHOOK_URL,
-                         json={"username": "Web Logs", "content": message})
-    print(resp.text)
+    status_info = STATUS_MAP.get(status, STATUS_MAP[-1])
+    # Log locally
+    
+    logger.info(message)
+
+    # Create Discord embed
+    embed = {
+        "title": f"**{status_info['title']} Log**",
+        "description": message,
+        "color": status_info["color"],
+    }
+
+    payload = {
+        "username": "Webhook Logger",
+        "embeds": [embed]
+    }
+
+    # Send to Discord webhook
+    try:
+        resp = requests.post(WEBHOOK_URL, json=payload)
+        resp.raise_for_status()
+    except requests.RequestException as e:
+        logger.error(f"Failed to send webhook log: {e}")
 
 def send_email(email: str, title:str, message: str, inner_app):
     """
