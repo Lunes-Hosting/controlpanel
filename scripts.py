@@ -1142,6 +1142,7 @@ def webhook_log(message: str, status: int = -1):
         "title": f"**{status_info['title']} Log**",
         "description": message,
         "color": status_info["color"],
+        "footer": {"text": f"Logged at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}"}
     }
 
     payload = {
