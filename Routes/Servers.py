@@ -505,7 +505,7 @@ def create_server_submit():
 
     res = requests.post(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, json=body)
     webhook_log(f"Server was just created: ```{res.json()}```")
-    return redirect(url_for('users.index'))
+    return redirect(url_for('user.index'))
 
 @servers.route('/adminupdate/<server_id>', methods=['POST'])
 def admin_update_server_submit(server_id):
