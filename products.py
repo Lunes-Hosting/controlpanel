@@ -193,12 +193,12 @@ products = [
         "enabled": False,
         "price_link": None,
         "id": 10,
-        "name": "32GB custom",
+        "name": "16GB custom",
         "price": 1,
         "limits": {
-            "memory": 32768,
+            "memory": 16000,
             "swap": 0,
-            "disk": 214688,
+            "disk": 12000,
             "io": 500,
             "cpu": 0
         },
