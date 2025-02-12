@@ -203,6 +203,7 @@
                 // Initialize the display value
                 sliderValue.textContent = priceLinkDict[rangeInput.value]["credits"] + " Lunes Credits";
                 costValue.textContent = "$"+calculateCost(priceLinkDict[rangeInput.value]["credits"]);
+                purchaseBtn.setAttribute("href", priceLinkDict[rangeInput.value]["link"]);
         
         
                 function calculateCost(miles) {
