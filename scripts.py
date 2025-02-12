@@ -91,6 +91,7 @@ from products import products
 import secrets
 import random
 from flask_mail import Mail, Message
+from security import safe_requests
 
 cache = PteroCache()
 
@@ -177,7 +178,7 @@ def sync_users_script():
                 hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt(rounds=14))
                 db.execute_query("UPDATE users SET password = %s WHERE email = %s", (hashed_password, email))
                 ptero_id = get_ptero_id(email)
-                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60).json()['attributes']
+                info = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60).json()['attributes']
                 body = {
                     "username": info['username'],
                     "email": info['email'],
@@ -299,7 +300,7 @@ def improve_list_servers(pterodactyl_id: int = None) -> tuple[dict]:
         }
     }
     """
-    resp = requests.get(
+    resp = safe_requests.get(
         f"{PTERODACTYL_URL}api/application/users/{int(pterodactyl_id)}?include=servers", 
         headers=HEADERS, 
     timeout=60).json()
@@ -364,7 +365,7 @@ def list_servers(pterodactyl_id: int=None) -> list[dict]:
     }
     """
     try:
-        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60)
+        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60)
         users_server = []
         data = response.json()
         if pterodactyl_id is not None:
@@ -415,7 +416,7 @@ def get_server_information(server_id: int) -> dict:
         }
     }
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS, timeout=60)
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS, timeout=60)
     return response.json()
 
 
@@ -737,7 +738,7 @@ def use_credits():
     Returns:
         None
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60).json()
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60).json()
 
     for server in response['data']:
 
@@ -815,7 +816,7 @@ def check_to_unsuspend():
     Returns:
         None
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60).json()
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60).json()
     
     for server in response['data']:
         user_suspended = check_if_user_suspended(server['attributes']['user'])
@@ -829,7 +830,7 @@ def check_to_unsuspend():
             webhook_log(f"```{server}``` no product")
         #           server_id = server['attributes']['id']
             print(server['attributes']['name'], None)
-            resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server['attributes']['id'])}", headers=HEADERS, timeout=60).json()
+            resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server['attributes']['id'])}", headers=HEADERS, timeout=60).json()
             main_product = products[1]
             body = main_product['limits']
             body["feature_limits"] = main_product['product_limits']
@@ -1253,7 +1254,7 @@ def get_node_allocation(node_id: int) -> int | None:
         int: Random available allocation ID
         None: If no free allocation found
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations", headers=HEADERS, timeout=60)
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations", headers=HEADERS, timeout=60)
     data = response.json()
     try:
         allocations = []
@@ -1329,7 +1330,7 @@ def get_all_servers() -> list[dict]:
     Returns:
         list[dict]: List of server information
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60)
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60)
     data = response.json()
     return data['data']
 
@@ -1342,6 +1343,6 @@ def get_all_servers() -> list[dict]:
     Returns:
         list[dict]: List of server information
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60)
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60)
     data = response.json()
     return data['data']

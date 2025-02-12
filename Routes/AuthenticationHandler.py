@@ -50,6 +50,8 @@ import requests
 import bcrypt
 
 from flask_limiter import Limiter
+from security import safe_requests
+
 sys.path.append("..")
 from pterocache import *
 from scripts import *
@@ -319,7 +321,7 @@ def reset_password_confirm(token):
                 )
 
                 # Update password in panel
-                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60).json()['attributes']
+                info = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60).json()['attributes']
                 body = {
                     "username": info['username'],
                     "email": info['email'],
