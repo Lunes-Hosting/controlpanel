@@ -216,11 +216,13 @@ def success():
         pay_id = session['pay_id']
     except KeyError:
         flash("not valid payment")
-        return url_for('index')
+        return redirect(url_for("user.index"))
+        #return url_for('index')
     check_session = stripe.checkout.Session.retrieve(pay_id)
     if check_session is None or pay_id not in active_payments:
         flash("not valid payment")
-        return url_for('index')
+        return redirect(url_for("user.index"))
+        #return url_for('index')
     if check_session['payment_status'] == 'paid':
         print(check_session)
         active_payments.remove(pay_id)
@@ -231,16 +233,19 @@ def success():
                 break
         if credits_to_add is None:
             flash("Failed please open a ticket")
-            return url_for('index')
+            return redirect(url_for("user.index"))
+            #return url_for('index')
         add_credits(check_session['customer_email'], credits_to_add)
         webhook_log(f"**NEW PAYMENT ALERT**: User with email: {check_session['customer_email']} bought {credits_to_add} credits.")
         flash("Success")
-        return url_for('index')
+        return redirect(url_for("user.index"))
+        #return url_for('index')
 
     elif check_session['status'] == 'expired':
         active_payments.remove(pay_id)
         flash("payment link expired")
-        return url_for('index')
+        return redirect(url_for("user.index"))
+        #return url_for('index')
 
 
 @store.route('/cancel', methods=['GET'])
@@ -269,4 +274,5 @@ def cancel():
         - clear_session(): Removes data
         - log_cancel(): Records event
     """
-    return render_template('cancel.html')
+    #return render_template('cancel.html')
+    return redirect(url_for("user.index"))
