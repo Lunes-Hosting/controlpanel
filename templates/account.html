@@ -113,9 +113,9 @@
                         <div>
                             <h3 class="text-xl font-bold text-red-700">Danger Zone</h3>
                             <p class="text-gray-400">Once you delete your account, there is no going back. Please be certain.</p>
-                            <a href="{{ url_for('user.delete_account') }}" class="flex flex-row items-center inline-block mt-2 px-6 py-2 bg-red-700 text-white rounded-md hover:bg-red-800 transition duration-200">
+                            <button onclick="openDeleteModal()" style="cursor: pointer;" class="flex flex-row items-center inline-block mt-2 px-6 py-2 bg-red-700 text-white rounded-md hover:bg-red-800 transition duration-200">
                                 <i class="fa-solid fa-trash"></i>
-                                Delete Account</a>
+                                Delete Account</button>
                         </div>
                     </div>
                 </div>
@@ -255,5 +255,61 @@
         </div>
     </div>
     {% endif %}
+
+    <style>
+        .warning-banner {
+            background-color: #f59e0b; /* bg-yellow-500 */
+            color: #1e293b; /* text-gray-900 */
+            padding: 12px;
+            text-align: center;
+            font-weight: 500;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+        .modal-content {
+            background-color: #1f2937; /* bg-gray-800 */
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #374151; /* border-gray-700 */
+            width: 90%;
+            max-width: 500px;
+            border-radius: 8px;
+            color: white;
+        }
+    </style>
+
+    <div id="deleteModal" class="modal" style="display: none;">
+        <div class="modal-content bg-gray-900 border border-2 border-blue-500 shadow-xl shadow-blue-800">
+            <h3 class="text-xl font-bold mb-4">Delete Account</h3>
+            <div class="mb-4">
+                <label for="nodeSelect" class="block text-sm font-medium text-gray-300 mb-2">HEADS UP:</label>
+                <p class="text-xl text-blue-500" > <a href="https://www.youtube.com/watch?v=u5CVsCnxyXg&pp=ygUMTm8gU3VycHJpc2Vz" class="underline">No alarms and no surprises.</a></p>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeDeleteModal()" style="cursor: pointer;" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors duration-200">Cancel</button>
+    
+                <a href="{{ url_for('user.delete_account') }}" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors duration-200">Delete</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'block';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+        }
+    </script>
 </body>
 </html>
