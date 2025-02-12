@@ -51,12 +51,13 @@ import asyncio
 from flask import Blueprint, request, render_template, session, flash, redirect, url_for, jsonify
 import sys
 from threadedreturn import ThreadWithReturnValue
+import secrets
+
 sys.path.append("..")
 from scripts import *
 from products import products
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY
-import random
 
 servers = Blueprint('servers', __name__)
 
@@ -446,7 +447,7 @@ def create_server_submit():
                         headers=HEADERS).json()
     
     allocs = resp['data']
-    random.shuffle(allocs)
+    secrets.SystemRandom().shuffle(allocs)
     alloac_id = None
     for allocation in allocs:
         if not allocation['attributes']['assigned']:

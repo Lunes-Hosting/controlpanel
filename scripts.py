@@ -89,7 +89,6 @@ from threadedreturn import ThreadWithReturnValue
 from config import *
 from products import products
 import secrets
-import random
 from flask_mail import Mail, Message
 from security import safe_requests
 
@@ -1263,7 +1262,7 @@ def get_node_allocation(node_id: int) -> int | None:
                 allocations.append(allocation['attributes']['id'])
         if len(allocations) == 0:
             return None
-        return random.choice(allocations)
+        return secrets.choice(allocations)
     except KeyError:
         return None
 
