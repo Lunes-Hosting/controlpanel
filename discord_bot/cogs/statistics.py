@@ -5,22 +5,6 @@ from managers.database_manager import DatabaseManager
 from ..utils.ptero import PteroAPI
 from ..utils.database import UserDB
 from ..utils.logger import logger
-# Define a simple Button View class
-class Send(discord.ui.View):
-    def __init__(self):
-        super().__init__()
-        self.value = None
-    @discord.ui.button(label='Send to stats channel?', style=discord.ButtonStyle.green)
-    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        embed = discord.Embed(title="Lunes Statistics", color=discord.Color.blue())
-        embed.add_field(name="Total Users", value=str(UserDB.get_all_users()), inline=True)
-        embed.add_field(name="Suspended Users", value=str(UserDB.get_suspended_users()), inline=False)
-        embed.add_field(name="Total Servers", value=str(PteroAPI.get_all_servers()['servers']), inline=False)
-        channel = self.bot.get_channel(1284260369925279744)
-        if channel:
-            await channel.send(embed=embed)
-        self.value = True
-        self.stop()
 class Statistics(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -42,8 +26,11 @@ class Statistics(commands.Cog):
             embed.add_field(name="Total Servers", value=str(PteroAPI.get_all_servers()['servers']), inline=False)
 
 
-            await ctx.respond(embed=embed, ephemeral=True, view=Send())
+            await ctx.respond(embed=embed, ephemeral=True)
             
+            channel = self.bot.get_channel(1284260369925279744)
+            if channel:
+                await channel.send(embed=embed)
             
         except Exception as e:
             await ctx.respond(f"Error fetching statistics: {str(e)}", ephemeral=True)
