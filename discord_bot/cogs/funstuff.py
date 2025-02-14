@@ -3,6 +3,7 @@ from discord.commands import slash_command # type: ignore
 from discord.ext import commands # type: ignore
 import secrets
 import random
+import requests
 class FunStuff(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -25,6 +26,13 @@ class FunStuff(commands.Cog):
             await ctx.respond(embed=embed, ephemeral=False)
         except Exception as e:
             await ctx.respond(f"Error fetching tudou gif: {str(e)}", ephemeral=True)
-
+            
+    @slash_command(name="cat_fact", description="Get a random cat fact")
+    async def fact_command(self, ctx): 
+        try: 
+            response = request.get("https://catfact.ninja/fact?max_length=150")
+            fact = response.json().get("fact")
+            embed = discord.embed(title="Cat Fact", color-discord.Color.blue())
+            embed.add_field(name="Fact:", value=fact).
 def setup(bot):
     bot.add_cog(FunStuff(bot))
