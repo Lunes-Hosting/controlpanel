@@ -544,7 +544,7 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
                      "bmixr.com", "numerobo.com", "dotzi.net", "mixzu.net", "prorsd.com", "drmail.in", "sectorid.com",
                      "deliveryotter.com", "naver.com", "shouxs.com", "minduls.com", "hi2.in", "intady.com","echo.tax",
                      "wrenden.com", "etik.com", "varieza.com", "flyzy.net", "mimimail.me", "yuvora.com", "owlny.com",
-                     "varieza.com", "rennieexpress.delivery", "dotvu.net", "qejjyl.com"]
+                     "varieza.com", "rennieexpress.delivery", "dotvu.net", "qejjyl.com", "ronete.com", "duck.com"]
     for text in banned_emails:
         if text in email:
             webhook_log(f"Failed to register email {email} do to email blacklist <@491266830674034699>")
