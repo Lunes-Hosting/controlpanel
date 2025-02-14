@@ -4,8 +4,10 @@
     <title>Delete Account</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>
+    
 </head>
-<body class="bg-gray-900">
+<body class="bg-gray-900 text-white" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
     <nav class="sticky w-full bg-gradient-to-t from-gray-900/0 to-blue-900/100 top-0 z-50 backdrop-blur-xs">
         <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-row items-center justify-between h-16">
@@ -44,10 +46,10 @@
     
             <form method="POST" onsubmit="return confirm('Are you sure you want to delete your account? If you do not log in within 30 days, it will be permanently deleted!');">
                 <div class="flex justify-center gap-4 mt-6">
-                    <button style="cursor: pointer;" type="submit" class="px-6 py-3 bg-red-600 hover:bg-red-700 transition-colors rounded-md text-white font-bold text-lg shadow-md">
+                    <button style="cursor: pointer;" type="submit" class="flex flex-row items-center inline-block mt-2 px-6 py-2 bg-red-700 text-white rounded-md hover:bg-red-800 transition duration-200">
                         Delete My Account
                     </button>
-                    <a href="{{ url_for('index') }}" class="px-6 py-3 bg-gray-700 hover:bg-gray-600 transition-colors rounded-md text-white font-bold text-lg shadow-md">
+                    <a href="{{ url_for('index') }}" class="flex flex-row items-center inline-block mt-2 px-6 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 transition duration-200">
                         Cancel
                     </a>
                 </div>
