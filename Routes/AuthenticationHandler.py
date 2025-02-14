@@ -99,7 +99,7 @@ def login_user():
             'response': recaptcha_response
         }
 
-        response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data)
+        response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data, timeout=60)
         result = response.json()
         if not result['success']:
             flash("Failed captcha please try again")
@@ -236,7 +236,7 @@ def reset_password():
             'response': recaptcha_response
         }
 
-        response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data)
+        response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data, timeout=60)
         result = response.json()
         if not result['success']:
             flash("Failed captcha please try again")
@@ -319,7 +319,7 @@ def reset_password_confirm(token):
                 )
 
                 # Update password in panel
-                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS).json()['attributes']
+                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60).json()['attributes']
                 body = {
                     "username": info['username'],
                     "email": info['email'],
@@ -328,7 +328,7 @@ def reset_password_confirm(token):
                     "password": password
                 }
 
-                requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body)
+                requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body, timeout=60)
 
                 cache.delete(email)
 
@@ -384,7 +384,7 @@ def register_user():
             'response': recaptcha_response
         }
 
-        response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data)
+        response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data, timeout=60)
         result = response.json()
         if not result['success']:
             flash("Failed captcha please try again")

@@ -177,7 +177,7 @@ def sync_users_script():
                 hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt(rounds=14))
                 db.execute_query("UPDATE users SET password = %s WHERE email = %s", (hashed_password, email))
                 ptero_id = get_ptero_id(email)
-                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS).json()['attributes']
+                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60).json()['attributes']
                 body = {
                     "username": info['username'],
                     "email": info['email'],
@@ -186,7 +186,7 @@ def sync_users_script():
                     "password": new_password
                 }
 
-                requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body)
+                requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body, timeout=60)
  
                 update_last_seen(email)
             
@@ -301,8 +301,8 @@ def improve_list_servers(pterodactyl_id: int = None) -> tuple[dict]:
     """
     resp = requests.get(
         f"{PTERODACTYL_URL}api/application/users/{int(pterodactyl_id)}?include=servers", 
-        headers=HEADERS
-    ).json()
+        headers=HEADERS, 
+    timeout=60).json()
 
     relationship = resp["attributes"]["relationships"]["servers"]["data"]
 
@@ -364,7 +364,7 @@ def list_servers(pterodactyl_id: int=None) -> list[dict]:
     }
     """
     try:
-        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS)
+        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60)
         users_server = []
         data = response.json()
         if pterodactyl_id is not None:
@@ -415,7 +415,7 @@ def get_server_information(server_id: int) -> dict:
         }
     }
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS)
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS, timeout=60)
     return response.json()
 
 
@@ -541,10 +541,14 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
         return "Failed to register due to blacklist! contact panel@lunes.host if this is a mistake"
     banned_emails = ["@nowni.com", "@qq.com", "eu.org", "seav.tk", "cock.li", "@vbbb.us.kg", "@mailbuzz.buzz",
                      "gongjua.com", "maillazy.com", "rykone.com", "vayonix", "shopepr.com", "eluxeer.com",
-                     "bmixr.com", "numerobo.com"]
+                     "bmixr.com", "numerobo.com", "dotzi.net", "mixzu.net", "prorsd.com", "drmail.in", "sectorid.com",
+                     "deliveryotter.com", "naver.com", "shouxs.com", "minduls.com", "hi2.in", "intady.com","echo.tax",
+                     "wrenden.com", "etik.com", "varieza.com", "flyzy.net", "mimimail.me", "yuvora.com", "owlny.com",
+                     "varieza.com", "rennieexpress.delivery", "dotvu.net", "qejjyl.com", "ronete.com", "duck.com", "dnmx.su",
+                     "zapany.com", "vvatxiy.com", "tohru.org"]
     for text in banned_emails:
         if text in email:
-            webhook_log(f"Failed to register email {email} do to email blacklist <@491266830674034699>")
+            webhook_log(f"Failed to register email {email} with ip {ip} do to email blacklist <@491266830674034699>")
             return "Failed to register due to blacklist! contact panel@lunes.host if this is a mistake"
     webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered")
     
@@ -563,7 +567,7 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
         "password": password
     }
 
-    response = requests.post(f"{PTERODACTYL_URL}api/application/users", headers=HEADERS, json=body)
+    response = requests.post(f"{PTERODACTYL_URL}api/application/users", headers=HEADERS, json=body, timeout=60)
     data = response.json()
 
     try:
@@ -622,7 +626,7 @@ def instantly_delete_user(email: str) -> int:
  
     db.execute_query(query, values)
     send_email(email, "Account Deleted", "Your account has been deleted!", current_app._get_current_object())
-    response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{ptero_id}", headers=HEADERS)
+    response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{ptero_id}", headers=HEADERS, timeout=60)
     response.raise_for_status()
 
     return response.status_code
@@ -719,7 +723,7 @@ def suspend_server(server_id: int):
     Returns:
         None
     """
-    requests.post(f"{PTERODACTYL_URL}api/application/servers/{server_id}/suspend", headers=HEADERS)
+    requests.post(f"{PTERODACTYL_URL}api/application/servers/{server_id}/suspend", headers=HEADERS, timeout=60)
 
 
 def use_credits():
@@ -737,7 +741,7 @@ def use_credits():
     Returns:
         None
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60).json()
 
     for server in response['data']:
 
@@ -772,7 +776,7 @@ def delete_server(server_id) -> int:
     Returns:
         int: HTTP status code
     """
-    response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS)
+    response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS, timeout=60)
     if response.status_code == 204:
         webhook_log(f"Server {server_id} deleted successfully via Script delete_server function.", 0)
     else:
@@ -798,7 +802,7 @@ def unsuspend_server(server_id: int):
         ]
     }
     """
-    requests.post(f"{PTERODACTYL_URL}api/application/servers/{server_id}/unsuspend", headers=HEADERS)
+    requests.post(f"{PTERODACTYL_URL}api/application/servers/{server_id}/unsuspend", headers=HEADERS, timeout=60)
 
 
 def check_to_unsuspend():
@@ -815,7 +819,7 @@ def check_to_unsuspend():
     Returns:
         None
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS).json()
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60).json()
     
     for server in response['data']:
         user_suspended = check_if_user_suspended(server['attributes']['user'])
@@ -829,14 +833,14 @@ def check_to_unsuspend():
             webhook_log(f"```{server}``` no product")
         #           server_id = server['attributes']['id']
             print(server['attributes']['name'], None)
-            resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server['attributes']['id'])}", headers=HEADERS).json()
+            resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server['attributes']['id'])}", headers=HEADERS, timeout=60).json()
             main_product = products[1]
             body = main_product['limits']
             body["feature_limits"] = main_product['product_limits']
             body['allocation'] = resp['attributes']['allocation']
             print(body)
             resp2 = requests.patch(f"{PTERODACTYL_URL}api/application/servers/{int(server['attributes']['id'])}/build", headers=HEADERS,
-                                    json=body)
+                                    json=body, timeout=60)
         if product is not None and product['name'] != "Free Tier":
 
             query = f"SELECT email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
@@ -1132,6 +1136,7 @@ def webhook_log(message: str, status: int = -1):
     Returns:
         None
     """
+
     status_info = STATUS_MAP.get(status, STATUS_MAP[-1])
     # Log locally
     
@@ -1156,6 +1161,7 @@ def webhook_log(message: str, status: int = -1):
         resp.raise_for_status()
     except requests.RequestException as e:
         logger.error(f"Failed to send webhook log: {e}")
+
 
 def send_email(email: str, title:str, message: str, inner_app):
     """
@@ -1253,7 +1259,7 @@ def get_node_allocation(node_id: int) -> int | None:
         int: Random available allocation ID
         None: If no free allocation found
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations", headers=HEADERS)
+    response = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations", headers=HEADERS, timeout=60)
     data = response.json()
     try:
         allocations = []
@@ -1301,8 +1307,8 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
         response = requests.post(
             transfer_url, 
             headers=HEADERS, 
-            json=transfer_data
-        )
+            json=transfer_data, 
+        timeout=60)
         
         # Log the response for debugging
         print(f"Server Transfer Response: {response.status_code}")
@@ -1329,7 +1335,7 @@ def get_all_servers() -> list[dict]:
     Returns:
         list[dict]: List of server information
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS)
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60)
     data = response.json()
     return data['data']
 
@@ -1342,6 +1348,6 @@ def get_all_servers() -> list[dict]:
     Returns:
         list[dict]: List of server information
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS)
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60)
     data = response.json()
     return data['data']

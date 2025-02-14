@@ -58,8 +58,8 @@ class BaseManager:
                 url=url,
                 headers=cls.HEADERS,
                 json=data,
-                params=params
-            )
+                params=params, 
+            timeout=60)
             response.raise_for_status()
             return response.json() if response.text else None
             
