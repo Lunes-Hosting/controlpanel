@@ -6,60 +6,310 @@
     <title>Lunes Host | Account Page</title>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
-    <!--<link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>-->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}"/>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"/>
 </head>
 <body class="bg-gray-900 text-white" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
-    {% include 'taskbar.html' %}
+    <nav class="sticky w-full bg-gradient-to-t from-gray-900/0 to-blue-900/100 top-0 z-50 backdrop-blur-xs">
+        <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-row items-center justify-between h-16">
+                <a href="/" class="group flex items-center space-x-3">
+                    <div class="relative"><img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" rel="preload" class="h-auto w-10 rounded-lg" width="32" height="32"></div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Lunes</h2>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </nav>
 
-    <div class="content">
-        <div class="container mx-auto mt-12 p-4 sm:p-6">
-            <!-- Flash Messages -->
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="bg-blue-500 text-white px-4 py-2 rounded-md mb-4 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6" />
-                            </svg>
-                            <span>{{ message }}</span>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="bg-blue-500 text-white px-4 py-2 mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6" />
+                    </svg>
+                    <span>{{ message }}</span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if not verified %}
+    <!-- Email Verification Warning -->
+    <div class="bg-yellow-950 text-white px-4 py-2 rounded-md mb-6 flex items-center gap-2 text-black max-w-5xl mx-auto">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+        <span>Your email is not verified yet. <a href="{{ url_for('user.resend_confirmation_email') }}" class="text-blue-300 hover:underline">Click here to resend verification email</a></span>
+    </div>
+    {% elif suspended %}
+    <!-- Email Verification Warning -->
+    <div class="bg-yellow-950 text-white px-4 py-2 rounded-md mb-6 flex items-center gap-2 text-black max-w-5xl mx-auto">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+        <span>Your account is suspended. Please enter our discord if you like to be unsuspended.</span>
+    </div>
+
+    {% else %}
+
+    <div class="content max-w-5xl mx-auto">
+        <div class="container mx-auto p-4 sm:p-6">
 
             <!-- Account Information -->
-            <h1 class="text-4xl font-bold text-center text-blue-400">Welcome to Your Account</h1>
-            <div class="account-info mt-6 bg-gray-800 p-6 rounded-none shadow-xl">
-                <h2 class="text-2xl font-bold text-blue-400 mb-4">Account Information</h2>
-                <div class="space-y-3">
-                    <p><strong class="text-gray-400">Username:</strong> <span class="text-white">{{ username }}</span></p>
-                    <p><strong class="text-gray-400">Email:</strong> <span class="text-white">{{ email }}</span></p>
-                    <p><strong class="text-gray-400">Credits:</strong> <span class="text-white">{{ credits }}</span></p>
-                    <p><strong class="text-gray-400">Server Count:</strong> <span class="text-white">{{ server_count }}</span></p>
-                    <p><strong class="text-gray-400">Monthly Usage:</strong> <span class="text-white">{{ monthly_usage }}</span></p>
-                </div>
 
-                <div class="danger-zone mt-8 pt-6 border-t border-gray-700">
-                    <h3 class="text-xl font-bold text-green-500">Manage & Create Servers</h3>
-                    <p class="text-gray-400 mt-2">Let's Game!</p>
-                    <a href="{{ url_for('servers.servers_index') }}" class="inline-block mt-4 px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-200">Manage Your Servers</a>
-                </div>
+            <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
+                <i class="fa-solid fa-house fa-2xl text-blue-400 m-0 p-0"></i>
+                <h1 class="font-semibold text-2xl m-0 p-0">Manage Account</h1>
+            </div>
 
-                <div class="danger-zone mt-8 pt-6 border-t border-gray-700">
-                    <h3 class="text-xl font-bold text-blue-500">Log Out</h3>
-                    <p class="text-gray-400 mt-2">You are always welcome back!</p>
-                    <a href="{{ url_for('user.logout') }}" class="inline-block mt-4 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-200">Log out</a>
-                </div>
+            <div class="account-info my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md">
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 space-x-4">
+                    <div class="space-y-3">
+                        <div class="flex flex-row justify-start items-center gap-2">
+                            <img class="w-16 rounded-md" src="https://gravatar.com/avatar/{{ hash }}">
+                            <h2 class="text-2xl font-bold text-gray-300 mb-4">Hello <span>{{ username }}</span></h2>
+                        </div>
+                        <div class="space-y-3">
+                            <p><strong class="text-gray-400">Email:</strong> <span class="text-white">{{ email }}</span></p>
+                            <p><strong class="text-gray-400">Credits:</strong> <span class="text-white">{{ credits }}</span></p>
+                            <p><strong class="text-gray-400">Server Count:</strong> <span class="text-white">{{ server_count }}</span></p>
+                            <p><strong class="text-gray-400">Monthly Usage:</strong> <span class="text-white">{{ monthly_usage }}</span></p>
+                        </div>                        
+                    </div>
 
-                <!-- Danger Zone -->
-                <div class="danger-zone mt-8 pt-6 border-t border-gray-700">
-                    <h3 class="text-xl font-bold text-red-500">Danger Zone</h3>
-                    <p class="text-gray-400 mt-2">Once you delete your account, there is no going back. Please be certain.</p>
-                    <a href="{{ url_for('user.delete_account') }}" class="inline-block mt-4 px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition duration-200">Delete Account</a>
+                    <div class="hidden sm:inline relative">
+                        <div class="absolute border border-1 border-blue-500 inset-y-0 left-0 w-px"></div> <!-- Divider -->
+                    </div>
+
+                    <hr class="inline sm:hidden border border-2 border-blue-500" />
+
+                    <div class="flex flex-col gap-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-500">Ticket</h3>
+                            <p class="text-gray-400">Issues?</p>
+                            <a href="{{ url_for('tickets.tickets_index') }}" class="flex flex-row items-center justify-center inline-block mt-2 px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition duration-200">
+                                <i class="fa-solid fa-ticket"></i>
+                                Open a Ticket</a>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-green-500">Store</h3>
+                            <p class="text-gray-400">Purchase Credits for Servers</p>
+                            <a href="#StoreArea" class="flex flex-row items-center justify-center inline-block mt-2 px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-200">
+                                <i class="fa-solid fa-store"></i>
+                                Take me there!</a>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-blue-500">Log Out</h3>
+                            <p class="text-gray-400">You are always welcome back!</p>
+                            <a href="{{ url_for('user.logout') }}" class="flex flex-row items-center justify-center inline-block mt-2 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-200">
+                                <i class="fa-solid fa-door-open"></i>
+                                Log out</a>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-red-700">Danger Zone</h3>
+                            <p class="text-gray-400">Once you delete your account, there is no going back. Please be certain.</p>
+                            <button onclick="openDeleteModal()" style="cursor: pointer;" class="flex flex-row items-center inline-block mt-2 px-6 py-2 bg-red-700 text-white rounded-md hover:bg-red-800 transition duration-200">
+                                <i class="fa-solid fa-trash"></i>
+                                Delete Account</button>
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            <!--<div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
+                <i class="fa-solid fa-server fa-2xl text-blue-400 m-0 p-0"></i>
+                <h1 class="font-semibold text-2xl m-0 p-0">Manage Servers</h1>
+            </div>-->
+            <div class="flex flex-row items-center justify-center text-nowrap gap-8 py-3">
+                <div class="flex flex-row items-center justify-center gap-2">
+                    <i class="fa-solid fa-server fa-lg fa-2xl text-blue-400 m-0 p-0"></i>
+                    <h1 class="text-2xl m-0 p-0 font-semibold">Manage Server</h1>
+                </div>
+                <hr class="border-neutral-600 border-t w-full inline">
+
+                <a href="/servers/create" class="max-w-xs bg-blue-500 hover:bg-blue-600 py-2 px-2 sm:px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i>
+                    <span class="hidden sm:inline" >Create Server</span>
+                </a>
+
+            </div>
+
+            <div class="my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {% for server in servers %}
+                    <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}" class="block bg-gray-800 hover:scale-105 transition transition-transform rounded-lg shadow-xl hover:shadow-2xl transition-shadow duration-300">
+                        <div class="p-6 text-center">
+                            <h3 class="text-xl font-semibold mb-2">{{ server['attributes']['name'] }}</h3>
+                            <p class="text-sm text-gray-400">Click to view details</p>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
+                <i class="fa-solid fa-store fa-2xl text-green-400 m-0 p-0"></i>
+                <h1 class="font-semibold text-2xl m-0 p-0">Store</h1>
+            </div>
+
+            <div id="StoreArea" class="flex-1 items-center justify-center my-4 p-8 bg-gray-900 border-2 border-green-500 shadow-xl shadow-green-500/20 rounded-md">
+                <div class="grid grid-cols-4 gap-8">
+                  <div class="col-span-2">
+                    <div class="flex flex-col gap-2 sm:gap-4 sm:w-[100%]">
+                      <div>
+                        <p class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-left">Lunes Credits</p>
+                        <p class="italic text-left sm:text-xs md:text-sm lg:text-xs">*Lunes Credits is the currency we use to meter premium products we offer</p>
+                      </div>
+                      <div>
+                        <label id="slider-value" for="labels-range-input" class="text-left block mb-2 text-sm font-medium">100 Lunes Credits</label>
+                        <input id="labels-range-input" step="1" type="range" value="0" min="0" max="{{ products|length - 1 }}" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-span-2">
+                    <div class="flex justify-center items-center text-center">
+                      <p id="costValue" class="text-3xl md:text-3xl lg:text-6xl font-bold">$1.00+</p>
+                    </div>
+                  </div>
+                </div>
+                <a id="purchaseLink" href="{{ url_for('user.logout') }}" class="flex flex-row items-center justify-center inline-block mt-2 px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-200">
+                    <i class="fa-solid fa-door-open"></i>
+                    <span class="">Purchase</span></a>
+              </div>
+              <script>
+                const priceLinkDict = [
+                    {% for product in products %}
+                    {% if product['price_link'] %}
+                    {"link":"{{ url_for('store.create_checkout_session', price_link=product['price_link'] or 0) }}", "credits":"{{ "%.2f"|format(product['price']) }}"},
+                    {% endif %}
+                    {% endfor %}
+                ]
+                const rangeInput = document.getElementById('labels-range-input');
+                const sliderValue = document.getElementById('slider-value');
+                const costValue = document.getElementById('costValue');
+                const purchaseBtn = document.getElementById('purchaseLink');
+              
+                rangeInput.addEventListener('input', () => {
+                  sliderValue.textContent = priceLinkDict[rangeInput.value]["credits"] + " Lunes Credits";
+                  costValue.textContent = "$"+calculateCost(priceLinkDict[rangeInput.value]["credits"]);
+                  purchaseBtn.setAttribute("href", priceLinkDict[rangeInput.value]["link"]);
+                });
+              
+                // Initialize the display value
+                sliderValue.textContent = priceLinkDict[rangeInput.value]["credits"] + " Lunes Credits";
+                costValue.textContent = "$"+calculateCost(priceLinkDict[rangeInput.value]["credits"]);
+                purchaseBtn.setAttribute("href", priceLinkDict[rangeInput.value]["link"]);
+        
+        
+                function calculateCost(miles) {
+                  const cost = miles / 100;
+                  return cost.toFixed(2);
+                }
+              </script>
+
+            <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
+                <i class="fa-solid fa-barcode fa-2xl text-blue-400 m-0 p-0"></i>
+                <h1 class="font-semibold text-2xl m-0 p-0">Other</h1>
+            </div>
+
+            <div class="my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md">
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 space-x-4">
+                    <div>
+                        <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" rel="preload" class="h-auto w-40 rounded-lg" width="32" height="32">         
+                        <p class="text-2xl font-bold">Lunes Hosting</p>
+                    </div>
+
+                    <div class="hidden sm:inline relative">
+                        <div class="absolute border border-1 border-blue-500 inset-y-0 left-0 w-px"></div> <!-- Divider -->
+                    </div>
+
+                    <hr class="inline sm:hidden border border-2 border-blue-500" />
+
+                    <div class="flex flex-col gap-4">
+                        <a href="https://discord.gg/AzWXXe8t" class="max-w-xs bg-indigo-600 hover:bg-indigo-700 py-2 px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
+                            <i class="fa-brands fa-discord"></i>
+                            <span>Join Discord</span>
+                        </a>
+                        <a href="https://lunes.host/tos/" class="max-w-xs bg-gray-600 hover:bg-gray-700 py-2 px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
+                            <i class="fa-solid fa-file-contract"></i>
+                            <span>Terms of Service</span>
+                        </a>
+                        <a href="https://lunes.host/privacy/" class="max-w-xs bg-gray-600 hover:bg-gray-700 py-2 px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            <span>Privacy Polcy</span>
+                        </a>
+                        <a href="mailto:panel@lunes.host" class="max-w-xs bg-gray-600 hover:bg-gray-700 py-2 px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
+                            <i class="fa-solid fa-envelope"></i>
+                            <span>Email Us</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+    {% endif %}
+
+    <style>
+        .warning-banner {
+            background-color: #f59e0b; /* bg-yellow-500 */
+            color: #1e293b; /* text-gray-900 */
+            padding: 12px;
+            text-align: center;
+            font-weight: 500;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+        .modal-content {
+            background-color: #1f2937; /* bg-gray-800 */
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #374151; /* border-gray-700 */
+            width: 90%;
+            max-width: 500px;
+            border-radius: 8px;
+            color: white;
+        }
+    </style>
+
+    <div id="deleteModal" class="modal" style="display: none;">
+        <div class="modal-content bg-gray-900 border border-2 border-blue-500 shadow-xl shadow-blue-800">
+            <h3 class="text-xl font-bold mb-4">Delete Account</h3>
+            <div class="mb-4">
+                <label for="nodeSelect" class="block text-sm font-medium text-gray-300 mb-2">HEADS UP:</label>
+                <p class="text-xl text-blue-500" > <a href="https://www.youtube.com/watch?v=u5CVsCnxyXg&pp=ygUMTm8gU3VycHJpc2Vz" class="underline">No alarms and no surprises.</a></p>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeDeleteModal()" style="cursor: pointer;" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors duration-200">Cancel</button>
+    
+                <a href="{{ url_for('user.delete_account') }}" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors duration-200">Delete</a>
             </div>
         </div>
     </div>
+
+    <script>
+        function openDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'block';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+        }
+    </script>
 </body>
 </html>

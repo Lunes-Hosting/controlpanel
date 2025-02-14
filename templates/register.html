@@ -25,28 +25,35 @@
     </div>
     
     <div class="min-h-screen flex items-center justify-center bg-gray-900">
-        <div class="max-w-md w-full bg-gray-800 p-8 rounded-lg shadow-lg">
+        
+        <div class="max-w-md w-full border-2 border-blue-500 p-8 shadow-2xl shadow-blue-500/20 rounded-md p-4 shadow-2xl relative">
+            <img class="w-12 h-12 absolute top-[-20px] sm:top-[-24px] left-1/2 transform -translate-x-1/2" src="{{ url_for('static', filename='images/Luneslogo.png') }}"/>
+            
             <div class="text-center">
-                <h1 class="text-5xl font-bold mb-4">Welcome, Let's Get Started</h1>
+                <h1 class="text-4xl font-bold mb-4">Welcome, Let's Get Started</h1>
                 <p class="text-gray-400 mb-6">Create your new fresh account!</p>
             </div>
             <form action="{{ url_for('user.register_user') }}" method="POST">
                 <div class="mb-4">
                     <label class="block text-gray-400 text-sm font-bold mb-2" for="username">Username</label>
-                    <input type="text" id="username" name="username" placeholder="John Doe" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+                    <input type="text" id="username" name="username" placeholder="John Doe" class="w-full px-3 py-2 bg-gray-900 border-2 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
                 </div>
                 <div class="mb-4">
                     <label class="block text-gray-400 text-sm font-bold mb-2" for="email">Email</label>
-                    <input type="email" id="email" name="email" placeholder="myemail@gmail.com" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+                    <input type="email" id="email" name="email" placeholder="myemail@gmail.com" class="w-full px-3 py-2 bg-gray-900 border-2 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
                 </div>
                 <div class="mb-4">
                     <label class="block text-gray-400 text-sm font-bold mb-2" for="password">Password</label>
-                    <input type="password" id="password" name="password" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+                    <input type="password" id="password" name="password" class="w-full px-3 py-2 bg-gray-900 border-2 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
                 </div>
                 <div class="mb-6">
                     <label class="block text-gray-400 text-sm font-bold mb-2" for="confirm_password">Confirm Password</label>
-                    <input type="password" id="confirm_password" name="confirm_password" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+                    <input type="password" id="confirm_password" name="confirm_password" class="w-full px-3 py-2 bg-gray-900 border-2 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+                    <div class="text-end mt-2">
+                        <a href="{{ url_for('user.login_user') }}" class="text-sm text-blue-500 hover:underline">Already have an account?</a>
+                    </div>
                 </div>
+
                 <div class="g-recaptcha mb-6" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
                 <p class="text-gray-400 text-sm mb-6">
                     By creating an account, you agree to our
@@ -58,9 +65,6 @@
                     <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-200">Create An Account</button>
                 </div>
             </form>
-            <div class="text-center">
-                <a href="{{ url_for('user.login_user') }}" class="text-sm text-blue-500 hover:underline">Already have an account?</a>
-            </div>
         </div>
     </div>
 

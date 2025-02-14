@@ -40,6 +40,7 @@ Cache Keys:
 """
 
 import asyncio
+from hashlib import sha256
 from flask import Blueprint, request, render_template, session, flash, current_app, redirect, url_for
 import sys
 import threading
@@ -90,7 +91,7 @@ def login_user():
         - after_request(): Updates session data
         - get_ptero_id(): Gets Pterodactyl panel ID
     """
-    after_request(session=session, request=request.environ)
+    asyncio.run(after_request_async(session=session, request=request.environ))
     if request.method == "POST":
         recaptcha_response = request.form.get('g-recaptcha-response')
         data = {
@@ -159,7 +160,7 @@ def index():
         return redirect(url_for("user.login_user"))
 
     asyncio.run(after_request_async(session, request.environ, True))
-    current_credits, ptero_id, username = account_get_information(session["email"])
+    current_credits, ptero_id, username, verified, suspended = account_get_information(session["email"])
     #print(current_credits)
     #print(ptero_id)
     #print(username)
@@ -174,13 +175,26 @@ def index():
     #    (session['email'],)
     #)
 
+    products_local = tuple(products)
+    fixed_list: list[dict] = []
+    for product in products_local:
+        x = product.get("price_link", None)
+        if x is not None:
+            fixed_list.append(product)
+            #products_local.remove(product)
+
     return render_template(
         "account.html", 
         credits=int(current_credits), 
         server_count=server_count,
         username=username, 
+        hash=sha256(session['email'].encode('utf-8')).hexdigest(),
         email=session['email'], 
-        monthly_usage=monthly_usage
+        monthly_usage=monthly_usage,
+        servers=servers,
+        products=fixed_list,
+        verified=verified,
+        suspended=suspended
     )
 
 
@@ -427,10 +441,11 @@ def resend_confirmation_email():
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
 
-    after_request(session=session, request=request.environ, require_login=True)
+    asyncio.run(after_request_async(session=session, request=request.environ, require_login=True))
     verification_token = generate_verification_token()
 
-    cache.set(session['email'], verification_token, timeout=TOKEN_EXPIRATION_TIME)
+    #cache.set(session['email'], verification_token, timeout=TOKEN_EXPIRATION_TIME)
+    cache.set(verification_token, session["email"], timeout=TOKEN_EXPIRATION_TIME )
 
     email_thread = threading.Thread(
         target=send_verification_email, 
@@ -467,18 +482,19 @@ def verify_email(token):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
 
-    after_request(session=session, request=request.environ, require_login=True)
+    asyncio.run(after_request_async(session=session, request=request.environ, require_login=True))
+    asyncio.run(after_request_async(session=session, request=request.environ, require_login=True))
 
-    email = session['email']
-    stored_token = cache.get(email)
+    #email = session['email']
+    email = cache.get(token)
 
-    if stored_token and stored_token == token:
+    if email:
         DatabaseManager.execute_query(
             "UPDATE users SET email_verified_at = %s WHERE email = %s",
             (datetime.datetime.now(), email)
         )
 
-        cache.delete(email)
+        cache.delete(token)
 
         flash('Your email has been successfully verified.')
     else:
@@ -568,12 +584,14 @@ def delete_account():
             delete_server(server_id)
         
         send_email(email, "Account Deletion", "Your account has been flagged for deletion. If you do not log back in within 30 days, your account will be permanently deleted.", current_app._get_current_object())
+        webhook_log(f"USER Account of {email} is Flagged for Deletion!", 0)
         db.execute_query("INSERT INTO pending_deletions (email, deletion_requested_time) VALUES (%s, %s)", (email, datetime.datetime.now()))
             
         flash("Your account has been flagged for deletion. If you do not log back in within 30 days, your account will be permanently deleted.")
 
     except Exception as e:
         print(f"Error deleting account: {e}")
+        webhook_log(f"Couldn't delete account of {email}. Error -> {e}", 2)
         flash("Error deleting account. Please contact support.")
         return redirect(url_for('index'))
         

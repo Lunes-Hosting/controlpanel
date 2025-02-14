@@ -82,6 +82,7 @@ import mysql.connector
 import mysql.connector
 import requests
 from flask import url_for, redirect, current_app
+import logging
 from werkzeug.datastructures.headers import EnvironHeaders
 from managers.database_manager import DatabaseManager
 from threadedreturn import ThreadWithReturnValue
@@ -298,7 +299,6 @@ def improve_list_servers(pterodactyl_id: int = None) -> tuple[dict]:
         }
     }
     """
-    print("in use!")
     resp = requests.get(
         f"{PTERODACTYL_URL}api/application/users/{int(pterodactyl_id)}?include=servers", 
         headers=HEADERS, 
@@ -778,9 +778,9 @@ def delete_server(server_id) -> int:
     """
     response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS, timeout=60)
     if response.status_code == 204:
-        webhook_log(f"Server {server_id} deleted successfully.")
+        webhook_log(f"Server {server_id} deleted successfully via Script delete_server function.", 0)
     else:
-        webhook_log(f"Failed to delete server {server_id}. Status code: {response.status_code}")
+        webhook_log(f"Failed to delete server {server_id}. Status code: {response.status_code}", 1)
     return response.status_code
 
 
@@ -896,11 +896,15 @@ def check_to_unsuspend():
 
 
 def account_get_information(email: str):
-    query = f"SELECT credits, pterodactyl_id, name FROM users WHERE email = %s"
+    query = f"SELECT credits, pterodactyl_id, name, email_verified_at, suspended FROM users WHERE email = %s"
+    
     db = DatabaseManager()
     information = db.execute_query(query, (email,))
 
-    return information[0], information[1], information[2]
+    verified = False
+    if information[3] is not None:
+        verified = True
+    return information[0], information[1], information[2], verified, information[4] == 1
 
 def get_credits(email: str) -> int:
     """
@@ -1112,19 +1116,52 @@ def get_db_connection(database=DATABASE):
 
 
 
-def webhook_log(message: str):
+STATUS_MAP = {
+    -1: {"color": 0x95A5A6, "title": "No Code"},   # Gray
+    0: {"color": 0x3498DB, "title": "Info"},      # Blue
+    1: {"color": 0xF1C40F, "title": "Warning"}, # Yellow
+    2: {"color": 0xE74C3C, "title": "Error"},    # Red
+}
+
+logger = logging.getLogger(__name__)
+
+def webhook_log(message: str, status: int = -1):
     """
-    Sends a message to the webhook.
-    
+    Sends a log message to a Discord webhook with formatting.
+
     Args:
-        message: Message to send
-    
+        message: Message to send.
+        status: Status of Message (-1: Debug, 0: Info, 1: Warning, 2: Error).
+
     Returns:
         None
     """
-    resp = requests.post(WEBHOOK_URL,
-                         json={"username": "Web Logs", "content": message}, timeout=60)
-    print(resp.text)
+
+    status_info = STATUS_MAP.get(status, STATUS_MAP[-1])
+    # Log locally
+    
+    logger.info(message)
+
+    # Create Discord embed
+    embed = {
+        "title": f"**{status_info['title']} Log**",
+        "description": message,
+        "color": status_info["color"],
+        "footer": {"text": f"Logged at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}"}
+    }
+
+    payload = {
+        "username": "Webhook Logger",
+        "embeds": [embed]
+    }
+
+    # Send to Discord webhook
+    try:
+        resp = requests.post(WEBHOOK_URL, json=payload)
+        resp.raise_for_status()
+    except requests.RequestException as e:
+        logger.error(f"Failed to send webhook log: {e}")
+
 
 def send_email(email: str, title:str, message: str, inner_app):
     """

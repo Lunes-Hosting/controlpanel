@@ -42,7 +42,7 @@ All routes are protected by is_admin() verification
 
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 import scripts
-from scripts import after_request, HEADERS
+from scripts import after_request, HEADERS, webhook_log
 from products import products
 from config import PTERODACTYL_URL
 from managers.database_manager import DatabaseManager
@@ -334,6 +334,20 @@ def admin_server(server_id):
     product = scripts.convert_to_product(info)
     return render_template('admin/server.html', info=info, products=products_local, product=product)
 
+@admin.route('/delete/<server_id>')
+def admin_delete_server(server_id):
+    if 'email' not in session:
+        return redirect(url_for("user.login_user"))
+    if not scripts.is_admin(session['email']):
+        return "YOU'RE NOT ADMIN BRO"
+    
+    after_request(session=session, request=request.environ, require_login=True)
+
+    webhook_log(f"ADMIN {session["email"]} deleted the pterodactyl server of id {server_id}")
+    scripts.delete_server(server_id)
+
+    return redirect(url_for("admin.admin_servers"))
+
 
 @admin.route('/tickets')
 def admin_tickets_index():
@@ -444,7 +458,7 @@ def admin_user_servers(user_id):
     ptero_id = DatabaseManager.execute_query(query, (user_id,))[0]
 
     # Get user's servers
-    servers = scripts.list_servers(ptero_id)
+    servers = scripts.improve_list_servers(ptero_id)
 
     return render_template('admin/user_servers.html', servers=servers, user_info=user_info)
 
@@ -545,6 +559,7 @@ def admin_delete_user(user_id):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
     if not scripts.is_admin(session['email']):
+        scripts.webhook_log(f"Attempted Login to Admin from {session["email"]}", 1)
         return "YOU'RE NOT ADMIN"
         
     try:
@@ -573,7 +588,7 @@ def admin_delete_user(user_id):
         # Finally delete user from database
         DatabaseManager.execute_query("DELETE FROM users WHERE id = %s", (user_id,))
         
-        scripts.webhook_log(f"Admin `{session['email']}` deleted user `{user_email}`")
+        scripts.webhook_log(f"Admin `{session['email']}` deleted user `{user_email}`", 0)
         flash("User and all associated data deleted successfully")
         
     except Exception as e:

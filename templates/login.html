@@ -7,16 +7,17 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer></script>
-    <!--<link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>-->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}"/>
 </head>
-<body class="bg-gray-900 text-white" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
-    <div id="flash-messages">
+
+<body class=" text-white" style="background-size: 10px 10px;font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
+
+    <div id="flash-messages relative">
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                {% for message in messages %}
-               <div class="bg-red-500 text-white px-4 py-2 rounded-md flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+               <div class="bg-red-500 text-white p-2 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 top-1/2 left-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span>{{ message }}</span>
@@ -27,7 +28,8 @@
     </div>
     
     <div class="p-4 lg:p-0 min-h-screen flex items-center justify-center bg-gray-900">
-        <div class="max-w-md w-full bg-gray-800 p-8 rounded-lg shadow-lg">
+        <div class="max-w-md w-full bg-gray-900 border-2 border-blue-500 p-8 shadow-2xl shadow-blue-500/20 rounded-md shadow-lg relative">
+            <img class="w-12 h-12 absolute top-[-20px] sm:top-[-24px] left-1/2 transform -translate-x-1/2" src="{{ url_for('static', filename='images/Luneslogo.png') }}"/>
             <div class="text-center">
                 <h1 class="text-4xl font-bold mb-4">Welcome Back!</h1>
                 <p class="text-gray-400 mb-6">Login to your account or Create an account!</p>
@@ -41,11 +43,11 @@
             <form action="{{ url_for('user.login_user') }}" method="POST"> 
                 <div class="mb-4">
                     <label class="block text-gray-400 text-sm font-bold mb-2" for="email">Email</label>
-                    <input type="text" id="email" name="email" placeholder="myemail@gmail.com" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="text" id="email" name="email" placeholder="myemail@gmail.com" class="w-full px-3 py-2 bg-gray-900 border-2 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div class="mb-6">
                     <label class="block text-gray-400 text-sm font-bold mb-2" for="password">Password</label>
-                    <input type="password" id="password" name="password" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="password" id="password" name="password" placeholder="Your Password Here" class="w-full px-3 py-2 bg-gray-900 border-2 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     <div class="flex justify-between mt-2">
                         <a href="{{ url_for('user.reset_password') }}" class="text-sm text-blue-500 hover:underline">Forgot password?</a>
                         <a href="{{ url_for('user.register_user') }}" class="text-sm text-blue-500 hover:underline">Create account</a>
@@ -53,7 +55,7 @@
                 </div>
                 <div class="g-recaptcha mb-6 w-full" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
                 <div class="mb-4">
-                    <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-200">Submit</button>
+                    <button type="submit" class="hover:scale-105 w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-200">Submit</button>
                 </div>
             </form>
         </div>

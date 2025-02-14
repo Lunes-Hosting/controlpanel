@@ -77,6 +77,22 @@ def get_user_verification_and_ptero_id(email):
     
     return (None, None)
 
+def get_user_verification_ptero_id_and_credits(email):
+    #credits
+    result = DatabaseManager.execute_query(
+        "SELECT email_verified_at, pterodactyl_id, credits FROM users WHERE email = %s",
+        (email,)
+    )
+
+    if result:
+        verified = False
+        if result[0] is not None:
+            verified = True
+
+        return (verified, result[1], result[2])
+    
+    return (None, None, None)
+
 def get_user_verification_status(email):
     """
     Check if user's email is verified.
@@ -171,7 +187,10 @@ def verify_server_ownership_by_ptero_id(server_id, ptero_id):
         - get_ptero_id(): Gets user's panel ID
     """
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
-    return resp['attributes']['user'] == ptero_id if ptero_id else False
+    try:
+        return resp['attributes']['user'] == ptero_id if ptero_id else False
+    except:
+        return False
 
 @servers.route('/')
 def servers_index():
@@ -259,7 +278,7 @@ def server(server_id):
         
     asyncio.run(after_request_async(session, request.environ, True))
     
-    verified, ptero_id = get_user_verification_and_ptero_id(session["email"])
+    verified, ptero_id, credits = get_user_verification_ptero_id_and_credits(session["email"])
     #print(verified)
     #print(ptero_id)
     #ptero_id = get_user_ptero_id(session) #uses db
@@ -282,7 +301,7 @@ def server(server_id):
             
     info = get_server_information(server_id)
     nodes = get_nodes()
-    return render_template('server.html', info=info, products=products_local, nodes=tuple(nodes), verified=verified)
+    return render_template('server.html', info=info, products=products_local, nodes=tuple(nodes), verified=verified, credits=int(credits))
 
 @servers.route("/create")
 def create_server():
@@ -315,20 +334,20 @@ def create_server():
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    after_request(session, request.environ, True)
+    asyncio.run(after_request_async(session, request.environ, True))
 
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
     else:
-        ptero_id = get_ptero_id(session['email'])
+        ptero_id = get_ptero_id(session['email']) #uses db
         session['pterodactyl_id'] = ptero_id
 
     # Check email verification
-    verified = get_user_verification_status(session['email'])
+    verified = get_user_verification_status(session['email']) #uses db
     if not verified:
-        return redirect(url_for('servers.servers_index'))
+        return redirect(url_for('user.index'))
 
-    servers_list = list_servers(ptero_id[0])
+    servers_list = improve_list_servers(ptero_id[0])
     
     nodes = get_nodes()
     eggs = get_eggs()
@@ -377,8 +396,7 @@ def delete_server(server_id):
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    webhook_log(f"Server with id: {server_id} was deleted by user")
-    after_request(session, request.environ, True)
+    asyncio.run(after_request_async(session, request.environ, True))
 
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     
@@ -389,9 +407,11 @@ def delete_server(server_id):
     )
 
     if resp['attributes']['user'] == ptero_id[0]:
+        webhook_log(f"Server with id: {server_id} was deleted by user", 0)
         requests.delete(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS)
-        return redirect(url_for('servers.servers_index'))
+        return redirect(url_for('user.index'))
     else:
+        webhook_log(f"Server with id {server_id} attempted deleted from user {session["email"]}", 1)
         return "You can't delete this server you dont own it!"
 
 @servers.route('/create/submit', methods=['POST'])
@@ -438,7 +458,7 @@ def create_server_submit():
         return redirect(url_for('servers.create_server'))
             
     ptero_id = get_ptero_id(session['email'])[0]
-    servers_list = list_servers(ptero_id)
+    servers_list = improve_list_servers(ptero_id)
     products_local = list(products)
     for server_inc in servers_list:
         if server_inc['attributes']['user'] == ptero_id:
@@ -455,7 +475,7 @@ def create_server_submit():
             res = remove_credits(session['email'], credits_used)
             if res == "SUSPEND":
                 flash("You are out of credits")
-                return redirect(url_for('servers.servers_index'))
+                return redirect(url_for('user.index'))
 
     if not found_product:
         return "You already have free server"
@@ -485,7 +505,7 @@ def create_server_submit():
 
     res = requests.post(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, json=body)
     webhook_log(f"Server was just created: ```{res.json()}```")
-    return redirect(url_for('servers.servers_index'))
+    return redirect(url_for('user.index'))
 
 @servers.route('/adminupdate/<server_id>', methods=['POST'])
 def admin_update_server_submit(server_id):
