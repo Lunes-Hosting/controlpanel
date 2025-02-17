@@ -148,7 +148,10 @@
                                     {{ product['limits']['cpu'] }}%
                                 {% endif %}
                             </p>
-                            <p class="text-sm text-gray-300">Cost (credits/month): {{ product['price'] }} subtracted hourly</p>
+                            <p class="text-sm text-gray-300">
+                                Cost {{ product['price'] }} credits/month (subtracted hourly at {{ (product['price'] / 30 / 24) | round(2) }} credits/hour)
+                            </p>
+                            
                         </div>
                     {% endfor %}
                 </div>
