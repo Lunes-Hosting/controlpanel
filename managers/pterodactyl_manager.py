@@ -14,6 +14,8 @@ class Pterodactyl(DatabaseManager):
         'Accept': 'application/json',
         'Content-Type': 'application/json'
     }
+    
+    PTERODACTYL_URL=PTERODACTYL_URL
 
     def improve_list_servers(self, pterodactyl_id: int = None) -> tuple[dict]:
         """
@@ -91,7 +93,7 @@ class Pterodactyl(DatabaseManager):
         }
         """
         resp = requests.get(
-            f"{PTERODACTYL_URL}api/application/users/{int(pterodactyl_id)}?include=servers", 
+            f"{self.PTERODACTYL_URL}api/application/users/{int(pterodactyl_id)}?include=servers", 
             headers=self.HEADERS, 
         timeout=60).json()
 
@@ -101,3 +103,43 @@ class Pterodactyl(DatabaseManager):
         server_list = [server for server in relationship if int(server["attributes"]["user"]) == pterodactyl_id]
 
         return (server_list)
+    
+    def get_server_information(self, server_id: int) -> dict:
+        """
+        Returns dictionary of server information from pterodactyl api.
+        
+        Makes a GET request to /api/application/servers/{server_id} to fetch specific server details.
+        
+        Example Response:
+        {
+            "attributes": {
+                "id": 1,
+                "external_id": null,
+                "uuid": "uuid-string",
+                "identifier": "identifier-string",
+                "name": "Server Name",
+                "description": "Server Description",
+                "status": "installing",
+                "suspended": false,
+                "limits": {
+                    "memory": 1024,
+                    "swap": 0,
+                    "disk": 10240,
+                    "io": 500,
+                    "cpu": 100
+                },
+                "feature_limits": {
+                    "databases": 5,
+                    "allocations": 5,
+                    "backups": 2
+                },
+                "user": 1,
+                "node": 1,
+                "allocation": 1,
+                "nest": 1,
+                "egg": 1
+            }
+        }
+        """
+        response = requests.get(f"{self.PTERODACTYL_URL}api/application/servers/{server_id}", headers=self.HEADERS, timeout=60)
+        return response.json()
