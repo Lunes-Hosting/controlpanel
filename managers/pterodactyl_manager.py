@@ -1,6 +1,6 @@
-import requests
 from config import PTERODACTYL_ADMIN_KEY, PTERODACTYL_ADMIN_USER_KEY, PTERODACTYL_URL
 from managers.database_manager import DatabaseManager
+from security import safe_requests
 
 class Pterodactyl(DatabaseManager):
     HEADERS = {
@@ -92,7 +92,7 @@ class Pterodactyl(DatabaseManager):
             }
         }
         """
-        resp = requests.get(
+        resp = safe_requests.get(
             f"{self.PTERODACTYL_URL}api/application/users/{int(pterodactyl_id)}?include=servers", 
             headers=self.HEADERS, 
         timeout=60).json()
@@ -141,5 +141,5 @@ class Pterodactyl(DatabaseManager):
             }
         }
         """
-        response = requests.get(f"{self.PTERODACTYL_URL}api/application/servers/{server_id}", headers=self.HEADERS, timeout=60)
+        response = safe_requests.get(f"{self.PTERODACTYL_URL}api/application/servers/{server_id}", headers=self.HEADERS, timeout=60)
         return response.json()
