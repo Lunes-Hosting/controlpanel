@@ -41,8 +41,8 @@ All routes are protected by is_admin() verification
 """
 
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
-import scripts
-from scripts import after_request, HEADERS, webhook_log
+import legacy_scripts
+from legacy_scripts import after_request, HEADERS, webhook_log
 from products import products
 from config import PTERODACTYL_URL
 from managers.database_manager import DatabaseManager
@@ -84,7 +84,7 @@ def admin_index():
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
+    if not legacy_scripts.is_admin(session['email']):
         return "YOUR NOT ADMIN BRO"
     return render_template("admin/admin.html")
 
@@ -127,7 +127,7 @@ def users():
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
+    if not legacy_scripts.is_admin(session['email']):
         return "YOUR NOT ADMIN BRO"
     
     # Get query parameters
@@ -229,7 +229,7 @@ def admin_servers():
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
+    if not legacy_scripts.is_admin(session['email']):
         return "YOUR NOT ADMIN BRO"
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60).json()
     return render_template("admin/servers.html", servers=resp['data'])
@@ -273,7 +273,7 @@ def admin_user(user_id):
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
+    if not legacy_scripts.is_admin(session['email']):
         return "YOUR NOT ADMIN BRO"
     resp = requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60).json()
     return resp
@@ -319,32 +319,32 @@ def admin_server(server_id):
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
+    if not legacy_scripts.is_admin(session['email']):
         return "YOU'RE NOT ADMIN BRO"
     after_request(session=session, request=request.environ, require_login=True)
 
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
     else:
-        ptero_id = scripts.get_ptero_id(session['email'])
+        ptero_id = legacy_scripts.get_ptero_id(session['email'])
         session['pterodactyl_id'] = ptero_id
 
     products_local = list(products)
-    info = scripts.get_server_information(server_id)
-    product = scripts.convert_to_product(info)
+    info = legacy_scripts.get_server_information(server_id)
+    product = legacy_scripts.convert_to_product(info)
     return render_template('admin/server.html', info=info, products=products_local, product=product)
 
 @admin.route('/delete/<server_id>')
 def admin_delete_server(server_id):
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
+    if not legacy_scripts.is_admin(session['email']):
         return "YOU'RE NOT ADMIN BRO"
     
     after_request(session=session, request=request.environ, require_login=True)
 
     webhook_log(f"ADMIN {session["email"]} deleted the pterodactyl server of id {server_id}")
-    scripts.delete_server(server_id)
+    legacy_scripts.delete_server(server_id)
 
     return redirect(url_for("admin.admin_servers"))
 
@@ -382,16 +382,16 @@ def admin_tickets_index():
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
+    if not legacy_scripts.is_admin(session['email']):
         return "YOUR NOT ADMIN BRO"
     after_request(session=session, request=request.environ, require_login=True)
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
     else:
-        ptero_id = scripts.get_ptero_id(session['email'])
+        ptero_id = legacy_scripts.get_ptero_id(session['email'])
         session['pterodactyl_id'] = ptero_id
 
-    user_id = scripts.get_id(session['email'])
+    user_id = legacy_scripts.get_id(session['email'])
     tickets_list = DatabaseManager.execute_query(
         "SELECT * FROM tickets WHERE status = 'open'", 
         fetch_all=True
@@ -438,7 +438,7 @@ def admin_user_servers(user_id):
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
+    if not legacy_scripts.is_admin(session['email']):
         return "YOU'RE NOT ADMIN BRO"
 
     # Get user info
@@ -458,7 +458,7 @@ def admin_user_servers(user_id):
     ptero_id = DatabaseManager.execute_query(query, (user_id,))[0]
 
     # Get user's servers
-    servers = scripts.improve_list_servers(ptero_id)
+    servers = legacy_scripts.improve_list_servers(ptero_id)
 
     return render_template('admin/user_servers.html', servers=servers, user_info=user_info)
 
@@ -502,12 +502,12 @@ def admin_manage_server(server_id):
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
+    if not legacy_scripts.is_admin(session['email']):
         return "YOU'RE NOT ADMIN"
         
     try:
         # Get server details from Pterodactyl
-        server = scripts.get_server(server_id)
+        server = legacy_scripts.get_server(server_id)
         if not server:
             flash("Server not found")
             return redirect(url_for('admin.users'))
@@ -558,8 +558,8 @@ def admin_delete_user(user_id):
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
-        scripts.webhook_log(f"Attempted Login to Admin from {session["email"]}", 1)
+    if not legacy_scripts.is_admin(session['email']):
+        legacy_scripts.webhook_log(f"Attempted Login to Admin from {session["email"]}", 1)
         return "YOU'RE NOT ADMIN"
         
     try:
@@ -573,13 +573,13 @@ def admin_delete_user(user_id):
         ptero_id, user_email = user_info
         
         # Get and delete all user's servers
-        servers = scripts.list_servers(ptero_id)
+        servers = legacy_scripts.list_servers(ptero_id)
         for server in servers:
             server_id = server['attributes']['id']
-            scripts.delete_server(server_id)
+            legacy_scripts.delete_server(server_id)
             
         # Delete user from Pterodactyl
-        scripts.delete_user(ptero_id)
+        legacy_scripts.delete_user(ptero_id)
         
         # Delete user's tickets and comments
         DatabaseManager.execute_query("DELETE FROM ticket_comments WHERE user_id = %s", (user_id,))
@@ -588,7 +588,7 @@ def admin_delete_user(user_id):
         # Finally delete user from database
         DatabaseManager.execute_query("DELETE FROM users WHERE id = %s", (user_id,))
         
-        scripts.webhook_log(f"Admin `{session['email']}` deleted user `{user_email}`", 0)
+        legacy_scripts.webhook_log(f"Admin `{session['email']}` deleted user `{user_email}`", 0)
         flash("User and all associated data deleted successfully")
         
     except Exception as e:
@@ -631,7 +631,7 @@ def admin_toggle_suspension(user_id):
     """
     if 'email' not in session:
         return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
+    if not legacy_scripts.is_admin(session['email']):
         return "YOU'RE NOT ADMIN"
         
     try:
@@ -649,7 +649,7 @@ def admin_toggle_suspension(user_id):
         DatabaseManager.execute_query("UPDATE users SET suspended = %s WHERE id = %s", (new_status, user_id))
         
         action = "suspended" if new_status == 1 else "unsuspended"
-        scripts.webhook_log(f"Admin `{session['email']}` {action} user `{user_email}`")
+        legacy_scripts.webhook_log(f"Admin `{session['email']}` {action} user `{user_email}`")
         flash(f"User has been {action}.")
         
     except Exception as e:
@@ -663,9 +663,9 @@ def admin_toggle_suspension(user_id):
 def nodes():
     if 'email' not in session:
         return redirect(url_for('user.login'))
-    if not scripts.is_admin(session['email']):
+    if not legacy_scripts.is_admin(session['email']):
         return redirect(url_for('home'))
-    nodes = scripts.get_nodes(all=True)
+    nodes = legacy_scripts.get_nodes(all=True)
     return render_template('admin/nodes.html', nodes=nodes)
 
 
@@ -673,16 +673,16 @@ def nodes():
 def node(node_id):
     if 'email' not in session:
         return redirect(url_for('user.login'))
-    if not scripts.is_admin(session['email']):
+    if not legacy_scripts.is_admin(session['email']):
         return redirect(url_for('home'))
-    nodes = scripts.get_nodes(all=True)
+    nodes = legacy_scripts.get_nodes(all=True)
     node = next((node for node in nodes if node['node_id'] == node_id), None)
     if not node:
         flash('Node not found')
         return redirect(url_for('admin.nodes'))
     
     # Get all servers and filter by node
-    all_servers = scripts.get_all_servers()
+    all_servers = legacy_scripts.get_all_servers()
     print(f"Total servers: {len(all_servers)}")
     node_servers = [server for server in all_servers if server['attributes']['node'] == node_id]
     print(f"Servers on node {node_id}: {len(node_servers)}")
@@ -694,7 +694,7 @@ def do_transfers(node_servers, num_servers, target_node):
     """Background task to handle server transfers with delays"""
     transferred = 0
     for server in node_servers[:num_servers]:
-        status = scripts.transfer_server(server['attributes']['id'], target_node)
+        status = legacy_scripts.transfer_server(server['attributes']['id'], target_node)
         if status == 204:  # Success status code
             transferred += 1
             if transferred < num_servers:
@@ -705,7 +705,7 @@ def do_transfers(node_servers, num_servers, target_node):
 def transfer_servers(node_id):
     if 'email' not in session:
         return redirect(url_for('user.login'))
-    if not scripts.is_admin(session['email']):
+    if not legacy_scripts.is_admin(session['email']):
         return redirect(url_for('home'))
     
     num_servers = int(request.form.get('num_servers', 0))
@@ -716,7 +716,7 @@ def transfer_servers(node_id):
         return redirect(url_for('admin.node', node_id=node_id))
     
     # Get servers on this node
-    all_servers = scripts.get_all_servers()
+    all_servers = legacy_scripts.get_all_servers()
     node_servers = [server for server in all_servers if server['attributes']['node'] == node_id]
     
     # Start transfers in background thread

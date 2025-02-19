@@ -160,7 +160,7 @@ def verify_server_ownership(server_id, user_email):
     Related Functions:
         - get_ptero_id(): Gets user's panel ID
     """
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
+    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=Pterodactyl.HEADERS).json()
     ptero_id = get_ptero_id(user_email)
     return resp['attributes']['user'] == ptero_id[0] if ptero_id else False
 
