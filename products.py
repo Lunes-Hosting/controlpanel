@@ -112,7 +112,7 @@ products = [
     },
     {
         "enabled": True,
-        "price_link": "price_1NaWkdGc0pLG1vqRKpp7J1CD",
+        "price_link": "price_1Qu0zRGc0pLG1vqRAPaAdUb9",
         "id": 4,
         "name": "Ls 3",
         "price": 300,
@@ -131,7 +131,7 @@ products = [
     },
     {
         "enabled": True,
-        "price_link": "price_1NaWkhGc0pLG1vqR4HPoxo3q",
+        "price_link": "price_1Qu0z0Gc0pLG1vqR9nUMkgX6",
         "id": 5,
         "name": "Ls 4",
         "price": 400,
@@ -150,7 +150,7 @@ products = [
     },
     {
         "enabled": True,
-        "price_link": "price_1NaWklGc0pLG1vqR9hI9OVPO",
+        "price_link": "price_1Qu0yXGc0pLG1vqRODqrrxtY",
         "id": 6,
         "name": "Ls 5",
         "price": 500,
@@ -169,7 +169,7 @@ products = [
     },
         {
         "enabled": True,
-        "price_link": "price_1NaWkpGc0pLG1vqRMBodHszM",
+        "price_link": "price_1Qu0xyGc0pLG1vqRdmFNrTHn",
         "id": 7,
         "name": "Ls 6",
         "price": 600,
@@ -188,7 +188,7 @@ products = [
     },
     {
         "enabled": True,
-        "price_link": "price_1NnkF6Gc0pLG1vqRSj3llmXi",
+        "price_link": "price_1Qu0x8Gc0pLG1vqRef2T2FM2",
         "id": 8,
         "name": "Ls 10",
         "price": 1000,
@@ -207,7 +207,7 @@ products = [
     },
     {
         "enabled": True,
-        "price_link": "price_1PwZiXGc0pLG1vqRy9Gx7RlV",
+        "price_link": "price_1Qu0wXGc0pLG1vqRSvFt9nag",
         "id": 9,
         "name": "Ls 16",
         "price": 1600,
@@ -245,7 +245,7 @@ products = [
     },
     {
         "enabled": True,
-        "price_link": "price_1Qu0qlGc0pLG1vqRqyi89rfY",
+        "price_link": "price_1Qu0vRGc0pLG1vqRlrYUYeLL",
         "id": 11,
         "name": "Credits Bundle",
         "price": 2500,
