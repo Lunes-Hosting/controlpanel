@@ -66,7 +66,6 @@ user = Blueprint('user', __name__)
 TOKEN_EXPIRATION_TIME = 1800  # 30 minutes
 
 pterocache = PteroCache()
-scripts = Pterodactyl()
 
 @user.route('/login', methods=['POST', 'GET'])
 def login_user():
@@ -114,7 +113,7 @@ def login_user():
         email = data.get('email')
         password = data.get('password')
         try:
-            response = scripts.login(email, password)
+            response = Pterodactyl().login(email, password)
             if response is None:
                 flash("Incorrect information. Please ensure you have an account.")
                 return redirect(url_for('user.login_user'))
@@ -165,13 +164,13 @@ def index():
         return redirect(url_for("user.login_user"))
 
     asyncio.run(after_request_async(session, request.environ, True))
-    current_credits, ptero_id, username, verified, suspended = scripts.account_get_information(session["email"])
+    current_credits, ptero_id, username, verified, suspended = Pterodactyl().account_get_information(session["email"])
     #print(current_credits)
     #print(ptero_id)
     #print(username)
     #current_credits = get_credits(session['email']) #use_db
     #servers = improve_list_servers(get_ptero_id(session['email'])[0])
-    servers = scripts.improve_list_servers(ptero_id)
+    servers = Pterodactyl().improve_list_servers(ptero_id)
     server_count = len(servers)
     monthly_usage = sum(convert_to_product(server)['price'] for server in servers)
 
@@ -312,7 +311,7 @@ def reset_password_confirm(token):
                 salt = bcrypt.gensalt(rounds=14)
                 password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
 
-                ptero_id = scripts.get_ptero_id(email)
+                ptero_id = Pterodactyl().get_ptero_id(email)
                 if ptero_id is None:
                     flash('Error: User not found in Pterodactyl panel')
                     return redirect(url_for('user.login_user'))
@@ -324,7 +323,7 @@ def reset_password_confirm(token):
                 )
 
                 # Update password in panel
-                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=scripts.HEADERS, timeout=60).json()['attributes']
+                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=Pterodactyl().HEADERS, timeout=60).json()['attributes']
                 body = {
                     "username": info['username'],
                     "email": info['email'],
@@ -333,7 +332,7 @@ def reset_password_confirm(token):
                     "password": password
                 }
 
-                requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=scripts.HEADERS, json=body, timeout=60)
+                requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=Pterodactyl().HEADERS, json=body, timeout=60)
 
                 cache.delete(email)
 
@@ -401,7 +400,7 @@ def register_user():
         name = data.get('username')
         ip = request.headers.get('Cf-Connecting-Ip', request.remote_addr)
 
-        res = scripts.register(email, password, name, ip)
+        res = Pterodactyl().register(email, password, name, ip)
         if isinstance(res, str):
             flash(res + " If this is an error, please contact support.")
             return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
@@ -579,24 +578,24 @@ def delete_account():
             return redirect(url_for('index'))
             
         email, ptero_id = user_info
-        scripts.log.webhook_log(f"User `{email}` deleted their account")
+        Pterodactyl().log.webhook_log(f"User `{email}` deleted their account")
         session.clear()
         
         # Get and delete all user's servers
-        servers = scripts.improve_list_servers(ptero_id)
+        servers = Pterodactyl().improve_list_servers(ptero_id)
         for server in servers:
             server_id = server['attributes']['id']
-            scripts.delete_server(server_id)
+            Pterodactyl().delete_server(server_id)
         
         send_email(email, "Account Deletion", "Your account has been flagged for deletion. If you do not log back in within 30 days, your account will be permanently deleted.", current_app._get_current_object())
-        scripts.log.webhook_log(f"USER Account of {email} is Flagged for Deletion!", 0)
+        Pterodactyl().log.webhook_log(f"USER Account of {email} is Flagged for Deletion!", 0)
         db.execute_query("INSERT INTO pending_deletions (email, deletion_requested_time) VALUES (%s, %s)", (email, datetime.datetime.now()))
             
         flash("Your account has been flagged for deletion. If you do not log back in within 30 days, your account will be permanently deleted.")
 
     except Exception as e:
         print(f"Error deleting account: {e}")
-        scripts.log.webhook_log(f"Couldn't delete account of {email}. Error -> {e}", 2)
+        Pterodactyl().log.webhook_log(f"Couldn't delete account of {email}. Error -> {e}", 2)
         flash("Error deleting account. Please contact support.")
         return redirect(url_for('index'))
         
