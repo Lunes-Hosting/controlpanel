@@ -1,12 +1,20 @@
-
+from threadedreturn import ThreadWithReturnValue
 import datetime
 import bcrypt
+from flask import current_app
 import requests
 from config import PTERODACTYL_URL
 from managers.database_manager import DatabaseManager
 from werkzeug.datastructures.headers import EnvironHeaders
 
+from managers.logger import WebhookLogger
+from scripts import send_email
+
 class User(DatabaseManager):
+
+    def __init__(self):
+        self.log = WebhookLogger()
+
     def get_ptero_id(self, email: str) -> tuple[int] | None:
         """
         Gets Pterodactyl ID for a user by their email.
@@ -72,9 +80,8 @@ class User(DatabaseManager):
             tuple: All user information from database if login successful
             None: If login fails
         """
-        webhook_log(f"Login attempt with email {email}")
-        db = DatabaseManager()
-        hashed_password = db.execute_query("SELECT password FROM users WHERE LOWER(email) = LOWER(%s)", (email,))
+        self.log.webhook_log(f"Login attempt with email {email}")
+        hashed_password = self.execute_query("SELECT password FROM users WHERE LOWER(email) = LOWER(%s)", (email,))
 
         if hashed_password is not None:
             # Verify the password
@@ -82,12 +89,12 @@ class User(DatabaseManager):
 
             if is_matched:
                 # Retrieve all information of the user
-                info = db.execute_query("SELECT * FROM users WHERE LOWER(email) = LOWER(%s)", (email,))
-                is_pending_deletion = db.execute_query("SELECT * FROM pending_deletions WHERE email = %s", (email,))
+                info = self.execute_query("SELECT * FROM users WHERE LOWER(email) = LOWER(%s)", (email,))
+                is_pending_deletion = self.execute_query("SELECT * FROM pending_deletions WHERE email = %s", (email,))
 
                 if is_pending_deletion is not None:
                     send_email(email, "Account Reactivated", "Your account has been reactivated!", current_app._get_current_object())
-                    db.execute_query("DELETE FROM pending_deletions WHERE email = %s", (email,))
+                    self.execute_query("DELETE FROM pending_deletions WHERE email = %s", (email,))
                 return info
 
         return None
@@ -122,7 +129,7 @@ class User(DatabaseManager):
         passthread = ThreadWithReturnValue(target=bcrypt.hashpw, args=(password.encode('utf-8'), salt))
         passthread.start()
         if "+" in email:
-            webhook_log(f"Failed to register email {email} do to email blacklist <@491266830674034699>")
+            self.log.webhook_log(f"Failed to register email {email} do to email blacklist <@491266830674034699>")
             return "Failed to register due to blacklist! contact panel@lunes.host if this is a mistake"
         banned_emails = ["@nowni.com", "@qq.com", "eu.org", "seav.tk", "cock.li", "@vbbb.us.kg", "@mailbuzz.buzz",
                         "gongjua.com", "maillazy.com", "rykone.com", "vayonix", "shopepr.com", "eluxeer.com",
@@ -133,9 +140,9 @@ class User(DatabaseManager):
                         "zapany.com", "vvatxiy.com", "tohru.org"]
         for text in banned_emails:
             if text in email:
-                webhook_log(f"Failed to register email {email} with ip {ip} do to email blacklist <@491266830674034699>")
+                self.log.webhook_log(f"Failed to register email {email} with ip {ip} do to email blacklist <@491266830674034699>")
                 return "Failed to register due to blacklist! contact panel@lunes.host if this is a mistake"
-        webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered")
+        self.log.webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered")
         
 
         results = self.execute_query("SELECT * FROM users WHERE ip = %s", (ip,))
@@ -151,7 +158,7 @@ class User(DatabaseManager):
             "password": password
         }
 
-        response = requests.post(f"{PTERODACTYL_URL}api/application/users", headers=HEADERS, json=body, timeout=60)
+        response = requests.post(f"{PTERODACTYL_URL}api/application/users", headers=self.HEADERS, json=body, timeout=60)
         data = response.json()
 
         try:

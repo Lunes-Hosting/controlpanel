@@ -3,6 +3,7 @@ import random
 import requests
 from config import PTERODACTYL_ADMIN_KEY, PTERODACTYL_ADMIN_USER_KEY, PTERODACTYL_URL
 from managers.database_manager import DatabaseManager
+from managers.logger import WebhookLogger
 from managers.user import User
 
 class Pterodactyl(DatabaseManager, User):
@@ -19,6 +20,9 @@ class Pterodactyl(DatabaseManager, User):
     }
     
     PTERODACTYL_URL=PTERODACTYL_URL
+
+    def __init__(self):
+        logger = WebhookLogger()
 
 
     def improve_list_servers(self, pterodactyl_id: int = None) -> tuple[dict]:
