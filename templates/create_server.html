@@ -133,6 +133,7 @@
                 <!-- Plan Cards -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                     {% for product in products %}
+                        {% if not product.get('is_addon', False) %}
                         <div 
                             class="bg-gray-700 p-4 rounded-md shadow-lg cursor-pointer plan-card hover:shadow-xl transition-shadow"
                             data-plan-id="{{ product['id'] }}"
@@ -153,6 +154,7 @@
                             </p>
                             
                         </div>
+                        {% endif %}
                     {% endfor %}
                 </div>
 
