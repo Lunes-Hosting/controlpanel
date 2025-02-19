@@ -52,7 +52,7 @@ from flask import Blueprint, request, render_template, session, flash, redirect,
 import sys
 from threadedreturn import ThreadWithReturnValue
 sys.path.append("..")
-from scripts import *
+from legacy_scripts import *
 from products import products
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY
@@ -160,7 +160,7 @@ def verify_server_ownership(server_id, user_email):
     Related Functions:
         - get_ptero_id(): Gets user's panel ID
     """
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=Pterodactyl.HEADERS).json()
+    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     ptero_id = get_ptero_id(user_email)
     return resp['attributes']['user'] == ptero_id[0] if ptero_id else False
 

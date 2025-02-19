@@ -4,6 +4,8 @@ import logging
 
 import requests
 
+import config
+
 
 class WebhookLogger():
     STATUS_MAP = {
@@ -47,7 +49,7 @@ class WebhookLogger():
 
         # Send to Discord webhook
         try:
-            resp = requests.post(self.WEBHOOK_URL, json=payload)
+            resp = requests.post(config.WEBHOOK_URL, json=payload)
             resp.raise_for_status()
         except requests.RequestException as e:
             self.logger.error(f"Failed to send webhook log: {e}")

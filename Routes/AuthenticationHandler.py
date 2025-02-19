@@ -180,7 +180,7 @@ def index():
     #    (session['email'],)
     #)
 
-    products_local = tuple(products)
+    products_local: list[dict] = products.products
     fixed_list: list[dict] = []
     for product in products_local:
         x = product.get("price_link", None)

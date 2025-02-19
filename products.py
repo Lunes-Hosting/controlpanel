@@ -1,4 +1,4 @@
-products = [
+products: list[dict] = [
     {
         "enabled": True,
         "price_link": None,
