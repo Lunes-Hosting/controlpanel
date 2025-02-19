@@ -8,7 +8,7 @@ from managers.database_manager import DatabaseManager
 from werkzeug.datastructures.headers import EnvironHeaders
 
 from managers.logger import WebhookLogger
-from scripts import send_email
+from legacy_scripts import send_email
 
 class User(DatabaseManager):
 
@@ -217,7 +217,7 @@ class User(DatabaseManager):
     
         self.execute_query(query, values)
         send_email(email, "Account Deleted", "Your account has been deleted!", current_app._get_current_object())
-        response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{ptero_id}", headers=HEADERS, timeout=60)
+        response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{ptero_id}", headers=self.HEADERS, timeout=60)
         response.raise_for_status()
 
         return response.status_code
