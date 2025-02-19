@@ -32,7 +32,6 @@ from discord_bot.bot import bot, run_bot
 import asyncio
 import importlib
 
-from scripts import *
 from cacheext import cache
 from threading import Thread
 
@@ -109,7 +108,7 @@ if not DEBUG_FRONTEND_MODE:
         """Process hourly credit usage for all servers."""
         with app.app_context():
             print("Processing credits...")
-            use_credits()
+            Pterodactyl.use_credits()
             print("Credit processing complete")
 
     @scheduler.task('interval', id='server_unsuspend', seconds=180, misfire_grace_time=900)
@@ -117,7 +116,7 @@ if not DEBUG_FRONTEND_MODE:
         """Check for servers that can be unsuspended."""
         with app.app_context():
             print("Checking suspensions...")
-            check_to_unsuspend()
+            Pterodactyl.check_to_unsuspend()
             print("Suspension check complete")
 
 
@@ -125,7 +124,7 @@ if not DEBUG_FRONTEND_MODE:
     def sync_user_data():
         """Synchronize user data with Pterodactyl panel."""
         print("Syncing users...")
-        sync_users_script()
+        Pterodactyl.sync_users_script()
         pterocache.update_all()
         print("User sync complete")
 

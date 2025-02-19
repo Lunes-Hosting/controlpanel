@@ -52,7 +52,7 @@ from flask import Blueprint, request, render_template, session, flash
 import sys
 from threadedreturn import ThreadWithReturnValue
 sys.path.append("..")
-from scripts import *
+from legacy_scripts import *
 from products import products
 import stripe
 

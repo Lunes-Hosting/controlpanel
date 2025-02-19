@@ -9,7 +9,7 @@ from managers.user import User
 import products
 from legacy_scripts import convert_to_product, send_email
 
-class Pterodactyl(DatabaseManager, User):
+class Pterodactyl(User):
     HEADERS = {
     "Authorization": f"Bearer {PTERODACTYL_ADMIN_KEY}",
     'Accept': 'application/json',
@@ -24,11 +24,9 @@ class Pterodactyl(DatabaseManager, User):
     
     PTERODACTYL_URL=PTERODACTYL_URL
 
-    def __init__(self):
-        logger = WebhookLogger()
+    logger = WebhookLogger()
 
-
-    def improve_list_servers(self, pterodactyl_id: int = None) -> tuple[dict]:
+    def improve_list_servers(cls, pterodactyl_id: int = None) -> tuple[dict]:
         """
         
         Example Response:
@@ -104,8 +102,8 @@ class Pterodactyl(DatabaseManager, User):
         }
         """
         resp = requests.get(
-            f"{self.PTERODACTYL_URL}api/application/users/{int(pterodactyl_id)}?include=servers", 
-            headers=self.HEADERS, 
+            f"{cls.PTERODACTYL_URL}api/application/users/{int(pterodactyl_id)}?include=servers", 
+            headers=cls.HEADERS, 
         timeout=60).json()
 
         relationship = resp["attributes"]["relationships"]["servers"]["data"]
@@ -115,7 +113,7 @@ class Pterodactyl(DatabaseManager, User):
 
         return (server_list)
     
-    def get_server_information(self, server_id: int) -> dict:
+    def get_server_information(cls, server_id: int) -> dict:
         """
         Returns dictionary of server information from pterodactyl api.
         
@@ -152,10 +150,10 @@ class Pterodactyl(DatabaseManager, User):
             }
         }
         """
-        response = requests.get(f"{self.PTERODACTYL_URL}api/application/servers/{server_id}", headers=self.HEADERS, timeout=60)
+        response = requests.get(f"{cls.PTERODACTYL_URL}api/application/servers/{server_id}", headers=cls.HEADERS, timeout=60)
         return response.json()
     
-    def suspend_server(self, server_id: int):
+    def suspend_server(cls, server_id: int):
         """
         Suspends a server through Pterodactyl API.
         Typically called when user runs out of credits.
@@ -166,10 +164,10 @@ class Pterodactyl(DatabaseManager, User):
         Returns:
             None
         """
-        requests.post(f"{PTERODACTYL_URL}api/application/servers/{server_id}/suspend", headers=self.HEADERS, timeout=60)
+        requests.post(f"{PTERODACTYL_URL}api/application/servers/{server_id}/suspend", headers=cls.HEADERS, timeout=60)
 
 
-    def use_credits(self):
+    def use_credits(cls):
         """
         Scheduled task that processes credit usage for all servers.
         
@@ -184,7 +182,7 @@ class Pterodactyl(DatabaseManager, User):
         Returns:
             None
         """
-        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=self.HEADERS, timeout=60).json()
+        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=cls.HEADERS, timeout=60).json()
 
         for server in response['data']:
 
@@ -198,10 +196,10 @@ class Pterodactyl(DatabaseManager, User):
 
                 if email is not None:
                     if not server['attributes']['suspended']:
-                        result = self.remove_credits(email[0], product['price'] / 30 / 24)
+                        result = cls.remove_credits(email[0], product['price'] / 30 / 24)
                         if result == "SUSPEND":
                             send_email(email[0], "Server Suspended", "Your server has been suspended due to lack of credits!", current_app._get_current_object())
-                            self.suspend_server(server['attributes']['id'])
+                            cls.suspend_server(server['attributes']['id'])
 
                 else:
                     print(email, product['price'])
@@ -209,7 +207,7 @@ class Pterodactyl(DatabaseManager, User):
                 print(server['attributes']['name'])
 
 
-    def delete_server(self, server_id) -> int:
+    def delete_server(cls, server_id) -> int:
         """
         Tries to delete server returns status code.
         
@@ -219,15 +217,15 @@ class Pterodactyl(DatabaseManager, User):
         Returns:
             int: HTTP status code
         """
-        response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=self.HEADERS, timeout=60)
+        response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=cls.HEADERS, timeout=60)
         if response.status_code == 204:
-            self.log.webhook_log(f"Server {server_id} deleted successfully via Script delete_server function.", 0)
+            cls.log.webhook_log(f"Server {server_id} deleted successfully via Script delete_server function.", 0)
         else:
-            self.log.webhook_log(f"Failed to delete server {server_id}. Status code: {response.status_code}", 1)
+            cls.log.webhook_log(f"Failed to delete server {server_id}. Status code: {response.status_code}", 1)
         return response.status_code
 
 
-    def unsuspend_server(self, server_id: int):
+    def unsuspend_server(cls, server_id: int):
         """
         Un-suspends specific server id.
         
@@ -245,10 +243,10 @@ class Pterodactyl(DatabaseManager, User):
             ]
         }
         """
-        requests.post(f"{PTERODACTYL_URL}api/application/servers/{server_id}/unsuspend", headers=self.HEADERS, timeout=60)
+        requests.post(f"{PTERODACTYL_URL}api/application/servers/{server_id}/unsuspend", headers=cls.HEADERS, timeout=60)
 
 
-    def check_to_unsuspend(self):
+    def check_to_unsuspend(cls):
         """
         Scheduled task that checks for servers that can be unsuspended.
         
@@ -262,37 +260,37 @@ class Pterodactyl(DatabaseManager, User):
         Returns:
             None
         """
-        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=self.HEADERS, timeout=60).json()
+        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=cls.HEADERS, timeout=60).json()
         
         for server in response['data']:
-            user_suspended = self.check_if_user_suspended(server['attributes']['user'])
+            user_suspended = cls.check_if_user_suspended(server['attributes']['user'])
             if user_suspended:
                 
-                self.delete_server(server['attributes']['id'])
-                self.log.webhook_log("Server deleted due to user suspension")
+                cls.delete_server(server['attributes']['id'])
+                cls.log.webhook_log("Server deleted due to user suspension")
             
             product = convert_to_product(server)
             if product is None:
-                self.log.webhook_log(f"```{server}``` no product")
+                cls.log.webhook_log(f"```{server}``` no product")
             #           server_id = server['attributes']['id']
                 print(server['attributes']['name'], None)
-                resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server['attributes']['id'])}", headers=self.HEADERS, timeout=60).json()
+                resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server['attributes']['id'])}", headers=cls.HEADERS, timeout=60).json()
                 main_product = products[1]
                 body = main_product['limits']
                 body["feature_limits"] = main_product['product_limits']
                 body['allocation'] = resp['attributes']['allocation']
                 print(body)
-                resp2 = requests.patch(f"{PTERODACTYL_URL}api/application/servers/{int(server['attributes']['id'])}/build", headers=self.HEADERS,
+                resp2 = requests.patch(f"{PTERODACTYL_URL}api/application/servers/{int(server['attributes']['id'])}/build", headers=cls.HEADERS,
                                         json=body, timeout=60)
             if product is not None and product['name'] != "Free Tier":
 
                 query = f"SELECT email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
 
 
-                email = self.execute_query(query)
+                email = cls.execute_query(query)
                 
                 query = f"SELECT credits FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
-                current_credits = self.execute_query(query)
+                current_credits = cls.execute_query(query)
 
                 if email is None or current_credits is None:
                     pass
@@ -300,8 +298,8 @@ class Pterodactyl(DatabaseManager, User):
                     if server['attributes']['suspended']:
                         # print(server['attributes']['user'], "is suspeded", credits[0], product['price'] / 30/ 24)
                         if current_credits[0] >= product['price'] / 30 / 24:
-                            if not self.check_if_user_suspended(server['attributes']['user']):
-                                self.unsuspend_server(server['attributes']['id'])
+                            if not cls.check_if_user_suspended(server['attributes']['user']):
+                                cls.unsuspend_server(server['attributes']['id'])
                         else:
                             if server['attributes']['suspended']:
 
@@ -314,9 +312,9 @@ class Pterodactyl(DatabaseManager, User):
                                     print(
                                         f"Deleting server {server['attributes']['name']} due to suspension for more than "
                                         f"3 days.")
-                                    self.log.webhook_log(f"Deleting server {server['attributes']['name']} with id: {server['attributes']['id']} due to suspension for more than 3 days.")
+                                    cls.log.webhook_log(f"Deleting server {server['attributes']['name']} with id: {server['attributes']['id']} due to suspension for more than 3 days.")
 
-                                    self.delete_server(server['attributes']['id'])
+                                    cls.delete_server(server['attributes']['id'])
 
                 else:
                     print(email, product['price'])
@@ -328,16 +326,16 @@ class Pterodactyl(DatabaseManager, User):
                     
                     if last_seen is not None:
                         if datetime.datetime.now() - last_seen > datetime.timedelta(days=30):
-                            self.log.webhook_log(
+                            cls.log.webhook_log(
                                 f"Deleting server {server['attributes']['name']} due to inactivity for more than 30 days.")
-                            self.delete_server(server['attributes']['id'])
+                            cls.delete_server(server['attributes']['id'])
                         else:
-                            if not self.check_if_user_suspended(server['attributes']['user']):
-                                self.unsuspend_server(server['attributes']['id'])
+                            if not cls.check_if_user_suspended(server['attributes']['user']):
+                                cls.unsuspend_server(server['attributes']['id'])
                     else:
-                        self.update_last_seen(email)
+                        cls.update_last_seen(email)
 
-    def get_node_allocation(self, node_id: int) -> int | None:
+    def get_node_allocation(cls, node_id: int) -> int | None:
         """
         Gets random allocation for a specific node.
         
@@ -348,7 +346,7 @@ class Pterodactyl(DatabaseManager, User):
             int: Random available allocation ID
             None: If no free allocation found
         """
-        response = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations", headers=self.HEADERS, timeout=60)
+        response = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations", headers=cls.HEADERS, timeout=60)
         data = response.json()
         try:
             allocations = []
@@ -362,7 +360,7 @@ class Pterodactyl(DatabaseManager, User):
             return None
 
 
-    def transfer_server(self, server_id: int, target_node_id: int) -> int:
+    def transfer_server(cls, server_id: int, target_node_id: int) -> int:
         """
         Transfer a server to a new node using Pterodactyl API.
         
@@ -374,12 +372,12 @@ class Pterodactyl(DatabaseManager, User):
             int: HTTP status code from the transfer request
         """
         # Get server details
-        server_info = self.get_server_information(server_id)
+        server_info = cls.get_server_information(server_id)
         if not server_info:
             return 404
 
         # Get allocation on target node
-        allocation_id = self.get_node_allocation(target_node_id)
+        allocation_id = cls.get_node_allocation(target_node_id)
         if not allocation_id:
             return 400  # No free allocation
 
@@ -396,7 +394,7 @@ class Pterodactyl(DatabaseManager, User):
         try:
             response = requests.post(
                 transfer_url, 
-                headers=self.HEADERS, 
+                headers=cls.HEADERS, 
                 json=transfer_data, 
             timeout=60)
             
@@ -410,7 +408,7 @@ class Pterodactyl(DatabaseManager, User):
                 user_id = server_info['attributes']['user']
                 
                 # Log the transfer
-                self.log.webhook_log(f"User {user_id} transferred server {server_id} to node {target_node_id}")
+                cls.log.webhook_log(f"User {user_id} transferred server {server_id} to node {target_node_id}")
             
             return response.status_code
         
@@ -418,14 +416,14 @@ class Pterodactyl(DatabaseManager, User):
             print(f"Server transfer error: {e}")
             return 500
 
-    def get_all_servers(self) -> list[dict]:
+    def get_all_servers(cls) -> list[dict]:
         """
         Returns list of all servers from Pterodactyl API with ?per_page=10000 parameter.
         
         Returns:
             list[dict]: List of server information
         """
-        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=self.HEADERS, timeout=60)
+        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=cls.HEADERS, timeout=60)
         data = response.json()
         return data['data']
 
