@@ -83,7 +83,7 @@ if not DEBUG_FRONTEND_MODE:
     for blueprint, limit in [
         (user, "20 per hour"),
         (servers, "15 per hour"),
-        (tickets, "15 per hour"),
+        (tickets, "60 per hour"),
         (store, "10 per hour")
     ]:
         limiter.limit(limit, key_func=rate_limit_key)(blueprint)
