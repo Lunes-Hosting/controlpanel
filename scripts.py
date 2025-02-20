@@ -475,19 +475,15 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
     passthread = ThreadWithReturnValue(target=bcrypt.hashpw, args=(password.encode('utf-8'), salt))
     passthread.start()
     if "+" in email:
-        webhook_log(f"Failed to register email {email} do to email blacklist <@491266830674034699>")
+        webhook_log(f"Failed to register email {email} do to email blacklist", non_embed_message="<@491266830674034699>")
         return "Failed to register due to blacklist! contact panel@lunes.host if this is a mistake"
-    banned_emails = ["@nowni.com", "@qq.com", "eu.org", "seav.tk", "cock.li", "@vbbb.us.kg", "@mailbuzz.buzz",
-                     "gongjua.com", "maillazy.com", "rykone.com", "vayonix", "shopepr.com", "eluxeer.com",
-                     "bmixr.com", "numerobo.com", "dotzi.net", "mixzu.net", "prorsd.com", "drmail.in", "sectorid.com",
-                     "deliveryotter.com", "naver.com", "shouxs.com", "minduls.com", "hi2.in", "intady.com","echo.tax",
-                     "wrenden.com", "etik.com", "varieza.com", "flyzy.net", "mimimail.me", "yuvora.com", "owlny.com",
-                     "varieza.com", "rennieexpress.delivery", "dotvu.net", "qejjyl.com", "ronete.com", "duck.com", "dnmx.su",
-                     "zapany.com", "vvatxiy.com", "tohru.org"]
-    for text in banned_emails:
-        if text in email:
-            webhook_log(f"Failed to register email {email} with ip {ip} do to email blacklist <@491266830674034699>")
-            return "Failed to register due to blacklist! contact panel@lunes.host if this is a mistake"
+    resp_emails = requests.get("https://lunes.host/blockedemails.txt")
+    blocked_emails = [line.strip() for line in resp_emails.text.splitlines() if line.strip()]
+    banned_emails = set(blocked_emails)
+        
+    if any(banned in email for banned in banned_emails):
+        webhook_log(f"Failed to register email {email} with IP {ip} due to email blacklist", non_embed_message="<@491266830674034699>")
+        return "Failed to register due to blacklist! Contact panel@lunes.host if this is a mistake"
     webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered")
     
 
