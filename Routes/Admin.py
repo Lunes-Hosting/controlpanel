@@ -367,7 +367,6 @@ def admin_tickets_index():
         ptero_id = scripts.get_ptero_id(session['email'])
         session['pterodactyl_id'] = ptero_id
 
-    user_id = scripts.get_id(session['email'])
     tickets_list = DatabaseManager.execute_query(
         "SELECT * FROM tickets WHERE status = 'open'", 
         fetch_all=True
