@@ -193,6 +193,7 @@ def verify_server_ownership_by_ptero_id(server_id, ptero_id):
         return False
 
 @servers.route('/')
+@login_required
 def servers_index():
     """
     List all servers owned by authenticated user.
@@ -220,10 +221,7 @@ def servers_index():
         - get_user_servers(): Lists servers
         - calculate_usage(): Sums resources
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
         
-    asyncio.run(after_request_async(session, request.environ, True))
     ptero_id = get_user_ptero_id(session)
     # Check if user is suspended
     
@@ -242,6 +240,7 @@ def servers_index():
     return render_template('servers.html', servers=servers_list, verified=verified, suspended=suspended)
 
 @servers.route('/<server_id>')
+@login_required
 def server(server_id):
     """
     Display detailed server information.
@@ -273,18 +272,9 @@ def server(server_id):
         - get_server_info(): Gets details
         - get_resource_usage(): Gets utilization
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-        
-    asyncio.run(after_request_async(session, request.environ, True))
+
     
     verified, ptero_id, credits = get_user_verification_ptero_id_and_credits(session["email"])
-    #print(verified)
-    #print(ptero_id)
-    #ptero_id = get_user_ptero_id(session) #uses db
-    #verified = get_user_verification_status(session['email']) #uses db
-    #print(verified)
-    #print(ptero_id)
     if not verify_server_ownership_by_ptero_id(server_id, ptero_id):
         return "You can't view this server - you don't own it!"
         
@@ -304,6 +294,7 @@ def server(server_id):
     return render_template('server.html', info=info, products=products_local, nodes=tuple(nodes), verified=verified, credits=int(credits))
 
 @servers.route("/create")
+@login_required
 def create_server():
     """
     Display server creation form.
@@ -332,9 +323,6 @@ def create_server():
         - get_eggs(): Lists server types
         - get_nodes(): Lists locations
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    asyncio.run(after_request_async(session, request.environ, True))
 
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
@@ -364,6 +352,7 @@ def create_server():
                            RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
 @servers.route("/delete/<server_id>")
+@login_required
 def delete_server(server_id):
     """
     Delete a server.
@@ -394,9 +383,6 @@ def delete_server(server_id):
         - delete_from_panel(): Removes server
         - update_resources(): Updates limits
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    asyncio.run(after_request_async(session, request.environ, True))
 
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     
@@ -415,12 +401,11 @@ def delete_server(server_id):
         return "You can't delete this server you dont own it!"
 
 @servers.route('/create/submit', methods=['POST'])
+@login_required
 def create_server_submit():
     """
     Handle server creation form submission.
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
     recaptcha_response = request.form.get('g-recaptcha-response')
     data = {
         'secret': RECAPTCHA_SECRET_KEY,
@@ -508,6 +493,7 @@ def create_server_submit():
     return redirect(url_for('user.index'))
 
 @servers.route('/adminupdate/<server_id>', methods=['POST'])
+@admin_required
 def admin_update_server_submit(server_id):
     """
     Update server configuration (admin only).
@@ -536,23 +522,18 @@ def admin_update_server_submit(server_id):
         - update_server(): Updates config
         - log_admin_action(): Records change
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    if not is_admin(session['email']):
-        return "YOUR NOT ADMIN BRO"
+
     res = update_server_submit(server_id, True)
     print(res)
     return redirect(url_for('admin.admin_server', server_id=server_id))
 
 
 @servers.route('/update/<server_id>', methods=['POST'])
+@login_required
 def update_server_submit(server_id, bypass_owner_only: bool = False):
     """
     Update server configuration.
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    after_request(session, request.environ, True)
     webhook_log(f"Server update with id: {server_id} was attempted")
     
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
@@ -561,7 +542,7 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
                 "apeal at panel@lunes.host")
 
     ptero_id = get_ptero_id(session['email'])[0]
-    servers_list = list_servers(ptero_id)
+    servers_list = improve_list_servers(ptero_id)
     products_local = list(products)
     for server_inc in servers_list:
         if server_inc['attributes']['user'] == ptero_id:
@@ -595,6 +576,7 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
     return redirect(url_for('servers.servers_index'))
 
 @servers.route('/transfer/<server_id>')
+@login_required
 def transfer_server_route(server_id):
     """
     Display server transfer page.
@@ -626,10 +608,6 @@ def transfer_server_route(server_id):
         - get_nodes(): Lists locations
         - check_capacity(): Filters nodes
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    
-    after_request(session, request.environ, True)
     
     if not verify_server_ownership(server_id, session['email']):
         return "You can't transfer this server - you don't own it!"
@@ -655,6 +633,7 @@ def transfer_server_route(server_id):
                            nodes=available_nodes)
 
 @servers.route('/transfer/<server_id>/submit', methods=['POST'])
+@login_required
 def transfer_server_submit(server_id):
     """
     Handle server transfer submission.
@@ -688,10 +667,6 @@ def transfer_server_submit(server_id):
         - transfer_server(): Moves server
         - monitor_transfer(): Tracks progress
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    
-    after_request(session, request.environ, True)
     
     if not verify_server_ownership(server_id, session['email']):
         return "You can't transfer this server - you don't own it!", 403

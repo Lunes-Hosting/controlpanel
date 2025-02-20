@@ -91,7 +91,6 @@ def login_user():
         - after_request(): Updates session data
         - get_ptero_id(): Gets Pterodactyl panel ID
     """
-    asyncio.run(after_request_async(session=session, request=request.environ))
     if request.method == "POST":
         recaptcha_response = request.form.get('g-recaptcha-response')
         data = {
@@ -119,16 +118,19 @@ def login_user():
                 return response
             except AttributeError:
                 session['email'] = email
-                return redirect(url_for('index'))
+                return redirect(session.pop("next", url_for("user.index")))
+                # return redirect(url_for('index'))
         except Exception as e:
             print(e)
             flash("An error occurred during login. Please try again.")
     if 'email' in session:
-        return redirect(url_for("user.index"))
+        return redirect(session.pop("next", url_for("user.index")))
+        # return redirect(url_for("user.index"))
     return render_template("login.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
 
 @user.route('/')
+@login_required
 def index():
     """
     Display user account dashboard.
@@ -154,18 +156,10 @@ def index():
             
     Related Functions:
         - get_credits(): Gets user's credit balance
-        - list_servers(): Gets user's server list
+        - improve_list_servers(): Gets user's server list
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-
-    asyncio.run(after_request_async(session, request.environ, True))
     current_credits, ptero_id, username, verified, suspended = account_get_information(session["email"])
-    #print(current_credits)
-    #print(ptero_id)
-    #print(username)
-    #current_credits = get_credits(session['email']) #use_db
-    #servers = improve_list_servers(get_ptero_id(session['email'])[0])
+
     servers = improve_list_servers(ptero_id)
     server_count = len(servers)
     monthly_usage = sum(convert_to_product(server)['price'] for server in servers)
@@ -419,6 +413,7 @@ def register_user():
 
 
 @user.route("/resend_confirmation_email")
+@login_required
 def resend_confirmation_email():
     """
     Resend email verification link.
@@ -438,13 +433,9 @@ def resend_confirmation_email():
         - generate_verification_token(): Creates new token
         - send_verification_email(): Sends verification email
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
 
-    asyncio.run(after_request_async(session=session, request=request.environ, require_login=True))
     verification_token = generate_verification_token()
 
-    #cache.set(session['email'], verification_token, timeout=TOKEN_EXPIRATION_TIME)
     cache.set(verification_token, session["email"], timeout=TOKEN_EXPIRATION_TIME )
 
     email_thread = threading.Thread(
@@ -479,13 +470,7 @@ def verify_email(token):
     Related Functions:
         - webhook_log(): Logs verification event
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
 
-    asyncio.run(after_request_async(session=session, request=request.environ, require_login=True))
-    asyncio.run(after_request_async(session=session, request=request.environ, require_login=True))
-
-    #email = session['email']
     email = cache.get(token)
 
     if email:
@@ -578,7 +563,7 @@ def delete_account():
         session.clear()
         
         # Get and delete all user's servers
-        servers = list_servers(ptero_id)
+        servers = improve_list_servers(ptero_id)
         for server in servers:
             server_id = server['attributes']['id']
             delete_server(server_id)

@@ -134,11 +134,9 @@ if not DEBUG_FRONTEND_MODE:
     scheduler.start()
 
 @app.route('/')
+@login_required
 def index():
     """Main route - redirects to login if not authenticated."""
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    after_request(session=session, request=request.environ, require_login=True)
 
 if not DEBUG_FRONTEND_MODE:
     def webhook_log(message: str):

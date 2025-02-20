@@ -81,7 +81,9 @@ import mysql.connector
 # Establish a connection to the database
 import mysql.connector
 import requests
-from flask import url_for, redirect, current_app
+from flask import url_for, redirect, current_app, Flask, request, session
+from functools import wraps
+
 import logging
 from werkzeug.datastructures.headers import EnvironHeaders
 from managers.database_manager import DatabaseManager
@@ -313,70 +315,6 @@ def improve_list_servers(pterodactyl_id: int = None) -> tuple[dict]:
 
 
 
-def list_servers(pterodactyl_id: int=None) -> list[dict]:
-    """
-    Returns list of dictionaries of servers with owner of that pterodactyl id.
-    
-    Makes a GET request to /api/application/servers to fetch all servers.
-    
-    Example Response:
-    {
-        "data": [
-            {
-                "attributes": {
-                    "id": 1,
-                    "external_id": null,
-                    "uuid": "uuid-string",
-                    "identifier": "identifier-string",
-                    "name": "Server Name",
-                    "description": "Server Description",
-                    "status": "installing",
-                    "suspended": false,
-                    "limits": {
-                        "memory": 1024,
-                        "swap": 0,
-                        "disk": 10240,
-                        "io": 500,
-                        "cpu": 100
-                    },
-                    "feature_limits": {
-                        "databases": 5,
-                        "allocations": 5,
-                        "backups": 2
-                    },
-                    "user": 1,
-                    "node": 1,
-                    "allocation": 1,
-                    "nest": 1,
-                    "egg": 1,
-                    "container": {
-                        "startup_command": "java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}}",
-                        "image": "quay.io/pterodactyl/core:java",
-                        "installed": true,
-                        "environment": {
-                            "SERVER_JARFILE": "server.jar",
-                            "VANILLA_VERSION": "latest"
-                        }
-                    }
-                }
-            }
-        ]
-    }
-    """
-    try:
-        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60)
-        users_server = []
-        data = response.json()
-        if pterodactyl_id is not None:
-            for server in data['data']:
-                if server['attributes']['user'] == pterodactyl_id:
-                    users_server.append(server)
-            return users_server
-        else:
-            return data
-    except KeyError as e:
-        print(e, pterodactyl_id, data)
-        return None
 
 def get_server_information(server_id: int) -> dict:
     """
@@ -605,7 +543,7 @@ def instantly_delete_user(email: str) -> int:
     db = DatabaseManager()
     ptero_id = get_ptero_id(email)[0]
     user_id = get_id(email)[0]
-    servers = list_servers(ptero_id)
+    servers = improve_list_servers(ptero_id)
     for server in servers:
         server_id = server['attributes']['id']
         delete_server(server_id)
@@ -962,23 +900,23 @@ def get_user_verification_status_and_suspension_status(email):
 #print(get_user_verification_status_and_suspension_status("frostyornot@gmail.com"))
 #print(check_if_user_suspended(2))
 
-def update_ip(email: str, ip: EnvironHeaders):
+def update_ip(email: str, real_ip: str):
     """
     Updates the ip by getting the header with key "CF-Connecting-IP" default is "localhost".
     
     Args:
         email: User's email
-        ip: IP address
+        real_ip: The real IP address of the user.
     
     Returns:
         None
     """
-    real_ip = ip.get('CF-Connecting-IP', "localhost")
     if real_ip != "localhost":
         query = f"UPDATE users SET ip = '{real_ip}' where email = %s"
 
         db = DatabaseManager()
         db.execute_query(query, (email,))
+
 
 
 def update_last_seen(email: str, everyone: bool = False):
@@ -1351,3 +1289,66 @@ def get_all_servers() -> list[dict]:
     response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60)
     data = response.json()
     return data['data']
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get("email"):  # If user is not logged in
+            session["next"] = request.url  # Store the attempted URL
+            return redirect(url_for("user.login_user"))  # Redirect to login page
+        email = session['email']
+        t1 = threading.Thread(target=update_last_seen, args=(email,), daemon=True)
+
+        # Extract the real IP from request context before starting the thread
+        real_ip = request.headers.get('CF-Connecting-IP', 'localhost')
+        t2 = threading.Thread(target=update_ip, args=(email, real_ip), daemon=True)
+
+        ptero_id = get_ptero_id(session['email'])
+        session['pterodactyl_id'] = ptero_id
+
+        t1.start()
+        t2.start()
+
+        # Handle random_id generation if not set
+        random_id = session.get("random_id")
+        if random_id is None:
+            characters = string.ascii_letters + string.digits
+            random_string = ''.join(secrets.SystemRandom().choice(characters) for _ in range(50))
+            session['random_id'] = random_string
+
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get("email"):  # Check if user is logged in
+            session["next"] = request.url  # Store the attempted URL
+            return redirect(url_for("user.login_user"))  # Redirect to login page
+
+        if not is_admin(session["email"]):  # Check if user is an admin
+            return "YOU'RE NOT ADMIN BRO", 403  # Return 403 Forbidden status
+
+        email = session['email']
+        t1 = threading.Thread(target=update_last_seen, args=(email,), daemon=True)
+
+        # Extract the real IP from request context before starting the thread
+        real_ip = request.headers.get('CF-Connecting-IP', 'localhost')
+        t2 = threading.Thread(target=update_ip, args=(email, real_ip), daemon=True)
+
+        ptero_id = get_ptero_id(session['email'])
+        session['pterodactyl_id'] = ptero_id
+
+        t1.start()
+        t2.start()
+
+        # Handle random_id generation if not set
+        random_id = session.get("random_id")
+        if random_id is None:
+            characters = string.ascii_letters + string.digits
+            random_string = ''.join(secrets.SystemRandom().choice(characters) for _ in range(50))
+            session['random_id'] = random_string
+
+        return f(*args, **kwargs)
+    return decorated_function

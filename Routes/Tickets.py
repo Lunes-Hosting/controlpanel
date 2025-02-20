@@ -59,17 +59,9 @@ from managers.database_manager import DatabaseManager
 tickets = Blueprint('tickets', __name__)
 
 @tickets.route('/')
+@login_required
 def tickets_index():
     """Display list of open tickets for the authenticated user."""
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    asyncio.run(after_request_async(session=session, request=request.environ, require_login=True))
-    
-    #if 'pterodactyl_id' not in session: scope wise; this code is not significant.
-    #    ptero_id = get_ptero_id(session['email'])
-    #    session['pterodactyl_id'] = ptero_id
-
-    #user_id = get_id(session['email'])
     tickets_list = DatabaseManager.execute_query(
         #"SELECT * FROM tickets WHERE (user_id = %s AND status = 'open')",
         "SELECT t.* FROM tickets t JOIN users u ON t.user_id = u.id WHERE (u.email = %s AND t.status = 'open');",
@@ -81,11 +73,9 @@ def tickets_index():
     return render_template('tickets.html', tickets=tickets_list)
 
 @tickets.route('/create/submit', methods=['POST'])
+@login_required
 def create_ticket_submit():
     """Handle ticket creation form submission."""
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    after_request(session=session, request=request.environ, require_login=True)
 
     title = request.form['title']
     message = request.form['message']
@@ -121,11 +111,9 @@ def create_ticket_submit():
     return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
 
 @tickets.route('/message/submit/<ticket_id>', methods=['POST'])
+@login_required
 def add_message_submit(ticket_id):
     """Add a new message to an existing ticket."""
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    after_request(session=session, request=request.environ, require_login=True)
 
     message = request.form['message']
     user_id = get_id(session['email'])[0]
@@ -163,11 +151,10 @@ def add_message_submit(ticket_id):
     return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
 
 @tickets.route('/<ticket_id>')
+@login_required
 def ticket(ticket_id):
     """Display a specific ticket and its messages."""
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    
+
     user_info = DatabaseManager.execute_query(
         "SELECT * from users where email = %s",
         (session['email'],)
@@ -213,11 +200,10 @@ def ticket(ticket_id):
     return render_template("ticket.html", messages=messages, info=real_info)
 
 @tickets.route('/close/<ticket_id>', methods=['POST'])
+@login_required
 def close_ticket(ticket_id):
     """Close a support ticket."""
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    
+
     user_info = DatabaseManager.execute_query(
         "SELECT * from users where email = %s",
         (session['email'],)

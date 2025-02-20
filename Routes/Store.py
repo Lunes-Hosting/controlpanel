@@ -62,6 +62,7 @@ active_payments = []
 
 
 @store.route("/")
+@login_required
 def storepage():
     """
     Display the store page with available products.
@@ -89,9 +90,6 @@ def storepage():
         - get_user_credits(): Gets balance
         - format_price(): Formats display
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    after_request(session, request.environ, True)
 
     if 'pterodactyl_id' in session:
         pass
@@ -107,6 +105,7 @@ def storepage():
 
 
 @store.route('/checkout/<price_link>', methods=['POST', 'GET'])
+@login_required
 def create_checkout_session(price_link: str):
     """
     Create a Stripe checkout session for product purchase.
@@ -140,10 +139,6 @@ def create_checkout_session(price_link: str):
         - create_session(): Stripe helper
         - store_session(): Caches info
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    after_request(session, request.environ, True)
-
     if 'pterodactyl_id' in session:
         pass
     else:
@@ -175,6 +170,7 @@ def create_checkout_session(price_link: str):
 
 
 @store.route('/success', methods=['GET'])
+@login_required
 def success():
     """
     Handle successful payment callback from Stripe.

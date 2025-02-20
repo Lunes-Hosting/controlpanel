@@ -42,7 +42,7 @@ All routes are protected by is_admin() verification
 
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 import scripts
-from scripts import after_request, HEADERS, webhook_log
+from scripts import after_request, HEADERS, webhook_log, admin_required
 from products import products
 from config import PTERODACTYL_URL
 from managers.database_manager import DatabaseManager
@@ -59,6 +59,7 @@ admin = Blueprint('admin', __name__)
 
 
 @admin.route("/")
+@admin_required
 def admin_index():
     """
     Display admin dashboard homepage.
@@ -82,14 +83,11 @@ def admin_index():
     Related Functions:
         - is_admin(): Verifies admin privileges
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
-        return "YOUR NOT ADMIN BRO"
     return render_template("admin/admin.html")
 
 
 @admin.route("/users")
+@admin_required
 def users():
     """
     Display paginated list of users with efficient search.
@@ -125,11 +123,7 @@ def users():
         - get_user_credits(): Fetches credit balances
         - count_user_servers(): Gets server counts
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
-        return "YOUR NOT ADMIN BRO"
-    
+
     # Get query parameters
     page = int(request.args.get('page', 1))
     search_term = request.args.get('search', '').strip()
@@ -197,6 +191,7 @@ def users():
 
 
 @admin.route("/servers")
+@admin_required
 def admin_servers():
     """
     Display list of all servers in the panel.
@@ -227,15 +222,12 @@ def admin_servers():
         - get_server_list(): Fetches panel servers
         - get_server_owner(): Maps server to user
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
-        return "YOUR NOT ADMIN BRO"
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60).json()
     return render_template("admin/servers.html", servers=resp['data'])
 
 
 @admin.route('/user/<user_id>')
+@admin_required
 def admin_user(user_id):
     """
     Get detailed information about a specific user.
@@ -271,15 +263,12 @@ def admin_user(user_id):
         - get_user_info(): Gets panel user data
         - get_user_resources(): Gets usage stats
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
-        return "YOUR NOT ADMIN BRO"
     resp = requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60).json()
     return resp
 
 
 @admin.route('/server/<server_id>')
+@admin_required
 def admin_server(server_id):
     """
     Display detailed server information and management options.
@@ -317,11 +306,6 @@ def admin_server(server_id):
         - get_server_info(): Gets server details
         - get_available_plans(): Lists upgrade options
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
-        return "YOU'RE NOT ADMIN BRO"
-    after_request(session=session, request=request.environ, require_login=True)
 
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
@@ -335,13 +319,8 @@ def admin_server(server_id):
     return render_template('admin/server.html', info=info, products=products_local, product=product)
 
 @admin.route('/delete/<server_id>')
+@admin_required
 def admin_delete_server(server_id):
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
-        return "YOU'RE NOT ADMIN BRO"
-    
-    after_request(session=session, request=request.environ, require_login=True)
 
     webhook_log(f"ADMIN {session["email"]} deleted the pterodactyl server of id {server_id}")
     scripts.delete_server(server_id)
@@ -350,6 +329,7 @@ def admin_delete_server(server_id):
 
 
 @admin.route('/tickets')
+@admin_required
 def admin_tickets_index():
     """
     Display list of all open support tickets.
@@ -380,11 +360,7 @@ def admin_tickets_index():
         - get_open_tickets(): Fetches tickets
         - get_ticket_responses(): Counts comments
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
-        return "YOUR NOT ADMIN BRO"
-    after_request(session=session, request=request.environ, require_login=True)
+
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
     else:
@@ -401,6 +377,7 @@ def admin_tickets_index():
 
 
 @admin.route('/user/<user_id>/servers')
+@admin_required
 def admin_user_servers(user_id):
     """
     Display all servers owned by a specific user.
@@ -436,11 +413,6 @@ def admin_user_servers(user_id):
         - get_user_servers(): Lists user's servers
         - calculate_resources(): Sums usage
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
-        return "YOU'RE NOT ADMIN BRO"
-
     # Get user info
     query = "SELECT name, email FROM users WHERE id = %s"
     user_info = DatabaseManager.execute_query(query, (user_id,))
@@ -464,6 +436,7 @@ def admin_user_servers(user_id):
 
 
 @admin.route('/server/<server_id>')
+@admin_required
 def admin_manage_server(server_id):
     """
     Display admin server management page.
@@ -500,10 +473,6 @@ def admin_manage_server(server_id):
         - get_server_details(): Gets configuration
         - get_server_history(): Lists changes
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
-        return "YOU'RE NOT ADMIN"
         
     try:
         # Get server details from Pterodactyl
@@ -521,6 +490,7 @@ def admin_manage_server(server_id):
 
 
 @admin.route('/user/delete/<user_id>', methods=['POST'])
+@admin_required
 def admin_delete_user(user_id):
     """
     Delete a user and all associated data.
@@ -556,12 +526,7 @@ def admin_delete_user(user_id):
         - clean_user_data(): Removes records
         - log_admin_action(): Records deletion
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
-        scripts.webhook_log(f"Attempted Login to Admin from {session["email"]}", 1)
-        return "YOU'RE NOT ADMIN"
-        
+
     try:
         # Get user info
         query = "SELECT pterodactyl_id, email FROM users WHERE id = %s"
@@ -599,6 +564,7 @@ def admin_delete_user(user_id):
 
 
 @admin.route('/user/toggle_suspension/<user_id>', methods=['POST'])
+@admin_required
 def admin_toggle_suspension(user_id):
     """
     Toggle user suspension status.
@@ -629,11 +595,7 @@ def admin_toggle_suspension(user_id):
         - toggle_user_status(): Updates status
         - log_status_change(): Records action
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
-    if not scripts.is_admin(session['email']):
-        return "YOU'RE NOT ADMIN"
-        
+
     try:
         # Get current suspension status
         query = "SELECT suspended, email FROM users WHERE id = %s"
@@ -660,21 +622,16 @@ def admin_toggle_suspension(user_id):
 
 
 @admin.route('/nodes')
+@admin_required
 def nodes():
-    if 'email' not in session:
-        return redirect(url_for('user.login'))
-    if not scripts.is_admin(session['email']):
-        return redirect(url_for('home'))
     nodes = scripts.get_nodes(all=True)
     return render_template('admin/nodes.html', nodes=nodes)
 
 
 @admin.route('/node/<int:node_id>')
+@admin_required
 def node(node_id):
-    if 'email' not in session:
-        return redirect(url_for('user.login'))
-    if not scripts.is_admin(session['email']):
-        return redirect(url_for('home'))
+
     nodes = scripts.get_nodes(all=True)
     node = next((node for node in nodes if node['node_id'] == node_id), None)
     if not node:
@@ -702,12 +659,8 @@ def do_transfers(node_servers, num_servers, target_node):
 
 
 @admin.route('/node/<int:node_id>/transfer', methods=['POST'])
+@admin_required
 def transfer_servers(node_id):
-    if 'email' not in session:
-        return redirect(url_for('user.login'))
-    if not scripts.is_admin(session['email']):
-        return redirect(url_for('home'))
-    
     num_servers = int(request.form.get('num_servers', 0))
     target_node = int(request.form.get('target_node', 0))
     
