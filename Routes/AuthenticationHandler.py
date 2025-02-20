@@ -88,7 +88,6 @@ def login_user():
         POST: redirect: To dashboard on success or login page with error
         
     Related Functions:
-        - after_request(): Updates session data
         - get_ptero_id(): Gets Pterodactyl panel ID
     """
     if request.method == "POST":

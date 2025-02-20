@@ -996,7 +996,7 @@ STATUS_MAP = {
 
 logger = logging.getLogger(__name__)
 
-def webhook_log(message: str, status: int = -1):
+def webhook_log(embed_message: str, status: int = -1, non_embed_message: str = None):
     """
     Sends a log message to a Discord webhook with formatting.
 
@@ -1011,17 +1011,18 @@ def webhook_log(message: str, status: int = -1):
     status_info = STATUS_MAP.get(status, STATUS_MAP[-1])
     # Log locally
     
-    logger.info(message)
+    logger.info(embed_message)
 
     # Create Discord embed
     embed = {
         "title": f"**{status_info['title']} Log**",
-        "description": message,
+        "description": embed_message,
         "color": status_info["color"],
         "footer": {"text": f"Logged at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}"}
     }
 
     payload = {
+        "content" : non_embed_message,
         "username": "Webhook Logger",
         "embeds": [embed]
     }

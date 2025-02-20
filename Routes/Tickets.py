@@ -139,7 +139,7 @@ def add_message_submit(ticket_id):
     )
 
     if not is_admin(session['email']):
-        webhook_log(f"Ticket comment added by `{session['email']}` with message `{message}` <@&1024761808428466257> https://betadash.lunes.host/tickets/{ticket_id}")
+        webhook_log(f"Ticket comment added by `{session['email']}` with message `{message}`  https://betadash.lunes.host/tickets/{ticket_id}", non_embed_message="<@&1024761808428466257>")
     else:
         email = DatabaseManager.execute_query(
             "SELECT email FROM users WHERE (id = %s)",
