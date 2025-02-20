@@ -229,7 +229,7 @@ def toggle_ticket_status(ticket_id):
     if not info:
         return redirect(url_for('tickets.tickets_index'))
 
-    current_status = info[0][2]  # Assuming status is the 3rd column (index 2)
+    current_status = info[3]
 
     if user_info[2] != "admin" and info[0][1] != user_info[0]:
         return redirect(url_for('tickets.tickets_index'))
