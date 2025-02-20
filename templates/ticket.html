@@ -85,7 +85,7 @@
         </form>
 
         <!-- Close Ticket Form -->
-        <form action="{{ url_for('tickets.close_ticket', ticket_id=info['id']) }}" method="post">
+        <form action="{{ url_for('tickets.toggle_ticket_status', ticket_id=info['id']) }}" method="post">
             <button 
                 type="submit" 
                 class="w-full bg-red-500 text-white px-6 py-2 rounded-md hover:bg-red-600 transition-colors duration-200"

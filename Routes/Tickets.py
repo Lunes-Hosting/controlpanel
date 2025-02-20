@@ -139,13 +139,24 @@ def add_message_submit(ticket_id):
     )
 
     if not is_admin(session['email']):
+        DatabaseManager.execute_query(
+            "UPDATE tickets SET reply_status = 'waiting', last_reply = NOW() WHERE id = %s",
+            (ticket_id,)
+        )
+
         webhook_log(f"Ticket comment added by `{session['email']}` with message `{message}`  https://betadash.lunes.host/tickets/{ticket_id}", non_embed_message="<@&1024761808428466257>")
+        
     else:
         email = DatabaseManager.execute_query(
             "SELECT email FROM users WHERE (id = %s)",
             (tick_info[0],)
         )[0]
         ThreadWithReturnValue(target=send_email, args=(email, f"Ticket comment added by staff member", f"Ticket comment added by staff member with message `{message}` https://betadash.lunes.host/tickets/{ticket_id}", current_app._get_current_object())).start()
+        DatabaseManager.execute_query(
+            "UPDATE tickets SET reply_status = 'responded', last_reply = NOW() WHERE id = %s",
+            (ticket_id,)
+        )
+
         webhook_log(f"Ticket comment added by staff member `{session['email']}` with message `{message}` https://betadash.lunes.host/tickets/{ticket_id}")
     
     return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
@@ -199,27 +210,36 @@ def ticket(ticket_id):
     
     return render_template("ticket.html", messages=messages, info=real_info)
 
-@tickets.route('/close/<ticket_id>', methods=['POST'])
+@tickets.route('/toggle/<ticket_id>', methods=['POST'])
 @login_required
-def close_ticket(ticket_id):
-    """Close a support ticket."""
+def toggle_ticket_status(ticket_id):
+    """Toggle the status of a support ticket (open/closed)."""
 
     user_info = DatabaseManager.execute_query(
-        "SELECT * from users where email = %s",
+        "SELECT * FROM users WHERE email = %s",
         (session['email'],)
     )
-    
+
     info = DatabaseManager.execute_query(
-        "SELECT * FROM tickets where id = %s",
+        "SELECT * FROM tickets WHERE id = %s",
         (ticket_id,)
     )
-    
-    if user_info[2] != "admin" and info[1] != user_info[0]:
+
+    # Ensure the ticket exists
+    if not info:
         return redirect(url_for('tickets.tickets_index'))
-    
+
+    current_status = info[0][2]  # Assuming status is the 3rd column (index 2)
+
+    if user_info[2] != "admin" and info[0][1] != user_info[0]:
+        return redirect(url_for('tickets.tickets_index'))
+
+    # Toggle the status
+    new_status = 'closed' if current_status == 'open' else 'open'
+
     DatabaseManager.execute_query(
-        "UPDATE tickets SET status = 'closed' WHERE id = %s",
-        (ticket_id,)
+        "UPDATE tickets SET status = %s WHERE id = %s",
+        (new_status, ticket_id)
     )
-    
+
     return redirect(url_for('tickets.tickets_index'))
