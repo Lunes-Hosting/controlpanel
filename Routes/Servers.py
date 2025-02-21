@@ -488,8 +488,14 @@ def create_server_submit():
         }
     }
 
-    res = requests.post(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, json=body)
-    webhook_log(f"Server was just created: ```{res.json()}```")
+    res: dict = requests.post(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, json=body).json()
+
+    error = res.get('errors', None)
+    if error is None:
+        flash("Failed to create server try a different node or open a ticket")
+        add_credits(session['email'], credits_used, False)
+        webhook_log(f"Server was just created: ```{res}```", non_embed_message="<@491266830674034699>")
+    webhook_log(f"Server was just created: ```{res}```")
     return redirect(url_for('user.index'))
 
 @servers.route('/adminupdate/<server_id>', methods=['POST'])
