@@ -146,7 +146,7 @@ def create_checkout_session(price_link: str):
         session['pterodactyl_id'] = ptero_id
 
     check_session = stripe.checkout.Session.create(
-        payment_method_types=['card', 'cashapp', "wechat_pay"],
+        payment_method_types=['card', 'cashapp', "wechat_pay", "alipay"],
         payment_method_options={
         "wechat_pay": {
           "client": "web"
