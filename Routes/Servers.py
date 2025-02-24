@@ -491,7 +491,7 @@ def create_server_submit():
     res: dict = requests.post(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, json=body).json()
 
     error = res.get('errors', None)
-    if error is None:
+    if error is not None:
         flash("Failed to create server try a different node or open a ticket")
         add_credits(session['email'], credits_used, False)
         webhook_log(f"Server was just created: ```{res}```", non_embed_message="<@491266830674034699>")
