@@ -81,7 +81,7 @@ import mysql.connector
 # Establish a connection to the database
 import mysql.connector
 import requests
-from flask import url_for, redirect, current_app, Flask, request, session
+from flask import url_for, redirect, current_app, Flask, request, session, render_template
 from functools import wraps
 
 import logging
@@ -1258,7 +1258,7 @@ def admin_required(f):
             return redirect(url_for("user.login_user"))  # Redirect to login page
 
         if not is_admin(session["email"]):  # Check if user is an admin
-            return "YOU'RE NOT ADMIN BRO", 403  # Return 403 Forbidden status
+            return render_template("admin/forbidden.html"), 403  # Return 403 Forbidden status
 
         email = session['email']
         t1 = threading.Thread(target=update_last_seen, args=(email,), daemon=True)
