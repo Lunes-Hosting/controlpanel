@@ -22,7 +22,7 @@ class PteroCache():
         self.update_node_cache()
     
     def update_egg_cache(self):
-        disabled_nests = [15]
+        disabled_nests = [15, 23]
         disabled_eggs = [55, 3]
         try:
             available_eggs = []
