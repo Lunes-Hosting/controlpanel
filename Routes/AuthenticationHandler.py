@@ -394,7 +394,7 @@ def register_user():
 
         if['suspended']:
             flash("Failed to register! If this is an error, please contact support. panel@lunes.host")
-            webhook_log(f"Failed to register email {email} ip: {ip} do to alt suspended account", non_embed_message="<@491266830674034699>")
+            webhook_log(f"Failed to register email {email} ip: {ip} due to alt suspended account", non_embed_message="<@491266830674034699>")
             return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
 
