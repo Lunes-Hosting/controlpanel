@@ -159,6 +159,8 @@ def index():
     """
     current_credits, ptero_id, username, verified, suspended = account_get_information(session["email"])
 
+    session['suspended'] = suspended
+
     servers = improve_list_servers(ptero_id)
     server_count = len(servers)
     monthly_usage = sum(convert_to_product(server)['price'] for server in servers)
@@ -382,12 +384,19 @@ def register_user():
         if not result['success']:
             flash("Failed captcha please try again")
             return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
+        
 
         data = request.form
         email = data.get('email')
         password = data.get('password')
         name = data.get('username')
         ip = request.headers.get('Cf-Connecting-Ip', request.remote_addr)
+
+        if['suspended']:
+            flash("Failed to register! If this is an error, please contact support. panel@lunes.host")
+            webhook_log(f"Failed to register email {email} ip: {ip} do to alt suspended account", non_embed_message="<@491266830674034699>")
+            return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
+
 
         res = register(email, password, name, ip)
         if isinstance(res, str):
@@ -502,7 +511,9 @@ def logout():
     Session:
         Clears: All session data
     """
+    temp_suspended = session['suspended']
     session.clear()
+    session['suspended'] = temp_suspended
     return redirect(url_for("index"))
 
 

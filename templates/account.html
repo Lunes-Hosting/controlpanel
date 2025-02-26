@@ -47,15 +47,14 @@
         <span>Your email is not verified yet. <a href="{{ url_for('user.resend_confirmation_email') }}" class="text-blue-300 hover:underline">Click here to resend verification email</a></span>
     </div>
     {% elif suspended %}
-    <!-- Email Verification Warning -->
+    <!-- Account Suspended Warning -->
     <div class="bg-yellow-950 text-white px-4 py-2 rounded-md mb-6 flex items-center gap-2 text-black max-w-5xl mx-auto">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
         </svg>
-        <span>Your account is suspended. Please enter our discord if you like to be unsuspended.</span>
+        <span>Your account is suspended. Please enter our discord or open a ticket if you would like to be unsuspended.</span>
     </div>
-
-    {% else %}
+    {% endif %}
 
     <div class="content max-w-5xl mx-auto">
         <div class="container mx-auto p-4 sm:p-6">
@@ -121,14 +120,12 @@
                 </div>
             </div>
 
-            <!--<div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
-                <i class="fa-solid fa-server fa-2xl text-blue-400 m-0 p-0"></i>
-                <h1 class="font-semibold text-2xl m-0 p-0">Manage Servers</h1>
-            </div>-->
+            <!-- Servers Section -->
+            {% if verified and not suspended %}
             <div class="flex flex-row items-center justify-center text-nowrap gap-8 py-3">
                 <div class="flex flex-row items-center justify-center gap-2">
                     <i class="fa-solid fa-server fa-lg fa-2xl text-blue-400 m-0 p-0"></i>
-                    <h1 class="text-2xl m-0 p-0 font-semibold">Manage Server</h1>
+                    <h1 class="text-2xl m-0 p-0 font-semibold">Manage Servers</h1>
                 </div>
                 <hr class="border-neutral-600 border-t w-full inline">
 
@@ -136,7 +133,6 @@
                     <i class="fa-solid fa-plus"></i>
                     <span class="hidden sm:inline" >Create Server</span>
                 </a>
-
             </div>
 
             <div class="my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md">
@@ -151,7 +147,37 @@
                     {% endfor %}
                 </div>
             </div>
+            {% elif not verified %}
+            <div class="flex flex-row items-center justify-center text-nowrap gap-8 py-3">
+                <div class="flex flex-row items-center justify-center gap-2">
+                    <i class="fa-solid fa-server fa-lg fa-2xl text-blue-400 m-0 p-0"></i>
+                    <h1 class="text-2xl m-0 p-0 font-semibold">Manage Servers</h1>
+                </div>
+                <hr class="border-neutral-600 border-t w-full inline">
+            </div>
 
+            <div class="my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md">
+                <div class="text-center">
+                    <h3 class="text-xl font-semibold mb-2">Please verify your email to access the servers section.</h3>
+                </div>
+            </div>
+            {% elif suspended %}
+            <div class="flex flex-row items-center justify-center text-nowrap gap-8 py-3">
+                <div class="flex flex-row items-center justify-center gap-2">
+                    <i class="fa-solid fa-server fa-lg fa-2xl text-blue-400 m-0 p-0"></i>
+                    <h1 class="text-2xl m-0 p-0 font-semibold">Manage Servers</h1>
+                </div>
+                <hr class="border-neutral-600 border-t w-full inline">
+            </div>
+
+            <div class="my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md">
+                <div class="text-center">
+                    <h3 class="text-xl font-semibold mb-2">Your account is suspended. Please contact support to unsuspend your account.</h3>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Store Section -->
             <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
                 <i class="fa-solid fa-store fa-2xl text-green-400 m-0 p-0"></i>
                 <h1 class="font-semibold text-2xl m-0 p-0">Store</h1>
@@ -212,6 +238,7 @@
                 }
               </script>
 
+            <!-- Other Section -->
             <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
                 <i class="fa-solid fa-barcode fa-2xl text-blue-400 m-0 p-0"></i>
                 <h1 class="font-semibold text-2xl m-0 p-0">Other</h1>
@@ -250,11 +277,8 @@
                     </div>
                 </div>
             </div>
-
-
         </div>
     </div>
-    {% endif %}
 
     <style>
         .warning-banner {
