@@ -392,11 +392,14 @@ def register_user():
         name = data.get('username')
         ip = request.headers.get('Cf-Connecting-Ip', request.remote_addr)
 
-        if session['suspended'] == True:
+        # Check if 'suspended' key exists in session, if not, initialize it to False
+        if 'suspended' not in session:
+            session['suspended'] = False
+
+        if session['suspended']:
             flash("Failed to register! If this is an error, please contact support. panel@lunes.host")
             webhook_log(f"Failed to register email {email} ip: {ip} due to alt suspended account", non_embed_message="<@491266830674034699>")
             return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
-
 
         res = register(email, password, name, ip)
         if isinstance(res, str):
