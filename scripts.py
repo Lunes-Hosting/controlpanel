@@ -474,15 +474,14 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
     salt = bcrypt.gensalt(rounds=14)
     passthread = ThreadWithReturnValue(target=bcrypt.hashpw, args=(password.encode('utf-8'), salt))
     passthread.start()
-    if "+" in email:
-        webhook_log(f"Failed to register email {email} do to email blacklist", non_embed_message="<@491266830674034699>")
-        return "Failed to register due to blacklist! contact panel@lunes.host if this is a mistake"
+
     resp_emails = requests.get("https://lunes.host/blockedemails.txt")
     blocked_emails = [line.strip() for line in resp_emails.text.splitlines() if line.strip()]
     banned_emails = set(blocked_emails)
         
-    if any(banned in email for banned in banned_emails):
+    if "+" in email or any(banned in email for banned in banned_emails):
         webhook_log(f"Failed to register email {email} with IP {ip} due to email blacklist", non_embed_message="<@491266830674034699>")
+        session['suspended'] = True
         return "Failed to register due to blacklist! Contact panel@lunes.host if this is a mistake"
     webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered")
     
