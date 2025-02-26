@@ -408,7 +408,7 @@ def get_name(user_id: int) -> tuple[str] | None:
         return None
     return res
 
-def login(email: str, password: str):
+def login(email: str, password: str, ip: str):
     """
     Authenticates user login credentials.
     
@@ -425,7 +425,7 @@ def login(email: str, password: str):
         tuple: All user information from database if login successful
         None: If login fails
     """
-    webhook_log(f"Login attempt with email {email}")
+    webhook_log(f"Login attempt with email {email} ip: {ip}")
     db = DatabaseManager()
     hashed_password = db.execute_query("SELECT password FROM users WHERE LOWER(email) = LOWER(%s)", (email,))
 

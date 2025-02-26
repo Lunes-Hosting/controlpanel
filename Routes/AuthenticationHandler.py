@@ -106,8 +106,9 @@ def login_user():
         data = request.form
         email = data.get('email')
         password = data.get('password')
+        ip = request.headers.get('Cf-Connecting-Ip', request.remote_addr)
         try:
-            response = login(email, password)
+            response = login(email, password, ip)
             if response is None:
                 flash("Incorrect information. Please ensure you have an account.")
                 return redirect(url_for('user.login_user'))
