@@ -1178,6 +1178,7 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
     transfer_url = f"{PTERODACTYL_URL}api/application/servers/{server_id}/transfer"
     
     try:
+        print(transfer_url, transfer_data, HEADERS)
         response = requests.post(
             transfer_url, 
             headers=HEADERS, 
@@ -1187,16 +1188,16 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
         
         # Log the response for debugging
         if response.status_code not in [202, 204]:
-            webhook_log(f"Server transfer failed - Status: {response.status_code}, Response: {response.text}", 2)
+            print(f"Server transfer failed - Status: {response.status_code}, Response: {response.text}", 2)
         else:
             # Get the user who owns the server
             user_id = server_info['attributes']['user']
-            webhook_log(f"User {user_id} transferred server {server_id} to node {target_node_id}")
+            print(f"User {user_id} transferred server {server_id} to node {target_node_id}")
         
         return response.status_code
     
     except Exception as e:
-        webhook_log(f"Server transfer error for server {server_id}: {str(e)}", 2)
+        print(f"Server transfer error for server {server_id}: {str(e)}", 2)
         return 500
 
 def get_all_servers() -> list[dict]:
