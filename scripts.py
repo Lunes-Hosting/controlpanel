@@ -1126,7 +1126,7 @@ def get_node_allocation(node_id: int) -> int | None:
         int: Random available allocation ID
         None: If no free allocation found
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations", headers=HEADERS, timeout=60)
+    response = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=10000", headers=HEADERS, timeout=60)
     if response.status_code != 200:
         webhook_log(f"Failed to get allocations for node {node_id} - Status: {response.status_code}", 2)
         return None
