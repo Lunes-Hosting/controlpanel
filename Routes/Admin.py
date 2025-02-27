@@ -653,11 +653,11 @@ def do_transfers(node_servers, num_servers, target_node):
         status = scripts.transfer_server(server['attributes']['id'], target_node)
         if status in [202, 204]:  # Accept both success status codes
             transferred += 1
-            webhook_log(f"Successfully transferred server {server['attributes']['id']} ({transferred}/{num_servers})", 0)
+            print(f"Successfully transferred server {server['attributes']['id']} ({transferred}/{num_servers})", 0)
             if transferred < num_servers:
                 time.sleep(10)  # 10 second delay between transfers
         else:
-            webhook_log(f"Failed to transfer server {server['attributes']['id']} - Status: {status}", 2)
+            print(f"Failed to transfer server {server['attributes']['id']} - Status: {status}", 2)
 
 
 @admin.route('/node/<int:node_id>/transfer', methods=['POST'])
