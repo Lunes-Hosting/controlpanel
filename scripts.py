@@ -1178,7 +1178,6 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
     transfer_url = f"{PTERODACTYL_URL}api/application/servers/{server_id}/transfer"
     
     try:
-        print(transfer_url, transfer_data, HEADERS)
         response = requests.post(
             transfer_url, 
             headers=HEADERS, 
