@@ -92,6 +92,7 @@ from config import *
 from products import products
 import secrets
 import random
+import json
 from flask_mail import Mail, Message
 
 cache = PteroCache()
@@ -225,6 +226,24 @@ def get_eggs() -> list[dict]:
             }
     """
     return cache.egg_cache
+
+def get_autodeploy_info(project_id: int) -> list[dict]:
+    res = DatabaseManager().execute_query("SELECT * FROM projects WHERE id = %s", (project_id,))
+    if res is not None:
+        egg_id = res[8]
+        egg_info = requests.get(f"{PTERODACTYL_URL}/api/application/nests/{AUTODEPLOY_NEST_ID}/eggs/{egg_id}?include=variables", 
+            headers={"Authorization": f"Bearer {PTERODACTYL_ADMIN_KEY}"}).json()
+        attributes = egg_info['attributes']
+        
+        # Convert res[7] to a dictionary
+        try:
+            environment = json.loads(res[7]) if res[7] else {}  # Ensure it's a dict
+        except json.JSONDecodeError:
+            environment = {}  # Fallback to empty dict if parsing fails
+        
+        return [{"egg_id": attributes['id'], "name": attributes['name'], "docker_image": attributes['docker_image'],
+                "startup": attributes['startup']}], environment
+    
 
 def improve_list_servers(pterodactyl_id: int = None) -> tuple[dict]:
     """

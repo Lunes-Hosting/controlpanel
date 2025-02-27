@@ -293,7 +293,7 @@ def server(server_id):
     nodes = get_nodes()
     return render_template('server.html', info=info, products=products_local, nodes=tuple(nodes), verified=verified, credits=int(credits))
 
-@servers.route("/create")
+@servers.route("/create", methods=["GET"])
 @login_required
 def create_server():
     """
@@ -336,9 +336,19 @@ def create_server():
         return redirect(url_for('user.index'))
 
     servers_list = improve_list_servers(ptero_id[0])
-    
+        
     nodes = get_nodes()
-    eggs = get_eggs()
+    project_id = request.args.get('project_id')
+    if project_id is None:
+        eggs = get_eggs()
+        environment = None
+        # Use session.pop with a default value to avoid KeyError
+        session.pop('project_id', None)
+    else:
+        eggs, environment = get_autodeploy_info(project_id)
+        environment['egg_id'] = eggs[0]['egg_id']
+        session['project_id'] = project_id
+
     products_local = list(products)
     for _product in products_local:
         if _product['enabled'] == False:
@@ -348,8 +358,8 @@ def create_server():
             if server_inc['attributes']['limits']['memory'] == 128:
                 products_local.remove(products[0])
                 break
-    return render_template('create_server.html', eggs=eggs, nodes=nodes, products=products_local,
-                           RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
+    return render_template('create_server.html', eggs=eggs, nodes=nodes, products=products_local, environment=environment,
+                        RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
 @servers.route("/delete/<server_id>")
 @login_required
@@ -420,12 +430,34 @@ def create_server_submit():
 
     node_id = request.form['node_id']
     egg_id = request.form['egg_id']
-    eggs = get_eggs()
-    for egg in eggs:
-        if int(egg['egg_id']) == int(egg_id):
-            docker_image = egg['docker_image']
-            startup = egg['startup']
-            break
+    
+    # Check if we have a project_id in the session (set during create_server)
+    project_id = session.get('project_id')
+    
+    if project_id:
+        # Retrieve environment variables for this project
+        egg_info, environment = get_autodeploy_info(project_id)
+        docker_image = egg_info[0]['docker_image']
+        startup = egg_info[0]['startup']
+        # Clear the session variable to avoid keeping it for future requests
+        session.pop('project_id', None)
+    else:
+        eggs = get_eggs()
+
+        for egg in eggs:
+            if int(egg['egg_id']) == int(egg_id):
+                docker_image = egg['docker_image']
+                startup = egg['startup']
+                break
+
+        # Use default environment variables
+        environment = {
+            "BUILD_NUMBER": "latest",
+            "MINECRAFT_VERSION": "latest",
+            "MEMORY_OVERHEAD": "1500",
+            "SERVER JAR FILE": "server.jar",
+        }
+    
 
     resp = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=10000",
                         headers=HEADERS).json()
@@ -480,12 +512,7 @@ def create_server_submit():
         "allocation": {
             "default": alloac_id
         },
-        "environment": {
-            "BUILD_NUMBER": "latest",
-            "MINECRAFT_VERSION": "latest",
-            "MEMORY_OVERHEAD": "1500",
-            "SERVER JAR FILE": "server.jar",
-        }
+        "environment": environment  # Use the environment variables we determined earlier
     }
 
     res: dict = requests.post(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, json=body).json()
@@ -497,6 +524,7 @@ def create_server_submit():
         webhook_log(f"Server was just created: ```{res}```", non_embed_message="<@491266830674034699>")
     webhook_log(f"Server was just created: ```{res}```")
     return redirect(url_for('user.index'))
+
 
 @servers.route('/adminupdate/<server_id>', methods=['POST'])
 @admin_required

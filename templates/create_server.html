@@ -101,13 +101,22 @@
                     <select 
                         name="egg_id" 
                         id="egg_id" 
-                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        {% if environment %}disabled{% else %}required{% endif %}
+                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 {% if environment %}opacity-60 cursor-not-allowed{% endif %}"
                     >
-                        <option value="" disabled selected>Select Software</option>
+                        {% if not environment %}
+                            <option value="" disabled selected>Select Software</option>
+                        {% endif %}
                         {% for egg in eggs %}
-                            <option value="{{ egg['egg_id'] }}">{{ egg['name'] }}</option>
+                            <option value="{{ egg['egg_id'] }}" {% if environment and egg['egg_id']|string == environment.get('egg_id')|string %}selected{% endif %}>
+                                {{ egg['name'] }}
+                            </option>
                         {% endfor %}
                     </select>
+                    {% if environment %}
+                    <!-- Add a hidden input to ensure the egg_id is still submitted with the form -->
+                    <input type="hidden" name="egg_id" value="{{ environment.get('egg_id') }}">
+                    {% endif %}
                 </div>
 
                 <!-- reCAPTCHA -->
