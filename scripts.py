@@ -1127,6 +1127,10 @@ def get_node_allocation(node_id: int) -> int | None:
         None: If no free allocation found
     """
     response = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations", headers=HEADERS, timeout=60)
+    if response.status_code != 200:
+        webhook_log(f"Failed to get allocations for node {node_id} - Status: {response.status_code}", 2)
+        return None
+        
     data = response.json()
     try:
         allocations = []
@@ -1134,9 +1138,11 @@ def get_node_allocation(node_id: int) -> int | None:
             if allocation['attributes']['assigned'] is False:
                 allocations.append(allocation['attributes']['id'])
         if len(allocations) == 0:
+            webhook_log(f"No free allocations found on node {node_id}", 2)
             return None
         return random.choice(allocations)
-    except KeyError:
+    except (KeyError, ValueError) as e:
+        webhook_log(f"Error parsing allocations for node {node_id}: {str(e)}", 2)
         return None
 
 def transfer_server(server_id: int, target_node_id: int) -> int:
@@ -1153,11 +1159,13 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
     # Get server details
     server_info = get_server_information(server_id)
     if not server_info:
+        webhook_log(f"Failed to get server info for server {server_id}", 2)
         return 404
 
     # Get allocation on target node
     allocation_id = get_node_allocation(target_node_id)
     if not allocation_id:
+        webhook_log(f"Failed to get allocation for node {target_node_id} when transferring server {server_id}", 2)
         return 400  # No free allocation
 
     # Build transfer request
@@ -1165,7 +1173,6 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
         "allocation_id": allocation_id,
         "node_id": target_node_id
     }
-    print(transfer_data, 2)
     
     # Perform server transfer
     transfer_url = f"{PTERODACTYL_URL}api/application/servers/{server_id}/transfer"
@@ -1175,24 +1182,21 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
             transfer_url, 
             headers=HEADERS, 
             json=transfer_data, 
-        timeout=60)
+            timeout=60
+        )
         
         # Log the response for debugging
-        print(f"Server Transfer Response: {response.status_code}")
-        print(f"Response Text: {response.text}")
-        
-        # Simple logging if transfer is successful
-        if response.status_code == 202:
-            # Get the user who owns the server (assuming we can retrieve this from server_info)
+        if response.status_code not in [202, 204]:
+            webhook_log(f"Server transfer failed - Status: {response.status_code}, Response: {response.text}", 2)
+        else:
+            # Get the user who owns the server
             user_id = server_info['attributes']['user']
-            
-            # Log the transfer
             webhook_log(f"User {user_id} transferred server {server_id} to node {target_node_id}")
         
         return response.status_code
     
     except Exception as e:
-        print(f"Server transfer error: {e}")
+        webhook_log(f"Server transfer error for server {server_id}: {str(e)}", 2)
         return 500
 
 def get_all_servers() -> list[dict]:
