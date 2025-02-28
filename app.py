@@ -169,4 +169,4 @@ if __name__ == '__main__':
     if ENABLE_BOT and not DEBUG_FRONTEND_MODE:
         bot_thread = Thread(target=start_bot_loop, daemon=True)
         bot_thread.start()
-    app.run(debug=DEBUG_FRONTEND_MODE, host="0.0.0.0", port=1137, threaded=True)
+    app.run(debug=DEBUG_FRONTEND_MODE, host="0.0.0.0", port=3040, threaded=True)
