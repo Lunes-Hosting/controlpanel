@@ -492,7 +492,7 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
         str: Error message if registration fails
     """
     email = email.strip().lower()
-    name = name.strip()
+    name = name.strip().lower()
     salt = bcrypt.gensalt(rounds=14)
     passthread = ThreadWithReturnValue(target=bcrypt.hashpw, args=(password.encode('utf-8'), salt))
     passthread.start()
