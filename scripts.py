@@ -153,12 +153,6 @@ def sync_users_script():
                     # If Pterodactyl deletion succeeded, delete locally
                     user_id = db.execute_query("SELECT id FROM users WHERE email = %s", (email,))[0]
                     
-                    # Delete all user's servers first
-                    servers = db.execute_query("SELECT server_id FROM servers WHERE user_id = %s", (user_id,), fetch_all=True)
-                    if servers:
-                        for server in servers:
-                            db.execute_query("DELETE FROM servers WHERE server_id = %s", (server[0],))
-                    
                     # Delete user's tickets and comments
                     db.execute_query("DELETE FROM ticket_comments WHERE user_id = %s", (user_id,))
                     db.execute_query("DELETE FROM tickets WHERE user_id = %s", (user_id,))
