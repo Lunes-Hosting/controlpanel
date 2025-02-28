@@ -447,6 +447,7 @@ def login(email: str, password: str, ip: str):
         tuple: All user information from database if login successful
         None: If login fails
     """
+    email=email.strip().lower()
     webhook_log(f"Login attempt with email {email} ip: {ip}")
     db = DatabaseManager()
     hashed_password = db.execute_query("SELECT password FROM users WHERE LOWER(email) = LOWER(%s)", (email,))
