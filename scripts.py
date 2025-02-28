@@ -113,86 +113,95 @@ CLIENT_HEADERS = {
 
 def sync_users_script():
     """
-    Synchronizes users between Pterodactyl panel and local database.
-    
-    Process:
-    1. Fetches all users from Pterodactyl API
-    2. Gets all existing users from local DB in one query
-    3. For each Pterodactyl user not in local DB:
-        - Gets their password from panel
-        - Creates new user ID
-        - Inserts into local DB with default 25 credits
+    Handles periodic maintenance tasks:
+    1. Process pending deletions after 30 days
+    2. Reset passwords for inactive users (180+ days)
     """
     db = DatabaseManager()
-    # try:
-    #     # Get all Pterodactyl users
-    #     ptero_data = db.execute_query("SELECT * FROM users", database="panel", fetch_all=True)
-
-        
-
-
-    #     for user in ptero_data:
-    #         user_username = user[3]
-    #         user_password = user[7]
-    #         user_email = user[4]
-    #         user_ptero_id = user[0]
-    #         user_res = db.execute_query("SELECT * FROM users WHERE email = %s", (user_email,))
-    #         if user_res is None:
-    #             webhook_log(f"Adding new user: {user_email}")
-    #             try:
-    #                 result = db.execute_query("SELECT MAX(id) FROM users")
-    #                 user_id = (result[0] if result and result[0] is not None else 0) + 1
-                    
-                    
-    #                 query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, credits) VALUES (%s, %s, %s, %s, %s, %s)")
-    #                 values = (user_username, user_email, user_password, user_id, user_ptero_id, 25)
-    #                 print(query, values)
-    #                 # time.sleep(1)
-    #                 db.execute_query(query, values)
-    #             except Exception as e:
-    #                 error_message = f"Error adding user {user_email}: {str(e)}"
-    #                 print(error_message)
-    #                 webhook_log(error_message)
-                    
-    # except Exception as e:
-    #     error_message = f"Error syncing users: {str(e)}"
-    #     print(error_message)
-    #     webhook_log(error_message)
     
-    #Delete pending users if they are older then 30 days
+    # Process pending deletions after 30 days
     results = db.execute_query("SELECT * FROM pending_deletions", fetch_all=True)
-    for user in results:
-        if datetime.datetime.now() - user[2] > datetime.timedelta(days=30):
-            db.execute_query("DELETE FROM pending_deletions WHERE email = %s", (user[1],))
-            res = instantly_delete_user(user[1])
-            webhook_log(f"Deleted pending deletion for {user[1]}, with status code: {res}")
+    if results:
+        for user in results:
+            email = user[1]
+            request_time = user[2]
+            
+            if datetime.datetime.now() - request_time > datetime.timedelta(days=30):
+                webhook_log(f"Processing pending deletion for {email} after 30 days")
+                
+                # First verify the user still exists
+                user_exists = db.execute_query("SELECT * FROM users WHERE email = %s", (email,))
+                if not user_exists:
+                    webhook_log(f"User {email} already deleted, cleaning up pending deletion entry")
+                    db.execute_query("DELETE FROM pending_deletions WHERE email = %s", (email,))
+                    continue
+                
+                try:
+                    # Get Pterodactyl ID before deletion
+                    ptero_id = get_ptero_id(email)
+                    if not ptero_id:
+                        webhook_log(f"User {email} not found in Pterodactyl, cleaning up pending deletion entry")
+                        db.execute_query("DELETE FROM pending_deletions WHERE email = %s", (email,))
+                        continue
+                        
+                    # Try to delete from Pterodactyl first
+                    response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60)
+                    if response.status_code != 204:
+                        webhook_log(f"Failed to delete {email} from Pterodactyl - Status: {response.status_code}", 2)
+                        continue
+                        
+                    # If Pterodactyl deletion succeeded, delete locally
+                    user_id = db.execute_query("SELECT id FROM users WHERE email = %s", (email,))[0]
+                    
+                    # Delete all user's servers first
+                    servers = db.execute_query("SELECT server_id FROM servers WHERE user_id = %s", (user_id,), fetch_all=True)
+                    if servers:
+                        for server in servers:
+                            db.execute_query("DELETE FROM servers WHERE server_id = %s", (server[0],))
+                    
+                    # Delete user's tickets and comments
+                    db.execute_query("DELETE FROM ticket_comments WHERE user_id = %s", (user_id,))
+                    db.execute_query("DELETE FROM tickets WHERE user_id = %s", (user_id,))
+                    
+                    # Finally delete the user
+                    db.execute_query("DELETE FROM users WHERE id = %s", (user_id,))
+                    
+                    # Clean up pending deletion entry
+                    db.execute_query("DELETE FROM pending_deletions WHERE email = %s", (email,))
+                    
+                    webhook_log(f"Successfully processed pending deletion for {email}")
+                    
+                except Exception as e:
+                    webhook_log(f"Error processing pending deletion for {email}: {str(e)}", 2)
     
-
-        
-    # reset old users passwords
+    # Reset passwords for long-inactive users
     query = f"SELECT last_seen, email FROM users"
     result = db.execute_query(query, fetch_all=True)
-    for last_seen, email in result:
-        if last_seen is not None:
-            if datetime.datetime.now() - last_seen > datetime.timedelta(days=180):
-                webhook_log(f"Resetting password for {email}")
-                new_password = secrets.token_hex(32)
-                hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt(rounds=14))
-                db.execute_query("UPDATE users SET password = %s WHERE email = %s", (hashed_password, email))
-                ptero_id = get_ptero_id(email)
-                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60).json()['attributes']
-                body = {
-                    "username": info['username'],
-                    "email": info['email'],
-                    "first_name": info['first_name'],
-                    "last_name": info['last_name'],
-                    "password": new_password
-                }
-
-                requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body, timeout=60)
- 
-                update_last_seen(email)
-            
+    if result:
+        for last_seen, email in result:
+            if last_seen is not None:
+                if datetime.datetime.now() - last_seen > datetime.timedelta(days=180):
+                    try:
+                        webhook_log(f"Resetting password for inactive user {email}")
+                        new_password = secrets.token_hex(32)
+                        hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt(rounds=14))
+                        db.execute_query("UPDATE users SET password = %s WHERE email = %s", (hashed_password, email))
+                        
+                        # Update Pterodactyl password if possible
+                        ptero_id = get_ptero_id(email)
+                        if ptero_id:
+                            info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60).json()['attributes']
+                            body = {
+                                "username": info['username'],
+                                "email": info['email'],
+                                "first_name": info['first_name'],
+                                "last_name": info['last_name'],
+                                "password": new_password
+                            }
+                            requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body, timeout=60)
+                            update_last_seen(email)
+                    except Exception as e:
+                        webhook_log(f"Error resetting password for {email}: {str(e)}", 2)
 
 
 def get_nodes(all: bool = False) -> list[dict]:
@@ -534,54 +543,57 @@ def register(email: str, password: str, name: str, ip: str) -> str | dict:
         return response.json()
 
 
-def instantly_delete_user(email: str) -> int:
+def instantly_delete_user(email: str, skip_email: bool = False) -> int:
     """
     Deletes a user from both the panel database and Pterodactyl.
     
-    Makes a DELETE request to /api/application/users/{user_id} to remove the user.
+    Args:
+        email: User's email address
+        skip_email: If True, won't send deletion email (used during sync)
     
-    Returns the HTTP status code (204 on success).
-    
-    Example Success: Returns 204 (No Content)
-    Example Error Response:
-    {
-        "errors": [
-            {
-                "code": "NotFound",
-                "status": "404",
-                "detail": "The requested resource was not found on this server."
-            }
-        ]
-    }
+    Returns:
+        int: HTTP status code from deletion request
     """
     db = DatabaseManager()
-    ptero_id = get_ptero_id(email)[0]
-    user_id = get_id(email)[0]
-    servers = improve_list_servers(ptero_id)
-    for server in servers:
-        server_id = server['attributes']['id']
-        delete_server(server_id)
-    # Delete the user from the database
-    db.execute_query(
-        "DELETE FROM ticket_comments WHERE user_id = %s", 
-        (user_id,)
-    )
-    db.execute_query(
-        "DELETE FROM tickets WHERE user_id = %s", 
-        (user_id,)
-    )
+    ptero_id = get_ptero_id(email)
+    if not ptero_id:
+        return 404
         
- 
-    query = "DELETE FROM users WHERE id = %s"
-    values = (user_id,)
-
- 
-    db.execute_query(query, values)
-    send_email(email, "Account Deleted", "Your account has been deleted!", current_app._get_current_object())
-    response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{ptero_id}", headers=HEADERS, timeout=60)
-    response.raise_for_status()
-
-    return response.status_code
+    user_id = get_id(email)
+    if not user_id:
+        return 404
+        
+    ptero_id = ptero_id[0]
+    user_id = user_id[0]
+    
+    # Delete all user's servers first
+    servers = improve_list_servers(ptero_id)
+    if servers:
+        for server in servers:
+            server_id = server['attributes']['id']
+            delete_server(server_id)
+    
+    # Delete user's tickets and comments
+    db.execute_query("DELETE FROM ticket_comments WHERE user_id = %s", (user_id,))
+    db.execute_query("DELETE FROM tickets WHERE user_id = %s", (user_id,))
+    
+    # Delete the user
+    db.execute_query("DELETE FROM users WHERE id = %s", (user_id,))
+    
+    # Only send email if not skipped
+    if not skip_email:
+        try:
+            send_email(email, "Account Deleted", "Your account has been deleted!", current_app._get_current_object())
+        except RuntimeError:
+            # Skip email if no application context
+            pass
+    
+    # Delete from Pterodactyl last
+    try:
+        response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{ptero_id}", headers=HEADERS, timeout=60)
+        return response.status_code
+    except requests.exceptions.RequestException:
+        return 500
 
 
 def add_credits(email: str, amount: int, set_client: bool = True):
