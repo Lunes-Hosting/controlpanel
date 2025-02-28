@@ -323,13 +323,15 @@ def improve_list_servers(pterodactyl_id: int = None) -> tuple[dict]:
         }
     }
     """
+    print(pterodactyl_id)
     resp = requests.get(
         f"{PTERODACTYL_URL}api/application/users/{int(pterodactyl_id)}?include=servers", 
         headers=HEADERS, 
     timeout=60).json()
-
-    relationship = resp["attributes"]["relationships"]["servers"]["data"]
-
+    try:
+        relationship = resp["attributes"]["relationships"]["servers"]["data"]
+    except KeyError:
+        print(resp)
     # Using list comprehension for faster filtering
     server_list = [server for server in relationship if int(server["attributes"]["user"]) == pterodactyl_id]
 
