@@ -161,7 +161,7 @@ def create_checkout_session(price_link: str):
         mode='payment',
         success_url=YOUR_SUCCESS_URL,
         cancel_url=YOUR_CANCEL_URL,
-        customer_email=session['email']
+        customer_email=str(session['email']).strip().lower()
     )
     active_payments.append(check_session['id'])
     session['price_link'] = price_link
