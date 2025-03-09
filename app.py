@@ -112,7 +112,7 @@ if not DEBUG_FRONTEND_MODE:
             use_credits()
             print("Credit processing complete")
 
-    @scheduler.task('interval', id='server_unsuspend', seconds=180, misfire_grace_time=900)
+    @scheduler.task('interval', id='server_unsuspend', seconds=60, misfire_grace_time=900)
     def check_suspensions():
         """Check for servers that can be unsuspended."""
         with app.app_context():
