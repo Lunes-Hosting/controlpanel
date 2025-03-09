@@ -780,80 +780,116 @@ def check_to_unsuspend():
     Returns:
         None
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60).json()
-    
-    for server in response['data']:
-        user_suspended = check_if_user_suspended(server['attributes']['user'])
-        if user_suspended:
-            
-            delete_server(server['attributes']['id'])
-            webhook_log("Server deleted due to user suspension")
+    try:
+        # Get all servers in one API call
+        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60).json()
         
-        product = convert_to_product(server)
-        if product is None:
-            webhook_log(f"```{server}``` no product")
-        #           server_id = server['attributes']['id']
-            print(server['attributes']['name'], None)
-            resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server['attributes']['id'])}", headers=HEADERS, timeout=60).json()
-            main_product = products[1]
-            body = main_product['limits']
-            body["feature_limits"] = main_product['product_limits']
-            body['allocation'] = resp['attributes']['allocation']
-            print(body)
-            resp2 = requests.patch(f"{PTERODACTYL_URL}api/application/servers/{int(server['attributes']['id'])}/build", headers=HEADERS,
-                                    json=body, timeout=60)
-        if product is not None and product['name'] != "Free Tier":
-
-            query = f"SELECT email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
-
-            db = DatabaseManager()
-            email = db.execute_query(query)
+        # Batch fetch user data to reduce database queries
+        user_ids = [int(server['attributes']['user']) for server in response['data']]
+        
+        # Prefetch user suspension status
+        db = DatabaseManager()
+        user_data_query = f"SELECT pterodactyl_id, email, credits, last_seen FROM users WHERE pterodactyl_id IN ({','.join(map(str, set(user_ids)))})" 
+        user_data_results = db.execute_query(user_data_query, fetch_all=True) if user_ids else []
+        
+        # Create lookup dictionaries for faster access
+        user_data = {}
+        for result in user_data_results:
+            if result and len(result) >= 4:
+                user_data[result[0]] = {
+                    'email': result[1],
+                    'credits': result[2],
+                    'last_seen': result[3]
+                }
+        
+        # Cache suspension status to avoid repeated checks
+        suspension_status = {}
+        
+        # Process servers
+        for server in response['data']:
+            server_id = int(server['attributes']['id'])
+            user_id = int(server['attributes']['user'])
+            server_name = server['attributes']['name']
+            is_suspended = server['attributes']['suspended']
             
-            query = f"SELECT credits FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
-            current_credits = db.execute_query(query)
-
-            if email is None or current_credits is None:
-                pass
-            if email is not None:
-                if server['attributes']['suspended']:
-                    # print(server['attributes']['user'], "is suspeded", credits[0], product['price'] / 30/ 24)
-                    if current_credits[0] >= product['price'] / 30 / 24:
-                        if not check_if_user_suspended(server['attributes']['user']):
-                            unsuspend_server(server['attributes']['id'])
+            # Check user suspension only once per user
+            if user_id not in suspension_status:
+                suspension_status[user_id] = check_if_user_suspended(user_id)
+            
+            user_suspended = suspension_status[user_id]
+            if user_suspended:
+                delete_server(server_id)
+                webhook_log(f"Server {server_name} (ID: {server_id}) deleted due to user suspension")
+                continue
+            
+            # Get product information
+            product = convert_to_product(server)
+            
+            # Handle servers with no product
+            if product is None:
+                try:
+                    webhook_log(f"Server {server_name} (ID: {server_id}) has no product configuration")
+                    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS, timeout=60).json()
+                    main_product = products[1]
+                    body = main_product['limits']
+                    body["feature_limits"] = main_product['product_limits']
+                    body['allocation'] = resp['attributes']['allocation']
+                    requests.patch(f"{PTERODACTYL_URL}api/application/servers/{server_id}/build", headers=HEADERS,
+                                  json=body, timeout=60)
+                except Exception as e:
+                    webhook_log(f"Error updating server {server_id} configuration: {str(e)}", 2)
+                continue
+            
+            # Get user data from cache
+            user_info = user_data.get(user_id, {})
+            email = user_info.get('email')
+            current_credits = user_info.get('credits')
+            last_seen = user_info.get('last_seen')
+            
+            # Skip if we couldn't find user data
+            if not user_info:
+                continue
+            
+            # Handle paid servers
+            if product['name'] != "Free Tier":
+                if email is None or current_credits is None:
+                    continue
+                
+                if is_suspended:
+                    hourly_cost = product['price'] / 30 / 24
+                    if current_credits[0] >= hourly_cost if isinstance(current_credits, tuple) else current_credits >= hourly_cost:
+                        # Only check suspension status if we need to unsuspend
+                        if not suspension_status[user_id]:
+                            unsuspend_server(server_id)
+                            webhook_log(f"Unsuspended server {server_name} (ID: {server_id}) - sufficient credits")
                     else:
-                        if server['attributes']['suspended']:
-
+                        # Check if server has been suspended for too long
+                        try:
                             suspended_at = server['attributes']['updated_at']
-                            suspension_duration = datetime.datetime.now() - datetime.datetime.strptime(suspended_at,
-                                                                                                       "%Y-%m-%dT%H"
-                                                                                                       ":%M:%S+00:00")
+                            suspension_time = datetime.datetime.strptime(suspended_at, "%Y-%m-%dT%H:%M:%S+00:00")
+                            suspension_duration = datetime.datetime.now() - suspension_time
 
                             if suspension_duration.days > 3:
-                                print(
-                                    f"Deleting server {server['attributes']['name']} due to suspension for more than "
-                                    f"3 days.")
-                                webhook_log(f"Deleting server {server['attributes']['name']} with id: {server['attributes']['id']} due to suspension for more than 3 days.")
-
-                                delete_server(server['attributes']['id'])
-
-            else:
-                print(email, product['price'])
-        elif product is not None:
-            if product['name'] == "Free Tier":
-                query = f"SELECT last_seen, email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
-                db = DatabaseManager()
-                last_seen, email = db.execute_query(query)
-                
+                                webhook_log(f"Deleting server {server_name} (ID: {server_id}) due to suspension for more than 3 days")
+                                delete_server(server_id)
+                        except (ValueError, KeyError) as e:
+                            webhook_log(f"Error processing suspension duration for server {server_id}: {str(e)}", 1)
+            
+            # Handle free tier servers
+            elif product['name'] == "Free Tier":
                 if last_seen is not None:
-                    if datetime.datetime.now() - last_seen > datetime.timedelta(days=30):
-                        webhook_log(
-                            f"Deleting server {server['attributes']['name']} due to inactivity for more than 30 days.")
-                        delete_server(server['attributes']['id'])
-                    else:
-                        if not check_if_user_suspended(server['attributes']['user']):
-                            unsuspend_server(server['attributes']['id'])
-                else:
+                    # Handle both tuple and direct datetime object
+                    last_seen_value = last_seen[0] if isinstance(last_seen, tuple) else last_seen
+                    if datetime.datetime.now() - last_seen_value > datetime.timedelta(days=30):
+                        webhook_log(f"Deleting server {server_name} (ID: {server_id}) due to inactivity for more than 30 days")
+                        delete_server(server_id)
+                    elif is_suspended and not suspension_status[user_id]:
+                        unsuspend_server(server_id)
+                        webhook_log(f"Unsuspended free tier server {server_name} (ID: {server_id})")
+                elif email:
                     update_last_seen(email)
+    except Exception as e:
+        webhook_log(f"Error in check_to_unsuspend: {str(e)}", 2)
 
 
 def account_get_information(email: str):
