@@ -207,7 +207,7 @@ products = [
     },
     {
         "enabled": True,
-        "price_link": "price_1Qu0wXGc0pLG1vqRSvFt9nag",
+        "price_link": "price_1R1DjeEluFVXNifhgBeOagBM",
         "id": 9,
         "name": "Ls 16",
         "price": 1600,
