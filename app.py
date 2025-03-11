@@ -24,7 +24,7 @@ from flask_mail import Mail, Message
 from Routes.AuthenticationHandler import *
 from Routes.Servers import *
 from Routes.Store import *
-from Routes.Admin import *
+from Routes.admin import admin
 from Routes.Tickets import *
 from flask_session import Session
 from multiprocessing import Process
