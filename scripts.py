@@ -127,12 +127,12 @@ def sync_users_script():
             request_time = user[2]
             
             if datetime.datetime.now() - request_time > datetime.timedelta(days=30):
-                webhook_log(f"Processing pending deletion for {email} after 30 days")
+                threading.Thread(target=webhook_log, args=(f"Processing pending deletion for {email} after 30 days", 1)).start()
                 
                 # First verify the user still exists
                 user_exists = db.execute_query("SELECT * FROM users WHERE email = %s", (email,))
                 if not user_exists:
-                    webhook_log(f"User {email} already deleted, cleaning up pending deletion entry")
+                    threading.Thread(target=webhook_log, args=(f"User {email} already deleted, cleaning up pending deletion entry", 1)).start()
                     db.execute_query("DELETE FROM pending_deletions WHERE email = %s", (email,))
                     continue
                 
@@ -140,33 +140,33 @@ def sync_users_script():
                     # Get Pterodactyl ID before deletion
                     ptero_id = get_ptero_id(email)
                     if not ptero_id:
-                        webhook_log(f"User {email} not found in Pterodactyl, cleaning up pending deletion entry")
+                        threading.Thread(target=webhook_log, args=(f"User {email} not found in Pterodactyl, cleaning up pending deletion entry", 1)).start()
                         db.execute_query("DELETE FROM pending_deletions WHERE email = %s", (email,))
                         continue
                         
                     # Try to delete from Pterodactyl first
                     response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60)
                     if response.status_code != 204:
-                        webhook_log(f"Failed to delete {email} from Pterodactyl - Status: {response.status_code}", 2)
+                        threading.Thread(target=webhook_log, args=(f"Failed to delete {email} from Pterodactyl - Status: {response.status_code}", 2)).start()
                         continue
                         
                     # If Pterodactyl deletion succeeded, delete locally
                     user_id = db.execute_query("SELECT id FROM users WHERE email = %s", (email,))[0]
                     
                     # Delete user's tickets and comments
-                    db.execute_query("DELETE FROM ticket_comments WHERE user_id = %s", (user_id,))
-                    db.execute_query("DELETE FROM tickets WHERE user_id = %s", (user_id,))
+                    threading.Thread(target=db.execute_query, args=("DELETE FROM ticket_comments WHERE user_id = %s", (user_id,))).start()
+                    threading.Thread(target=db.execute_query, args=("DELETE FROM tickets WHERE user_id = %s", (user_id,))).start()
                     
                     # Finally delete the user
-                    db.execute_query("DELETE FROM users WHERE id = %s", (user_id,))
+                    threading.Thread(target=db.execute_query, args=("DELETE FROM users WHERE id = %s", (user_id,))).start()
                     
                     # Clean up pending deletion entry
-                    db.execute_query("DELETE FROM pending_deletions WHERE email = %s", (email,))
+                    threading.Thread(target=db.execute_query, args=("DELETE FROM pending_deletions WHERE email = %s", (email,))).start()
                     
-                    webhook_log(f"Successfully processed pending deletion for {email}")
+                    threading.Thread(target=webhook_log, args=(f"Successfully processed pending deletion for {email}", 1)).start()
                     
                 except Exception as e:
-                    webhook_log(f"Error processing pending deletion for {email}: {str(e)}", 2)
+                    threading.Thread(target=webhook_log, args=(f"Error processing pending deletion for {email}: {str(e)}", 2)).start()
     
     # Reset passwords for long-inactive users
     query = f"SELECT last_seen, email FROM users"
@@ -176,10 +176,10 @@ def sync_users_script():
             if last_seen is not None:
                 if datetime.datetime.now() - last_seen > datetime.timedelta(days=180):
                     try:
-                        webhook_log(f"Resetting password for inactive user {email}")
+                        threading.Thread(target=webhook_log, args=(f"Resetting password for inactive user {email}", 1)).start()
                         new_password = secrets.token_hex(32)
                         hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt(rounds=14))
-                        db.execute_query("UPDATE users SET password = %s WHERE email = %s", (hashed_password, email))
+                        threading.Thread(target=db.execute_query, args=("UPDATE users SET password = %s WHERE email = %s", (hashed_password, email))).start()
                         
                         # Update Pterodactyl password if possible
                         ptero_id = get_ptero_id(email)
@@ -195,7 +195,7 @@ def sync_users_script():
                             requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body, timeout=60)
                             update_last_seen(email)
                     except Exception as e:
-                        webhook_log(f"Error resetting password for {email}: {str(e)}", 2)
+                        threading.Thread(target=webhook_log, args=(f"Error resetting password for {email}: {str(e)}", 2)).start()
 
 
 def get_nodes(all: bool = False) -> list[dict]:
@@ -828,8 +828,8 @@ def check_to_unsuspend():
             
             user_suspended = suspension_status[user_id]
             if user_suspended:
-                delete_server(server_id)
-                webhook_log(f"Server {server_name} (ID: {server_id}) deleted due to user suspension")
+                threading.Thread(target=delete_server, args=(server_id,)).start()
+                threading.Thread(target=webhook_log, args=(f"Server {server_name} (ID: {server_id}) deleted due to user suspension", 1)).start()
                 continue
             
             # Get product information
@@ -838,7 +838,7 @@ def check_to_unsuspend():
             # Handle servers with no product
             if product is None:
                 try:
-                    webhook_log(f"Server {server_name} (ID: {server_id}) has no product configuration")
+                    threading.Thread(target=webhook_log, args=(f"Server {server_name} (ID: {server_id}) has no product configuration", 1)).start()
                     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS, timeout=60).json()
                     main_product = products[1]
                     body = main_product['limits']
@@ -847,7 +847,7 @@ def check_to_unsuspend():
                     requests.patch(f"{PTERODACTYL_URL}api/application/servers/{server_id}/build", headers=HEADERS,
                                   json=body, timeout=60)
                 except Exception as e:
-                    webhook_log(f"Error updating server {server_id} configuration: {str(e)}", 2)
+                    threading.Thread(target=webhook_log, args=(f"Error updating server {server_id} configuration: {str(e)}", 2)).start()
                 continue
             
             # Get user data from cache
@@ -870,8 +870,8 @@ def check_to_unsuspend():
                     if current_credits[0] >= hourly_cost if isinstance(current_credits, tuple) else current_credits >= hourly_cost:
                         # Only check suspension status if we need to unsuspend
                         if not suspension_status[user_id]:
-                            unsuspend_server(server_id)
-                            webhook_log(f"Unsuspended server {server_name} (ID: {server_id}) - sufficient credits")
+                            threading.Thread(target=unsuspend_server, args=(server_id,)).start()
+                            threading.Thread(target=webhook_log, args=(f"Unsuspended server {server_name} (ID: {server_id}) - sufficient credits", 1)).start()
                     else:
                         # Check if server has been suspended for too long
                         try:
@@ -880,8 +880,8 @@ def check_to_unsuspend():
                             suspension_duration = datetime.datetime.now() - suspension_time
 
                             if suspension_duration.days > 3:
-                                webhook_log(f"Deleting server {server_name} (ID: {server_id}) due to suspension for more than 3 days")
-                                delete_server(server_id)
+                                threading.Thread(target=webhook_log, args=(f"Deleting server {server_name} (ID: {server_id}) due to suspension for more than 3 days", 1)).start()
+                                threading.Thread(target=delete_server, args=(server_id,)).start()
                         except (ValueError, KeyError) as e:
                             webhook_log(f"Error processing suspension duration for server {server_id}: {str(e)}", 1)
             
@@ -892,9 +892,9 @@ def check_to_unsuspend():
                     last_seen_value = last_seen[0] if isinstance(last_seen, tuple) else last_seen
                     if datetime.datetime.now() - last_seen_value > datetime.timedelta(days=30):
                         webhook_log(f"Deleting server {server_name} (ID: {server_id}) due to inactivity for more than 30 days")
-                        delete_server(server_id)
+                        threading.Thread(target=delete_server, args=(server_id,)).start()
                     elif is_suspended and not suspension_status[user_id]:
-                        unsuspend_server(server_id)
+                        threading.Thread(target=unsuspend_server, args=(server_id,)).start()
                         webhook_log(f"Unsuspended free tier server {server_name} (ID: {server_id})")
                 elif email:
                     update_last_seen(email)
@@ -1202,7 +1202,7 @@ def get_node_allocation(node_id: int) -> int | None:
     """
     response = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=10000", headers=HEADERS, timeout=60)
     if response.status_code != 200:
-        webhook_log(f"Failed to get allocations for node {node_id} - Status: {response.status_code}", 2)
+        threading.Thread(target=webhook_log, args=(f"Failed to get allocations for node {node_id} - Status: {response.status_code}", 2)).start()
         return None
         
     data = response.json()
@@ -1212,11 +1212,11 @@ def get_node_allocation(node_id: int) -> int | None:
             if allocation['attributes']['assigned'] is False:
                 allocations.append(allocation['attributes']['id'])
         if len(allocations) == 0:
-            webhook_log(f"No free allocations found on node {node_id}", 2)
+            threading.Thread(target=webhook_log, args=(f"No free allocations found on node {node_id}", 2)).start()
             return None
         return random.choice(allocations)
     except (KeyError, ValueError) as e:
-        webhook_log(f"Error parsing allocations for node {node_id}: {str(e)}", 2)
+        threading.Thread(target=webhook_log, args=(f"Error parsing allocations for node {node_id}: {str(e)}", 2)).start()
         return None
 
 def transfer_server(server_id: int, target_node_id: int) -> int:
@@ -1233,7 +1233,7 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
     # Get server details
     server_info = get_server_information(server_id)
     if not server_info:
-        webhook_log(f"Failed to get server info for server {server_id}", 2)
+        threading.Thread(target=webhook_log, args=(f"Failed to get server info for server {server_id}", 2)).start()
         return 404
 
     # Get allocation on target node
