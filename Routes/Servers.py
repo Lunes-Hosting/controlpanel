@@ -291,7 +291,11 @@ def server(server_id):
             
     info = get_server_information(server_id)
     nodes = get_nodes()
-    return render_template('server.html', info=info, products=products_local, nodes=tuple(nodes), verified=verified, credits=int(credits))
+    
+    # Get current product for the server
+    current_product = convert_to_product(info)
+    
+    return render_template('server.html', info=info, products=products_local, nodes=tuple(nodes), verified=verified, credits=int(credits), current_product=current_product)
 
 @servers.route("/create", methods=["GET"])
 @login_required
