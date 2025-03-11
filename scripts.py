@@ -752,7 +752,7 @@ def use_credits():
                 if result == "SUSPEND":
                     # Send email with original subject line (singular "Server")
                     send_email(email, "Server Suspended", "Your server has been suspended due to lack of credits!", current_app._get_current_object())
-                    suspend_server(server['attributes']['id'])
+                    threading.Thread(target=suspend_server, args=(server['attributes']['id'],)).start()
 
 
 def unsuspend_server(server_id: int):
