@@ -693,56 +693,66 @@ def use_credits():
     
     Process:
     1. Gets all servers
-    2. For each server:
-        - Gets server details
-        - Calculates credit cost based on resources
-        - Attempts to remove credits from owner
-        - Suspends server if not enough credits
+    2. Batch processes servers by user
+    3. Makes a single database query per user
+    4. Processes credit deductions individually for each server
+    5. Suspends servers if needed
     
     Returns:
         None
     """
     response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60).json()
-
+    
+    # Group servers by user to minimize database queries
+    user_servers = {}
+    user_ids = set()
+    
+    # First pass - organize servers by user and collect all user IDs
     for server in response['data']:
-
+        user_id = int(server['attributes']['user'])
+        if user_id not in user_servers:
+            user_servers[user_id] = []
+            user_ids.add(user_id)
+        
         product = convert_to_product(server)
         if product is not None:
-
-            query = f"SELECT email FROM users WHERE pterodactyl_id='{int(server['attributes']['user'])}'"
-
-            db = DatabaseManager()
-            email = db.execute_query(query)
-
-            if email is not None:
-                if not server['attributes']['suspended']:
-                    result = remove_credits(email[0], product['price'] / 30 / 24)
-                    if result == "SUSPEND":
-                        send_email(email[0], "Server Suspended", "Your server has been suspended due to lack of credits!", current_app._get_current_object())
-                        suspend_server(server['attributes']['id'])
-
-            else:
-                print(email, product['price'])
+            user_servers[user_id].append((server, product))
         else:
             print(server['attributes']['name'])
-
-
-def delete_server(server_id) -> int:
-    """
-    Tries to delete server returns status code.
     
-    Args:
-        server_id: Pterodactyl server ID
+    # Skip if no users found
+    if not user_ids:
+        return
+        
+    # Fetch all user emails in a single query
+    db = DatabaseManager()
+    placeholders = ', '.join(['%s'] * len(user_ids))
+    query = f"SELECT pterodactyl_id, email FROM users WHERE pterodactyl_id IN ({placeholders})"
+    user_emails = db.execute_query(query, tuple(user_ids), fetch_all=True)
     
-    Returns:
-        int: HTTP status code
-    """
-    response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS, timeout=60)
-    if response.status_code == 204:
-        webhook_log(f"Server {server_id} deleted successfully via Script delete_server function.", 0)
-    else:
-        webhook_log(f"Failed to delete server {server_id}. Status code: {response.status_code}", 1)
-    return response.status_code
+    # Create a mapping of user_id to email
+    user_email_map = {int(row[0]): row[1] for row in user_emails} if user_emails else {}
+    
+    # Process each user's servers
+    for user_id, server_list in user_servers.items():
+        if user_id not in user_email_map:
+            continue
+            
+        email = user_email_map[user_id]
+        
+        # Process each server individually to maintain original behavior
+        for server, product in server_list:
+            if not server['attributes']['suspended']:
+                # Calculate credit cost for this server
+                credit_cost = product['price'] / 30 / 24
+                
+                # Process credit deduction for each server individually
+                result = remove_credits(email, credit_cost)
+                
+                if result == "SUSPEND":
+                    # Send email with original subject line (singular "Server")
+                    send_email(email, "Server Suspended", "Your server has been suspended due to lack of credits!", current_app._get_current_object())
+                    suspend_server(server['attributes']['id'])
 
 
 def unsuspend_server(server_id: int):
@@ -1276,7 +1286,24 @@ def get_all_servers() -> list[dict]:
 
 
 
-def get_all_servers() -> list[dict]:
+def delete_server(server_id) -> int:
+    """
+    Tries to delete server returns status code.
+    
+    Args:
+        server_id: Pterodactyl server ID
+    
+    Returns:
+        int: HTTP status code
+    """
+    response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS, timeout=60)
+    if response.status_code == 204:
+        webhook_log(f"Server {server_id} deleted successfully via Script delete_server function.", 0)
+    else:
+        webhook_log(f"Failed to delete server {server_id}. Status code: {response.status_code}", 1)
+    return response.status_code
+
+def get_all_servers():
     """
     Returns list of all servers from Pterodactyl API with ?per_page=10000 parameter.
     
@@ -1286,7 +1313,6 @@ def get_all_servers() -> list[dict]:
     response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60)
     data = response.json()
     return data['data']
-
 
 def login_required(f):
     @wraps(f)
