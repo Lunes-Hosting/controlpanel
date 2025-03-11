@@ -332,32 +332,37 @@ def admin_delete_server(server_id):
 @admin_required
 def admin_tickets_index():
     """
-    Display list of all open support tickets.
+    Display list of all support tickets with filter options.
     
+    Query Parameters:
+        - filter: Ticket status filter (default 'open')
+        
     Templates:
         - admin/tickets.html: Ticket management interface
         
     Database Queries:
-        - Get all open tickets
+        - Get tickets based on filter
         - Get ticket authors
         - Get comment counts
         
     Process:
         1. Verify admin status
-        2. Fetch open tickets
-        3. Sort by priority
-        4. Load user information
-        5. Count responses
+        2. Apply status filter
+        3. Fetch filtered tickets
+        4. Sort by priority
+        5. Load user information
+        6. Count responses
         
     Returns:
         template: admin/tickets.html with:
-            - tickets: Open ticket list
+            - tickets: Filtered ticket list
+            - filter: Current filter status
             - authors: User information
             - responses: Comment counts
             - priorities: Priority levels
             
     Related Functions:
-        - get_open_tickets(): Fetches tickets
+        - get_tickets(): Fetches tickets
         - get_ticket_responses(): Counts comments
     """
 
@@ -367,12 +372,41 @@ def admin_tickets_index():
         ptero_id = scripts.get_ptero_id(session['email'])
         session['pterodactyl_id'] = ptero_id
 
+    # Get filter parameter, default to 'open'
+    ticket_filter = request.args.get('filter', 'open')
+    
+    # Build query based on filter
+    if ticket_filter == 'all':
+        query = "SELECT * FROM tickets"
+        params = ()
+    else:
+        query = "SELECT * FROM tickets WHERE status = %s"
+        params = ('open',)
+    
+    # Get tickets based on filter
     tickets_list = DatabaseManager.execute_query(
-        "SELECT * FROM tickets WHERE status = 'open'", 
+        query, 
+        params,
         fetch_all=True
     )
+    
+    # Calculate ticket age
+    from datetime import datetime, timedelta
+    current_time = datetime.now()
+    old_ticket_threshold = timedelta(days=4)
+    
+    tickets_with_age = []
+    for ticket in tickets_list:
+        ticket_data = list(ticket)
+        # Check if created_at timestamp exists and is not None
+        if ticket[4] and isinstance(ticket[4], datetime):
+            ticket_age = current_time - ticket[4]
+            ticket_data.append(ticket_age > old_ticket_threshold)
+        else:
+            ticket_data.append(False)
+        tickets_with_age.append(ticket_data)
 
-    return render_template('admin/tickets.html', tickets=tickets_list)
+    return render_template('admin/tickets.html', tickets=tickets_with_age, filter=ticket_filter)
 
 
 @admin.route('/user/<user_id>/servers')

@@ -1,37 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Ticket</title>
+    <title>Admin Tickets - Lunes Hosting</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/servers.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/admin_tickets.css') }}">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230"
     crossorigin="anonymous"></script>
 </head>
 <body>
-    <h2>THIS IS NOT COMPLETE</h2>
-    
-
-{% with messages = get_flashed_messages() %}
-    {% if messages %}
-        {% for message in messages %}
-            {{ message }}
-        {% endfor %}
-    {% endif %}
-{% endwith %}
     {% include 'taskbar.html' %}
 
-    <div class="grid-container">
-        {% for ticket in tickets %}
-            <a href="{{ url_for('tickets.ticket', ticket_id=ticket[0]) }}">
-                <div class="server-box">
-                    <h3>{{ ticket[1] }}</h3>
-                    <h3>{{ ticket[2] }}</h3>
-                    <h3>{{ ticket[5] }}</h3>
-                    <h3>{{ ticket[6] }}</h3>
-                </div>
-            </a>
-        {% endfor %}
+    <h1 class="title">Support Tickets</h1>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for message in messages %}
+                    <div class="flash-message">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="filter-controls">
+        <a href="{{ url_for('admin.admin_tickets_index', filter='open') }}">
+            <button class="filter-button {% if filter == 'open' %}active{% endif %}">Open Tickets</button>
+        </a>
+        <a href="{{ url_for('admin.admin_tickets_index', filter='all') }}">
+            <button class="filter-button {% if filter == 'all' %}active{% endif %}">All Tickets</button>
+        </a>
     </div>
 
+    <div class="tickets-container">
+        {% if tickets %}
+            {% for ticket in tickets %}
+                <a href="{{ url_for('tickets.ticket', ticket_id=ticket[0]) }}" class="ticket-link">
+                    <div class="ticket-card">
+                        <div class="ticket-header">
+                            <div class="ticket-id">#{{ ticket[0] }}</div>
+                            <div class="ticket-status status-{{ ticket[3]|lower }}">{{ ticket[3]|upper }}</div>
+                        </div>
+                        <div class="ticket-content">
+                            <h3 class="ticket-title">{{ ticket[2] }}</h3>
+                            <div class="ticket-reply-status">
+                                Reply status: <span class="reply-{{ ticket[5]|lower }}">{{ ticket[5]|capitalize }}</span>
+                            </div>
+                        </div>
+                        <div class="ticket-footer">
+                            <div class="ticket-user">
+                                <span class="user-icon">👤</span> User ID: {{ ticket[1] }}
+                            </div>
+                            <div class="ticket-date">
+                                <span class="date-icon">🕒</span> 
+                                <span {% if ticket[7] %}class="old-ticket"{% endif %}>{{ ticket[4] }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        {% else %}
+            <div class="no-tickets">
+                <p>No tickets found.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Add any JavaScript functionality here if needed
+    </script>
 </body>
 </html>
