@@ -1255,13 +1255,16 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
         if response.status_code == 504:
             print(f"Connection error when transferring server {server_id}. Attempting to forcefully stop the server.", 1)
             
-            # Send kill command to the server
-            kill_url = f"{PTERODACTYL_URL}api/client/servers/{server_id}/power"
+            # Get server identifier
+            server_identifier = server_info['attributes']['identifier']
+            
+            # Send kill command to the server using identifier
+            kill_url = f"{PTERODACTYL_URL}api/client/servers/{server_identifier}/power"
             kill_data = {"signal": "kill"}
             
             try:
                 kill_response = requests.post(kill_url, headers=HEADERS, json=kill_data, timeout=30)
-                print(f"Force stop command sent to server {server_id}. Status: {kill_response.status_code}", 1)
+                print(f"Force stop command sent to server {server_id} ({server_identifier}). Status: {kill_response.status_code}", 1)
                 
                 # Wait a moment for the server to fully stop
                 time.sleep(5)
