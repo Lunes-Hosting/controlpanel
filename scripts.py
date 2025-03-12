@@ -1258,12 +1258,20 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
             # Get server identifier
             server_identifier = server_info['attributes']['identifier']
             
-            # Send kill command to the server using identifier
+            # Create client API headers with client key
+            from config import PTERODACTYL_CLIENT_KEY
+            client_headers = {
+                "Authorization": f"Bearer {PTERODACTYL_CLIENT_KEY}",
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            }
+            
+            # Send kill command to the server using identifier and client API
             kill_url = f"{PTERODACTYL_URL}api/client/servers/{server_identifier}/power"
             kill_data = {"signal": "kill"}
             
             try:
-                kill_response = requests.post(kill_url, headers=HEADERS, json=kill_data, timeout=30)
+                kill_response = requests.post(kill_url, headers=client_headers, json=kill_data, timeout=30)
                 print(f"Force stop command sent to server {server_id} ({server_identifier}). Status: {kill_response.status_code}", 1)
                 
                 # Wait a moment for the server to fully stop
