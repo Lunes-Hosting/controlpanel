@@ -61,13 +61,11 @@ Dependencies:
 Environment Variables Required:
     - PTERODACTYL_URL: Base URL for Pterodactyl panel
     - PTERODACTYL_ADMIN_KEY: Admin API key
-    - PTERODACTYL_ADMIN_USER_KEY: Client API key
     - DATABASE: MySQL database name
     - MAIL_* settings for email configuration
 
 Constants:
     HEADERS: API headers for admin access
-    CLIENT_HEADERS: API headers for client access
 """
 
 import datetime
@@ -100,12 +98,6 @@ cache = PteroCache()
 # API authentication headers
 HEADERS = {
     "Authorization": f"Bearer {PTERODACTYL_ADMIN_KEY}",
-    'Accept': 'application/json',
-    'Content-Type': 'application/json'
-}
-
-CLIENT_HEADERS = {
-    "Authorization": f"Bearer {PTERODACTYL_ADMIN_USER_KEY}",
     'Accept': 'application/json',
     'Content-Type': 'application/json'
 }

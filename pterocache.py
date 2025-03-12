@@ -9,9 +9,6 @@ class PteroCache():
         self.HEADERS = {"Authorization": f"Bearer {PTERODACTYL_ADMIN_KEY}",
            'Accept': 'application/json',
            'Content-Type': 'application/json'}
-        self.CLIENT_HEADERS = {"Authorization": f"Bearer {PTERODACTYL_ADMIN_USER_KEY}",
-                  'Accept': 'application/json',
-                  'Content-Type': 'application/json'}
         self.egg_cache = None
         self.available_nodes = None
         self.all_nodes = None

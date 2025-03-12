@@ -31,6 +31,7 @@ from multiprocessing import Process
 from discord_bot.bot import bot, run_bot
 import asyncio
 import importlib
+import sys
 
 from scripts import *
 from cacheext import cache
@@ -69,6 +70,16 @@ Session(app)
 mail = Mail(app)
 scheduler = APScheduler()
 scheduler.init_app(app)
+
+# Add context processor to make Discord invites available to all templates
+@app.context_processor
+def inject_discord_invites():
+    """
+    Make Discord invite link available to all templates.
+    """
+    return {
+        'DISCORD_INVITE': DISCORD_INVITE
+    }
 
 def rate_limit_key():
     """Generate a unique key for rate limiting based on user's session."""
