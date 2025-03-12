@@ -13,7 +13,6 @@ Templates Used:
 Database Tables Used:
 ------------------
 - users: User account management
-- servers: Server configurations
 - credits: User credit tracking
 
 External Services:
@@ -240,7 +239,7 @@ def admin_user_servers(user_id):
     Display all servers owned by a specific user.
     
     Args:
-        user_id: User's ID to view servers for
+        user_id: Database user ID to view servers for
         
     Templates:
         - admin/user_servers.html: User's server list
@@ -250,44 +249,43 @@ def admin_user_servers(user_id):
         - Pterodactyl: Get resource usage
         
     Database Queries:
-        - Get user information
-        - Get server configurations
+        - Get user information including Pterodactyl ID
         
     Process:
         1. Verify admin status
-        2. Get user details
-        3. Fetch server list
-        4. Calculate resource usage
-        5. Format display data
+        2. Get user details from database
+        3. Use Pterodactyl ID to fetch server list from Pterodactyl
+        4. Format display data
         
     Returns:
         template: admin/user_servers.html with:
             - user_info: Account details
             - servers: Server list
-            - resources: Usage statistics
-            
-    Related Functions:
-        - get_user_servers(): Lists user's servers
-        - calculate_resources(): Sums usage
     """
     if 'pterodactyl_id' in session:
-        ptero_id = session['pterodactyl_id']
+        admin_ptero_id = session['pterodactyl_id']
     else:
-        ptero_id = scripts.get_ptero_id(session['email'])
-        session['pterodactyl_id'] = ptero_id
+        admin_ptero_id = scripts.get_ptero_id(session['email'])
+        session['pterodactyl_id'] = admin_ptero_id
     
-    # Get user from database
+    # Get user from database using database ID
     db_user = DatabaseManager.execute_query(
-        "SELECT * FROM users WHERE pterodactyl_id = %s", 
+        "SELECT * FROM users WHERE id = %s", 
         (user_id,)
     )
     
     if not db_user:
         return "User not found in database", 404
     
-    # Get user's servers from panel
+    # Get the Pterodactyl ID from the database user
+    ptero_id = db_user[5]  # Assuming pterodactyl_id is at index 6
+    
+    if not ptero_id:
+        return "User does not have a Pterodactyl ID", 404
+    
+    # Get user's servers from panel using Pterodactyl ID
     response = requests.get(
-        f"{PTERODACTYL_URL}/api/application/users/{user_id}?include=servers",
+        f"{PTERODACTYL_URL}/api/application/users/{ptero_id}?include=servers",
         headers=HEADERS
     )
     
@@ -296,37 +294,25 @@ def admin_user_servers(user_id):
     
     user_info = response.json()
     
-    # Get servers from database
-    db_servers = DatabaseManager.execute_query(
-        "SELECT * FROM servers WHERE user_id = %s", 
-        (db_user[5],), 
-        fetch_all=True
-    )
-    
-    # Combine panel and database server information
+    # Process servers from Pterodactyl API only
     servers = []
     for server in user_info['attributes']['relationships']['servers']['data']:
         server_info = server['attributes']
         
-        # Find matching database server
-        db_server = None
-        for s in db_servers:
-            if s[1] == server_info['identifier']:
-                db_server = s
-                break
-        
+        # Create a server object that matches what the template expects
         servers.append({
             'id': server_info['id'],
             'identifier': server_info['identifier'],
             'name': server_info['name'],
             'node': server_info['node'],
             'limits': server_info['limits'],
-            'db_info': db_server
+            'db_info': None,  # No database info since we don't have a servers table
+            'attributes': server_info  # Add the full attributes for template compatibility
         })
     
     return render_template(
         "admin/user_servers.html", 
-        user=user_info['attributes'], 
+        user_info=user_info['attributes'], 
         db_user=db_user, 
         servers=servers
     )

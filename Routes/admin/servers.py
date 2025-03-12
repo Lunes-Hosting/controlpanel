@@ -47,36 +47,68 @@ sys.path.append("..")
 @admin_required
 def admin_servers():
     """
-    Display list of all servers in the panel.
+    Display paginated list of all servers in the panel with search functionality.
     
+    Query Parameters:
+        - page: Current page number (default 1)
+        - search: Optional search term for server ID or name
+        
     Templates:
         - admin/servers.html: Server overview list
         
     API Calls:
         - Pterodactyl: List all servers
         
-    Database Queries:
-        - Get server owners
-        - Get server resources
-        
-    Process:
-        1. Verify admin status
-        2. Fetch all servers from panel
-        3. Match servers with owners
-        4. Calculate resource usage
-        
     Returns:
         template: admin/servers.html with:
-            - servers: List of all servers
-            - resources: Server resource usage
-            - owners: Server ownership mapping
-            
-    Related Functions:
-        - get_server_list(): Fetches panel servers
-        - get_server_owner(): Maps server to user
+            - servers: Paginated server list
+            - total_servers: Total server count
+            - current_page: Active page number
+            - search_term: Current search filter
     """
+    # Get query parameters
+    page = int(request.args.get('page', 1))
+    search_term = request.args.get('search', '').strip().lower()  # Convert to lowercase once
+    per_page = 20
+    
+    # Get all servers from Pterodactyl
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60).json()
-    return render_template("admin/servers.html", servers=resp['data'])
+    all_servers = resp['data']
+    
+    # Filter servers based on search term (server ID or name)
+    filtered_servers = []
+    for server in all_servers:
+        server_id = str(server['attributes']['id']).lower()
+        server_name = str(server['attributes']['name']).lower()
+        
+        # Apply search filter if search term provided
+        if search_term:
+            if search_term in server_id or search_term in server_name:
+                filtered_servers.append(server)
+        else:
+            filtered_servers.append(server)
+    
+    # Calculate total servers and pages
+    total_servers = len(filtered_servers)
+    total_pages = max(1, (total_servers + per_page - 1) // per_page)
+    
+    # Adjust page if out of bounds
+    if page > total_pages:
+        page = total_pages
+    
+    # Paginate the filtered servers
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    paginated_servers = filtered_servers[start_idx:end_idx]
+    
+    return render_template(
+        "admin/servers.html", 
+        servers=paginated_servers, 
+        total_pages=total_pages, 
+        current_page=page, 
+        total_servers=total_servers,
+        search_term=request.args.get('search', '')  # Return original search term
+    )
 
 
 @admin.route('/server/<server_id>')
