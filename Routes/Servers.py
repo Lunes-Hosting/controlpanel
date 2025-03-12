@@ -397,7 +397,6 @@ def delete_server(server_id):
         - delete_from_panel(): Removes server
         - update_resources(): Updates limits
     """
-
     resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     
     # Get user's pterodactyl ID
@@ -405,15 +404,18 @@ def delete_server(server_id):
         "SELECT pterodactyl_id FROM users WHERE email = %s",
         (session['email'],)
     )
-
-    if resp['attributes']['user'] == ptero_id[0]:
-        webhook_log(f"Server with id: {server_id} was deleted by user", 0)
-        requests.delete(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS)
-        return redirect(url_for('user.index'))
-    else:
-        webhook_log(f"Server with id {server_id} attempted deleted from user {session["email"]}", 1)
-        return "You can't delete this server you dont own it!"
-
+    try:
+        if resp['attributes']['user'] == ptero_id[0]:
+            webhook_log(f"Server with id: {server_id} was deleted by user", 0)
+            requests.delete(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS)
+            return redirect(url_for('user.index'))
+        else:
+            webhook_log(f"Server with id {server_id} attempted deleted from user {session["email"]}", 1)
+            return "You can't delete this server you dont own it!"
+    except KeyError:
+        webhook_log(f"Server with id {server_id} not found", 1)
+        print(resp, "server delete not found!!!!!!")
+        return "Server not found"    
 @servers.route('/create/submit', methods=['POST'])
 @login_required
 def create_server_submit():
