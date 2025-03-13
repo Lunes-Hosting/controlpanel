@@ -32,8 +32,7 @@ from discord_bot.bot import bot, run_bot
 import asyncio
 import importlib
 import sys
-
-from scripts import *
+from managers.logging import webhook_log
 from cacheext import cache
 from threading import Thread
 
