@@ -201,8 +201,8 @@ def admin_user_servers(user_id):
     # Get user's servers from panel using Pterodactyl ID
     response = requests.get(
         f"{PTERODACTYL_URL}/api/application/users/{ptero_id}?include=servers",
-        headers=HEADERS
-    )
+        headers=HEADERS, 
+    timeout=60)
     
     if response.status_code != 200:
         return "Failed to get user servers", 500
@@ -289,8 +289,8 @@ def admin_delete_user(user_id):
     # Get user's servers from panel
     response = requests.get(
         f"{PTERODACTYL_URL}/api/application/users/{user_id}?include=servers",
-        headers=HEADERS
-    )
+        headers=HEADERS, 
+    timeout=60)
     
     if response.status_code != 200:
         flash("Failed to get user servers", "error")
@@ -308,8 +308,8 @@ def admin_delete_user(user_id):
             delete_response = requests.delete(
                 f"{PTERODACTYL_URL}/api/application/servers/{server_id}",
                 headers=HEADERS,
-                params={'force': 'true'}
-            )
+                params={'force': 'true'}, 
+            timeout=60)
             
             if delete_response.status_code != 204:
                 flash(f"Failed to delete server {server_id}", "error")
@@ -323,8 +323,8 @@ def admin_delete_user(user_id):
     # Delete user from panel
     delete_user_response = requests.delete(
         f"{PTERODACTYL_URL}/api/application/users/{user_id}",
-        headers=HEADERS
-    )
+        headers=HEADERS, 
+    timeout=60)
     
     if delete_user_response.status_code != 204:
         flash("Failed to delete user from panel", "error")
@@ -419,8 +419,8 @@ def admin_toggle_suspension(user_id):
     # Update user in panel
     response = requests.get(
         f"{PTERODACTYL_URL}/api/application/users/{user_id}",
-        headers=HEADERS
-    )
+        headers=HEADERS, 
+    timeout=60)
     
     if response.status_code != 200:
         flash("Failed to get user from panel", "error")
@@ -449,8 +449,8 @@ def admin_toggle_suspension(user_id):
     update_response = requests.patch(
         f"{PTERODACTYL_URL}/api/application/users/{user_id}",
         headers=HEADERS,
-        json=update_data
-    )
+        json=update_data, 
+    timeout=60)
     
     if update_response.status_code != 200:
         flash("Failed to update user in panel", "error")

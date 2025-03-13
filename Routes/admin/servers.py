@@ -219,8 +219,8 @@ def admin_manage_server(server_id):
     # Get server details from panel
     response = requests.get(
         f"{PTERODACTYL_URL}/api/application/servers/{server_id}",
-        headers=HEADERS
-    )
+        headers=HEADERS, 
+    timeout=60)
     
     if response.status_code != 200:
         flash("Server not found", "error")

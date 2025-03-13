@@ -78,7 +78,7 @@ def get_autodeploy_info(project_id: int) -> list[dict]:
     if res is not None:
         egg_id = res[8]
         egg_info = requests.get(f"{PTERODACTYL_URL}api/application/nests/{AUTODEPLOY_NEST_ID}/eggs/{egg_id}?include=variables", 
-            headers=HEADERS).json()
+            headers=HEADERS, timeout=60).json()
         attributes = egg_info['attributes']
         
         # Convert res[7] to a dictionary
