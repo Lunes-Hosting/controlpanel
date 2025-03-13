@@ -237,9 +237,14 @@ def admin_manage_server(server_id):
     # Get available products
     products_list = list(products)
     
+    # Structure the server data to match what the template expects
+    server = {
+        'attributes': server_info['attributes']
+    }
+    
     return render_template(
         "admin/manage_server.html", 
-        server=server_info['attributes'], 
+        server=server, 
         owner=owner, 
         products=products_list
     )
