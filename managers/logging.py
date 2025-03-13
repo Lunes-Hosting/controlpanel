@@ -65,7 +65,7 @@ def webhook_log(embed_message: str, status: int = -1, non_embed_message: str = N
     def send_webhook():
         try:
             pass
-            #requests.post(WEBHOOK_URL, json=payload)
+            requests.post(WEBHOOK_URL, json=payload)
         except Exception as e:
             print(f"Error sending webhook: {str(e)}")
     
