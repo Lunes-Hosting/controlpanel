@@ -12,7 +12,6 @@ Templates Used:
 
 Database Tables Used:
 ------------------
-- servers: Server configurations
 - users: User account management
 
 External Services:
@@ -193,9 +192,7 @@ def admin_manage_server(server_id):
         - Pterodactyl: Get resource limits
         
     Database Queries:
-        - Get server configuration
         - Get owner information
-        - Get server history
         
     Process:
         1. Verify admin status
@@ -207,12 +204,10 @@ def admin_manage_server(server_id):
         template: admin/manage_server.html with:
             - server: Server details
             - limits: Resource limits
-            - history: Server changes
             - options: Available actions
             
     Related Functions:
         - get_server_details(): Gets configuration
-        - get_server_history(): Lists changes
     """
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
@@ -232,20 +227,11 @@ def admin_manage_server(server_id):
     
     server_info = response.json()
     
-    # Get server from database
-    db_server = DatabaseManager.execute_query(
-        "SELECT * FROM servers WHERE pterodactyl_id = %s", 
-        (server_id,)
-    )
-    
-    if not db_server:
-        flash("Server not found in database", "error")
-        return redirect(url_for('admin.admin_servers'))
-    
-    # Get owner information
+    # Get owner information directly from the server attributes
+    owner_id = server_info['attributes']['user']
     owner = DatabaseManager.execute_query(
-        "SELECT * FROM users WHERE id = %s", 
-        (db_server[2],)
+        "SELECT * FROM users WHERE pterodactyl_id = %s", 
+        (owner_id,)
     )
     
     # Get available products
@@ -254,7 +240,6 @@ def admin_manage_server(server_id):
     return render_template(
         "admin/manage_server.html", 
         server=server_info['attributes'], 
-        db_server=db_server, 
         owner=owner, 
         products=products_list
     )
