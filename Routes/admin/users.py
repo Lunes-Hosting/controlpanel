@@ -146,92 +146,6 @@ def users():
     )
 
 
-@admin.route('/user/<user_id>')
-@admin_required
-def admin_user(user_id):
-    """
-    Get detailed information about a specific user.
-    
-    Args:
-        user_id: Pterodactyl user ID
-        
-    Templates:
-        - admin/user.html: User detail view
-        
-    API Calls:
-        - Pterodactyl: Get user details
-        
-    Database Queries:
-        - Get user credits
-        - Get user servers
-        - Get support tickets
-        
-    Process:
-        1. Verify admin status
-        2. Fetch user from panel
-        3. Get local user data
-        4. Combine information
-        
-    Returns:
-        json: User information including:
-            - panel_info: Pterodactyl data
-            - credits: Credit balance
-            - servers: Server count
-            - tickets: Support history
-            
-    Related Functions:
-        - get_user_info(): Gets panel user data
-        - get_user_resources(): Gets usage stats
-    """
-    if 'pterodactyl_id' in session:
-        ptero_id = session['pterodactyl_id']
-    else:
-        ptero_id = scripts.get_ptero_id(session['email'])
-        session['pterodactyl_id'] = ptero_id
-
-    # Get user from panel
-    response = requests.get(
-        f"{PTERODACTYL_URL}/api/application/users/{user_id}",
-        headers=HEADERS
-    )
-    
-    if response.status_code != 200:
-        return "User not found", 404
-    
-    user_info = response.json()
-    
-    # Get user from database
-    db_user = DatabaseManager.execute_query(
-        "SELECT * FROM users WHERE pterodactyl_id = %s", 
-        (user_id,)
-    )
-    
-    if not db_user:
-        return "User not found in database", 404
-    
-    # Get user's servers
-    servers = DatabaseManager.execute_query(
-        "SELECT * FROM servers WHERE user_id = %s", 
-        (db_user[5],), 
-        fetch_all=True
-    )
-    
-    # Get user's tickets
-    tickets = DatabaseManager.execute_query(
-        "SELECT * FROM tickets WHERE user_id = %s", 
-        (db_user[5],), 
-        fetch_all=True
-    )
-    
-    return render_template(
-        "admin/user.html", 
-        user=user_info['attributes'], 
-        db_user=db_user, 
-        servers=servers, 
-        tickets=tickets
-    )
-
-
 @admin.route('/user/<user_id>/servers')
 @admin_required
 def admin_user_servers(user_id):
@@ -398,11 +312,6 @@ def admin_delete_user(user_id):
             flash(f"Failed to delete server {server_id}", "error")
             return redirect(url_for('admin.users'))
         
-        # Delete server from database
-        DatabaseManager.execute_query(
-            "DELETE FROM servers WHERE pterodactyl_id = %s", 
-            (server_id,)
-        )
     
     # Delete user from panel
     delete_user_response = requests.delete(
