@@ -1,5 +1,5 @@
 from managers.database_manager import DatabaseManager
-from scripts import send_email
+from managers.email_manager import send_email
 from flask import current_app
 from ..utils.logger import logger
 class UserDB():

@@ -17,9 +17,11 @@ import requests
 import json
 import threading
 import random
-from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
+from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY, AUTODEPLOY_NEST_ID, PTERODACTYL_CLIENT_KEY
 from pterocache import PteroCache
+from managers.database_manager import DatabaseManager
 from .logging import webhook_log
+import time
 
 # Initialize cache
 cache = PteroCache()
@@ -42,10 +44,10 @@ def get_nodes(all: bool = False) -> list[dict]:
                 "name": str
             }
     """
-    nodes = cache.get_nodes()
-    if not all:
-        nodes = [node for node in nodes if node.get("public", True)]
-    return nodes
+    if all:
+        return cache.all_nodes
+    else:
+        return cache.available_nodes
 
 def get_eggs() -> list[dict]:
     """
@@ -60,12 +62,33 @@ def get_eggs() -> list[dict]:
                 "startup": str
             }
     """
-    return cache.get_eggs()
+    return cache.egg_cache
 
-def get_autodeploy_info(project_id: int):
-    response = requests.get(f"{PTERODACTYL_URL}api/application/autodeploy/{project_id}", headers=HEADERS, timeout=60)
-    if response.status_code == 200:
-        return response.json()
+def get_autodeploy_info(project_id: int) -> list[dict]:
+    """
+    Gets autodeploy information for a project.
+    
+    Args:
+        project_id: ID of the project
+        
+    Returns:
+        tuple: (list of egg information, environment variables)
+    """
+    res = DatabaseManager.execute_query("SELECT * FROM projects WHERE id = %s", (project_id,))
+    if res is not None:
+        egg_id = res[8]
+        egg_info = requests.get(f"{PTERODACTYL_URL}api/application/nests/{AUTODEPLOY_NEST_ID}/eggs/{egg_id}?include=variables", 
+            headers=HEADERS).json()
+        attributes = egg_info['attributes']
+        
+        # Convert res[7] to a dictionary
+        try:
+            environment = json.loads(res[7]) if res[7] else {}  # Ensure it's a dict
+        except json.JSONDecodeError:
+            environment = {}  # Fallback to empty dict if parsing fails
+        
+        return [{"egg_id": attributes['id'], "name": attributes['name'], "docker_image": attributes['docker_image'],
+                "startup": attributes['startup']}], environment
     return None
 
 def improve_list_servers(pterodactyl_id: int = None):
@@ -143,7 +166,7 @@ def improve_list_servers(pterodactyl_id: int = None):
     }
     """
     if pterodactyl_id is None:
-        response = requests.get(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, timeout=60)
+        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
         if response.status_code == 200:
             return response.json()
         return None
@@ -241,7 +264,7 @@ def get_node_allocation(node_id: int):
         int: Random available allocation ID
         None: If no free allocation found
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations", headers=HEADERS, timeout=60)
+    response = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=100000", headers=HEADERS, timeout=60)
     if response.status_code == 200:
         allocations = response.json()['data']
         free_allocations = [allocation['attributes']['id'] for allocation in allocations if not allocation['attributes']['assigned']]
@@ -249,7 +272,7 @@ def get_node_allocation(node_id: int):
             return random.choice(free_allocations)
     return None
 
-def transfer_server(server_id: int, target_node_id: int):
+def transfer_server(server_id: int, target_node_id: int) -> int:
     """
     Transfer a server to a new node using Pterodactyl API.
     
@@ -260,34 +283,128 @@ def transfer_server(server_id: int, target_node_id: int):
     Returns:
         int: HTTP status code from the transfer request
     """
-    # Get a free allocation on the target node
+    # Get server details
+    server_info = get_server_information(server_id)
+    if not server_info:
+        threading.Thread(target=webhook_log, args=(f"Failed to get server info for server {server_id}", 2)).start()
+        return 404
+
+    # Get allocation on target node
     allocation_id = get_node_allocation(target_node_id)
     if not allocation_id:
-        threading.Thread(target=webhook_log, args=(f"No free allocations found on node {target_node_id} for server transfer", 2)).start()
-        return 400
-    
-    # Prepare transfer request body
+        webhook_log(f"Failed to get allocation for node {target_node_id} when transferring server {server_id}", 2)
+        return 400  # No free allocation
+
+    # Build transfer request
     transfer_data = {
-        "node": target_node_id,
-        "allocation": allocation_id
+        "allocation_id": allocation_id,
+        "node_id": target_node_id
     }
     
-    # Send transfer request
-    response = requests.post(
-        f"{PTERODACTYL_URL}api/application/servers/{server_id}/transfer",
-        headers=HEADERS,
-        json=transfer_data,
-        timeout=60
-    )
+    # Perform server transfer
+    transfer_url = f"{PTERODACTYL_URL}api/application/servers/{server_id}/transfer"
     
-    # Log the result
-    if response.status_code == 202:
-        threading.Thread(target=webhook_log, args=(f"Successfully initiated transfer of server {server_id} to node {target_node_id}", 1)).start()
-    else:
-        try:
-            error_message = response.json().get('errors', [{}])[0].get('detail', 'Unknown error')
-            threading.Thread(target=webhook_log, args=(f"Failed to transfer server {server_id}: {error_message}", 2)).start()
-        except:
-            threading.Thread(target=webhook_log, args=(f"Failed to transfer server {server_id}: Status code {response.status_code}", 2)).start()
+    try:
+        response = requests.post(
+            transfer_url, 
+            headers=HEADERS, 
+            json=transfer_data, 
+            timeout=60
+        )
+        
+        # If we get a connection error (504), try to forcefully stop the server and retry
+        if response.status_code == 504:
+            print(f"Connection error when transferring server {server_id}. Attempting to forcefully stop the server.", 1)
+            
+            # Get server identifier
+            server_identifier = server_info['attributes']['identifier']
+            
+            # Create client API headers with client key
+            client_headers = {
+                "Authorization": f"Bearer {PTERODACTYL_CLIENT_KEY}",
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            }
+            
+            # Send kill command to the server using identifier and client API
+            kill_url = f"{PTERODACTYL_URL}api/client/servers/{server_identifier}/power"
+            kill_data = {"signal": "kill"}
+            
+            try:
+                kill_response = requests.post(kill_url, headers=client_headers, json=kill_data, timeout=30)
+                print(f"Force stop command sent to server {server_id} ({server_identifier}). Status: {kill_response.status_code}", 1)
+                
+                # Wait a moment for the server to fully stop
+                time.sleep(5)
+                
+                # Try the transfer again
+                print(f"Retrying transfer for server {server_id}", 1)
+                response = requests.post(
+                    transfer_url, 
+                    headers=HEADERS, 
+                    json=transfer_data, 
+                    timeout=60
+                )
+            except Exception as e:
+                print(f"Error stopping server {server_id}: {str(e)}", 2)
+        
+        # Log the response for debugging
+        if response.status_code not in [202, 204]:
+            print(f"Server transfer failed - Status: {response.status_code}, Response: {response.text}", 2)
+        else:
+            # Get the user who owns the server
+            user_id = server_info['attributes']['user']
+            print(f"User {user_id} transferred server {server_id} to node {target_node_id}")
+        
+        return response.status_code
     
-    return response.status_code
+    except Exception as e:
+        print(f"Server transfer error for server {server_id}: {str(e)}", 2)
+        return 500
+
+def get_all_servers():
+    """
+    Returns a list of all servers from the Pterodactyl API.
+    
+    Makes a GET request to /api/application/servers to fetch all servers.
+    
+    Returns:
+        list: List of server objects
+        None: If the request fails
+    """
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+    if response.status_code == 200:
+        return response.json()['data']
+    return None
+
+
+def get_server(server_id: int):
+    """
+    Get detailed information about a specific server.
+    
+    This is an alias for get_server_information to maintain compatibility
+    with existing code during the restructuring process.
+    
+    Args:
+        server_id: ID of the server
+        
+    Returns:
+        dict: Server information
+        None: If the server is not found
+    """
+    return get_server_information(server_id)
+
+def delete_server(server_id: int):
+    """
+    Deletes a server through Pterodactyl API.
+    
+    Args:
+        server_id: ID of the server to delete
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS, timeout=60)
+    if response.status_code == 204:
+        return True
+    return False

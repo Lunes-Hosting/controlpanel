@@ -55,7 +55,7 @@ def generate_verification_token():
     token = ''.join(random.choices(string.ascii_letters + string.digits, k=64))
     return token
 
-def send_verification_email(email: str, verification_token: str, inner_app):
+def send_verification_email(email, verification_token, inner_app):
     """
     Sends a verification email to the user.
     
@@ -67,9 +67,21 @@ def send_verification_email(email: str, verification_token: str, inner_app):
     Returns:
         None
     """
-    verification_url = url_for('verify_email', token=verification_token, _external=True)
-    message = f"Please verify your email by clicking on the following link: <a href='{verification_url}'>Verify Email</a>"
-    send_email(email, "Email Verification", message, inner_app)
+    try:
+        # Determine the base URL based on environment
+        if inner_app.config.get('DEBUG_FRONTEND_MODE', False):
+            # Development environment
+            base_url = "http://127.0.0.1:3040"
+        else:
+            # Production environment
+            base_url = "https://betadash.lunes.host"
+            
+        verification_url = f"{base_url}/verify_email/{verification_token}"
+        
+        message = f"Please verify your email by clicking on the following link: <a href='{verification_url}'>Verify Email</a>"
+        send_email(email, "Email Verification", message, inner_app)
+    except Exception as e:
+        print(f"Error sending verification email: {str(e)}")
 
 def generate_reset_token():
     """
@@ -94,6 +106,18 @@ def send_reset_email(email: str, reset_token: str, inner_app):
     Returns:
         None
     """
-    reset_url = url_for('reset_password', token=reset_token, _external=True)
-    message = f"Please reset your password by clicking on the following link: <a href='{reset_url}'>Reset Password</a>"
-    send_email(email, "Password Reset", message, inner_app)
+    try:
+        # Determine the base URL based on environment
+        if inner_app.config.get('DEBUG_FRONTEND_MODE', False):
+            # Development environment
+            base_url = "http://127.0.0.1:3040"
+        else:
+            # Production environment
+            base_url = "https://betadash.lunes.host"
+            
+        reset_url = f"{base_url}/reset_password/{reset_token}"
+        
+        message = f"Please reset your password by clicking on the following link: <a href='{reset_url}'>Reset Password</a>"
+        send_email(email, "Password Reset", message, inner_app)
+    except Exception as e:
+        print(f"Error sending reset email: {str(e)}")

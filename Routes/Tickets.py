@@ -46,14 +46,15 @@ Message Formatting:
 - Image attachments
 """
 
-import asyncio
 from hashlib import sha256
 from flask import Blueprint, request, render_template, session, flash, current_app, redirect, url_for
 import sys, time, datetime
 from threadedreturn import ThreadWithReturnValue
 sys.path.append("..")
-from scripts import *
-from products import products
+from managers.authentication import login_required
+from managers.user_manager import get_id, get_name, is_admin
+from managers.email_manager import send_email
+from managers.logging import webhook_log
 from managers.database_manager import DatabaseManager
 
 tickets = Blueprint('tickets', __name__)

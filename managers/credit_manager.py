@@ -132,11 +132,11 @@ def convert_to_product(data):
     
     # Find matching product based on memory
     for product in products:
-        if product['memory'] == memory:
+        if product['limits']['memory'] == memory:
             return product
             
     # If no exact match, find closest match
-    closest_product = min(products, key=lambda p: abs(p['memory'] - memory))
+    closest_product = min(products, key=lambda p: abs(p['limits']['memory'] - memory))
     return closest_product
 
 def use_credits():
@@ -154,7 +154,7 @@ def use_credits():
         None
     """
     # Get all servers from Pterodactyl
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, timeout=60)
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
     if response.status_code != 200:
         threading.Thread(target=webhook_log, args=(f"Failed to get servers for credit processing: {response.status_code}", 2)).start()
         return
@@ -191,7 +191,7 @@ def use_credits():
                 
             # Get product info based on server specs
             product = convert_to_product(server)
-            total_credits_needed += product['price_per_hour']
+            total_credits_needed += product['price']/30/24
         
         # Remove credits if needed
         if total_credits_needed > 0:
@@ -220,7 +220,7 @@ def check_to_unsuspend():
         None
     """
     # Get all servers from Pterodactyl
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, timeout=60)
+    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
     if response.status_code != 200:
         threading.Thread(target=webhook_log, args=(f"Failed to get servers for unsuspension check: {response.status_code}", 2)).start()
         return
@@ -248,7 +248,7 @@ def check_to_unsuspend():
         
         # Get product info based on server specs
         product = convert_to_product(server)
-        credits_needed = product['price_per_hour'] * 24  # Require 24 hours worth of credits
+        credits_needed = product['price']/30/24  # Require 24 hours worth of credits
         
         # Check if user has enough credits
         user_credits = get_credits(user_email)

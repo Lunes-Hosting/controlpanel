@@ -25,8 +25,7 @@ All routes are protected by admin_required verification
 """
 
 from flask import render_template, request, session, redirect, url_for, flash
-import scripts
-from scripts import admin_required
+from managers.authentication import admin_required
 from Routes.admin import admin
 from managers.database_manager import DatabaseManager
 from datetime import datetime, timedelta
@@ -72,7 +71,7 @@ def admin_tickets_index():
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
     else:
-        ptero_id = scripts.get_ptero_id(session['email'])
+        ptero_id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = ptero_id
 
     # Get filter parameter, default to 'open'

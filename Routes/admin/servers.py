@@ -30,16 +30,17 @@ All routes are protected by admin_required verification
 """
 
 from flask import render_template, request, session, redirect, url_for, flash
-import scripts
-from scripts import HEADERS, webhook_log, admin_required
+from managers.authentication import admin_required
+from managers.utils import HEADERS
+from managers.user_manager import get_ptero_id
+from managers.server_manager import get_server_information, delete_server
+from managers.credit_manager import convert_to_product
 from Routes.admin import admin
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL
 from products import products
 import requests
 import sys
-import json
-
 sys.path.append("..")
 
 @admin.route("/servers")
@@ -71,7 +72,7 @@ def admin_servers():
     per_page = 20
     
     # Get all servers from Pterodactyl
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=10000", headers=HEADERS, timeout=60).json()
+    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60).json()
     all_servers = resp['data']
     
     # Filter servers based on search term (server ID or name)
@@ -153,12 +154,12 @@ def admin_server(server_id):
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
     else:
-        ptero_id = scripts.get_ptero_id(session['email'])
+        ptero_id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = ptero_id
 
     products_local = list(products)
-    info = scripts.get_server_information(server_id)
-    product = scripts.convert_to_product(info)
+    info = get_server_information(server_id)
+    product = convert_to_product(info)
     return render_template('admin/server.html', info=info, products=products_local, product=product)
 
 
@@ -171,7 +172,7 @@ def admin_delete_server(server_id):
     Args:
         server_id: Server ID to delete
     """
-    scripts.delete_server(server_id)
+    delete_server(server_id)
     return redirect(url_for('admin.admin_servers'))
 
 
@@ -212,7 +213,7 @@ def admin_manage_server(server_id):
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
     else:
-        ptero_id = scripts.get_ptero_id(session['email'])
+        ptero_id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = ptero_id
 
     # Get server details from panel

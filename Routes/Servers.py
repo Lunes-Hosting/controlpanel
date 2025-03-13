@@ -50,9 +50,15 @@ Handles allocation of:
 import asyncio
 from flask import Blueprint, request, render_template, session, flash, redirect, url_for, jsonify
 import sys
+import requests
 from threadedreturn import ThreadWithReturnValue
 sys.path.append("..")
-from scripts import *
+from managers.authentication import login_required, admin_required
+from managers.user_manager import get_ptero_id, get_id, get_name, check_if_user_suspended, get_user_verification_status_and_suspension_status
+from managers.server_manager import get_nodes, get_eggs, get_server_information, improve_list_servers, get_node_allocation, transfer_server
+from managers.credit_manager import get_credits, convert_to_product, use_credits, remove_credits
+from managers.logging import webhook_log
+from managers.utils import HEADERS
 from products import products
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY
@@ -192,52 +198,6 @@ def verify_server_ownership_by_ptero_id(server_id, ptero_id):
     except:
         return False
 
-@servers.route('/')
-@login_required
-def servers_index():
-    """
-    List all servers owned by authenticated user.
-    
-    Templates:
-        - servers/index.html: Server list view
-        
-    API Calls:
-        - Pterodactyl: List user's servers
-        - Pterodactyl: Get resource usage
-        
-    Process:
-        1. Verify authentication
-        2. Get user's panel ID
-        3. Fetch server list
-        4. Calculate resource usage
-        
-    Returns:
-        template: servers/index.html with:
-            - servers: User's server list
-            - resources: Usage statistics
-            - limits: Resource allocations
-            
-    Related Functions:
-        - get_user_servers(): Lists servers
-        - calculate_usage(): Sums resources
-    """
-        
-    ptero_id = get_user_ptero_id(session)
-    # Check if user is suspended
-    
-    verified, suspended = get_user_verification_status_and_suspension_status(session["email"])
-    #print(suspended)
-    #print(verified)
-
-    #verified = get_user_verification_status(session['email']) #uses db to get verification
-    #suspended = check_if_user_suspended(str(ptero_id[0]))  #uses db to get suspended
-    #print(suspended)
-    #print(verified)
-    servers_list = ()
-    if verified:
-        servers_list = improve_list_servers(ptero_id[0])
-        
-    return render_template('servers.html', servers=servers_list, verified=verified, suspended=suspended)
 
 @servers.route('/<server_id>')
 @login_required
@@ -279,7 +239,14 @@ def server(server_id):
         return "You can't view this server - you don't own it!"
         
     
-    servers_list = improve_list_servers(ptero_id) #improved
+    response = improve_list_servers(ptero_id) #improved
+    print(response)
+    
+    # Extract servers from the response
+    servers_list = []
+    if response and 'attributes' in response and 'relationships' in response['attributes']:
+        if 'servers' in response['attributes']['relationships']:
+            servers_list = response['attributes']['relationships']['servers']['data']
     
     # Filter available products
     products_local = [p for p in products if p['enabled']]
@@ -339,7 +306,14 @@ def create_server():
     if not verified:
         return redirect(url_for('user.index'))
 
-    servers_list = improve_list_servers(ptero_id[0])
+    response = improve_list_servers(ptero_id[0]) #improved
+    print(response)
+    
+    # Extract servers from the response
+    servers_list = []
+    if response and 'attributes' in response and 'relationships' in response['attributes']:
+        if 'servers' in response['attributes']['relationships']:
+            servers_list = response['attributes']['relationships']['servers']['data']
         
     nodes = get_nodes()
     project_id = request.args.get('project_id')
@@ -465,7 +439,7 @@ def create_server_submit():
         }
     
 
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=10000",
+    resp = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=100000",
                         headers=HEADERS).json()
     
     allocs = resp['data']
@@ -481,7 +455,15 @@ def create_server_submit():
         return redirect(url_for('servers.create_server'))
             
     ptero_id = get_ptero_id(session['email'])[0]
-    servers_list = improve_list_servers(ptero_id)
+    response = improve_list_servers(ptero_id) #improved
+    print(response)
+    
+    # Extract servers from the response
+    servers_list = []
+    if response and 'attributes' in response and 'relationships' in response['attributes']:
+        if 'servers' in response['attributes']['relationships']:
+            servers_list = response['attributes']['relationships']['servers']['data']
+        
     products_local = list(products)
     for server_inc in servers_list:
         if server_inc['attributes']['user'] == ptero_id:
@@ -574,15 +556,24 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
     """
     Update server configuration.
     """
+    resp_thread = ThreadWithReturnValue(target=requests.get, args=(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", ), kwargs={"headers": HEADERS})
+    resp_thread.start()
     webhook_log(f"Server update with id: {server_id} was attempted")
     
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     if check_if_user_suspended(str(get_ptero_id(session['email'])[0])):
         return ("Your Account has been suspended for breaking our TOS, if you believe this is a mistake you can submit "
                 "apeal at panel@lunes.host")
 
     ptero_id = get_ptero_id(session['email'])[0]
-    servers_list = improve_list_servers(ptero_id)
+    response = improve_list_servers(ptero_id) #improved
+    print(response)
+    
+    # Extract servers from the response
+    servers_list = []
+    if response and 'attributes' in response and 'relationships' in response['attributes']:
+        if 'servers' in response['attributes']['relationships']:
+            servers_list = response['attributes']['relationships']['servers']['data']
+        
     products_local = list(products)
     for server_inc in servers_list:
         if server_inc['attributes']['user'] == ptero_id:
@@ -602,18 +593,18 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
                 res = remove_credits(session['email'], credits_used)
                 if res == "SUSPEND":
                     flash("You are out of credits")
-                    return redirect(url_for('servers.servers_index'))
+                    return redirect(url_for('index'))
 
     if not found_product:
         return "You already have free server"
 
+    resp = resp_thread.join().json()
     body = main_product['limits']
     body["feature_limits"] = main_product['product_limits']
     body['allocation'] = resp['attributes']['allocation']
-    
-    resp2 = requests.patch(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}/build", headers=HEADERS,
+    _resp2 = requests.patch(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}/build", headers=HEADERS,
                            json=body)
-    return redirect(url_for('servers.servers_index'))
+    return redirect(url_for('index'))
 
 @servers.route('/transfer/<server_id>')
 @login_required

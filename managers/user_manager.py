@@ -73,9 +73,28 @@ def get_name(user_id: int):
     return result
 
 def account_get_information(email: str):
-    query = "SELECT * FROM users WHERE email = %s"
+    """
+    Gets account information for a user by their email.
+    
+    Args:
+        email: User's email address
+    
+    Returns:
+        tuple: (credits, pterodactyl_id, name, verified, suspended)
+    """
+    query = "SELECT credits, pterodactyl_id, name, email_verified_at, suspended FROM users WHERE email = %s"
     result = DatabaseManager.execute_query(query, (email,))
-    return result
+    
+    if result:
+        # Convert email_verified_at to a boolean
+        verified = False
+        if result[3] is not None:
+            verified = True
+        
+        # Return the 5 expected values
+        return (result[0], result[1], result[2], verified, result[4])
+    
+    return (0, None, None, False, False)
 
 def update_ip(email: str, real_ip: str):
     """
@@ -206,3 +225,18 @@ def instantly_delete_user(email: str, skip_email: bool = False):
     else:
         threading.Thread(target=webhook_log, args=(f"Failed to delete {email} from Pterodactyl - Status: {response.status_code}", 2)).start()
         return response.status_code
+
+def delete_user(pterodactyl_id: int):
+    """
+    Deletes a user from Pterodactyl by their Pterodactyl ID.
+    
+    Args:
+        pterodactyl_id: Pterodactyl user ID
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{pterodactyl_id}", headers=HEADERS, timeout=60)
+    if response.status_code == 204:
+        return True
+    return False

@@ -20,6 +20,8 @@ from flask import Flask
 from flask_apscheduler import APScheduler
 from flask_limiter import Limiter
 from flask_mail import Mail, Message
+from managers.maintenance import sync_users_script
+from managers.credit_manager import use_credits, check_to_unsuspend
 
 from Routes.AuthenticationHandler import *
 from Routes.Servers import *
@@ -46,7 +48,7 @@ if ENABLE_BOT and not DEBUG_FRONTEND_MODE:
     ]
 
 # Initialize Flask app and extensions
-app = Flask(__name__, "/static")
+app = Flask(__name__)
 app.config.update(
     MAX_CONTENT_LENGTH=10 * 1024 * 1024,  # 10 MB
     SESSION_PERMANENT=True,
@@ -62,6 +64,10 @@ app.config.update(
     RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY,
     RECAPTCHA_PRIVATE_KEY=RECAPTCHA_SECRET_KEY
 )
+
+# Configure URL scheme for background thread URL generation
+if not app.config.get('PREFERRED_URL_SCHEME'):
+    app.config['PREFERRED_URL_SCHEME'] = 'https'
 
 # Initialize extensions
 cache.init_app(app)
