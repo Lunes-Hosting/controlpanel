@@ -515,7 +515,7 @@ def logout():
     Session:
         Clears: All session data
     """
-    temp_suspended = session['suspended']
+    temp_suspended = session.get('suspended', False)
     session.clear()
     session['suspended'] = temp_suspended
     return redirect(url_for("index"))
@@ -574,7 +574,9 @@ def delete_account():
             
         email, ptero_id = user_info
         webhook_log(f"User `{email}` deleted their account")
+        temp_suspended = session.get('suspended', False)
         session.clear()
+        session['suspended'] = temp_suspended
         
         # Get and delete all user's servers
         servers = improve_list_servers(ptero_id)
