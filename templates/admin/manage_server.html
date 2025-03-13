@@ -5,25 +5,89 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
+        /* Dark theme styles */
+        html, body {
+            background-color: #121212 !important;
+            color: #e0e0e0;
+            font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
+            height: 100%;
         }
-        
+
+        * {
+            box-sizing: border-box;
+        }
+
         .container {
             max-width: 1200px;
-            margin: 20px auto;
-            padding: 0 20px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #121212;
         }
-        
+
+        /* Ensure no white spaces */
+        body > div {
+            background-color: #121212;
+        }
+
+        .page-header {
+            background-color: #1e1e1e;
+            color: white;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 4px;
+        }
+
+        .page-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+        }
+
         .card {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 4px;
             padding: 20px;
             margin-bottom: 20px;
+        }
+
+        .alert {
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            background-color: #2a2a2a;
+            border: 1px solid #333;
+            color: #e0e0e0;
+        }
+
+        .alert-info {
+            background-color: #1e3a5f;
+            border-color: #2a5885;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #e0e0e0;
+            text-decoration: none;
+            margin-bottom: 20px;
+            padding: 8px 12px;
+            background-color: #2a2a2a;
+            border-radius: 4px;
+            border: 1px solid #333;
+            transition: background-color 0.2s;
+        }
+
+        .back-link:hover {
+            background-color: #333;
         }
         
         .server-header {
@@ -32,12 +96,13 @@
             justify-content: space-between;
             margin-bottom: 30px;
             padding-bottom: 20px;
-            border-bottom: 1px solid #dee2e6;
+            border-bottom: 1px solid #333;
         }
         
         .server-title {
             margin: 0;
-            color: #495057;
+            color: #e0e0e0;
+            font-size: 1.5rem;
         }
         
         .server-status {
@@ -55,13 +120,13 @@
         }
         
         .status-running {
-            background-color: #d4edda;
-            color: #155724;
+            background-color: #1e3a1e;
+            color: #4CAF50;
         }
         
         .status-stopped {
-            background-color: #f8d7da;
-            color: #721c24;
+            background-color: #3a1e1e;
+            color: #EF5350;
         }
         
         .server-details {
@@ -72,20 +137,21 @@
         }
         
         .detail-card {
-            background: #f8f9fa;
+            background: #2a2a2a;
             padding: 15px;
             border-radius: 8px;
+            border: 1px solid #333;
         }
         
         .detail-title {
             font-size: 14px;
-            color: #6c757d;
+            color: #aaa;
             margin-bottom: 5px;
         }
         
         .detail-value {
             font-size: 18px;
-            color: #212529;
+            color: #e0e0e0;
             font-weight: 500;
         }
         
@@ -96,24 +162,25 @@
         }
         
         .btn {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             padding: 8px 16px;
             border-radius: 4px;
-            font-size: 14px;
-            font-weight: 500;
-            text-decoration: none;
-            cursor: pointer;
             border: none;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
             transition: background-color 0.2s;
         }
         
         .btn-primary {
-            background-color: #007bff;
+            background-color: #4CAF50;
             color: white;
         }
         
         .btn-primary:hover {
-            background-color: #0056b3;
+            background-color: #3d8b40;
         }
         
         .btn-danger {
@@ -124,28 +191,74 @@
         .btn-danger:hover {
             background-color: #c82333;
         }
+
+        .btn-secondary {
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #333;
+        }
+
+        .btn-secondary:hover {
+            background-color: #333;
+        }
         
-        .back-link {
-            display: inline-block;
-            color: #6c757d;
-            text-decoration: none;
+        .form-group {
             margin-bottom: 20px;
         }
         
-        .back-link:hover {
-            color: #495057;
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #e0e0e0;
         }
         
-        .alert {
-            padding: 12px 20px;
-            margin-bottom: 20px;
+        .form-control {
+            width: 100%;
+            padding: 10px;
             border-radius: 4px;
+            border: 1px solid #333;
+            background-color: #2a2a2a;
+            color: #e0e0e0;
         }
         
-        .alert-info {
-            background-color: #cce5ff;
-            border: 1px solid #b8daff;
-            color: #004085;
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+        }
+        
+        .modal-content {
+            background-color: #1e1e1e;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #333;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            color: #e0e0e0;
+        }
+        
+        .modal-content h3 {
+            margin-top: 0;
+            color: #e0e0e0;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: #e0e0e0;
         }
     </style>
 </head>
@@ -156,6 +269,11 @@
         <a href="javascript:history.back()" class="back-link">
             <i class="fas fa-arrow-left"></i> Back
         </a>
+        
+        <div class="page-header">
+            <h1><i class="fas fa-server"></i> Manage Server</h1>
+            <span>ID: {{ server.attributes.id }}</span>
+        </div>
         
         <div class="card">
             {% with messages = get_flashed_messages() %}
@@ -173,7 +291,7 @@
                 <div class="server-status">
                     <span class="status-badge {% if server.attributes.status == 'running' %}status-running{% else %}status-stopped{% endif %}">
                         <i class="fas fa-{% if server.attributes.status == 'running' %}play{% else %}stop{% endif %}"></i>
-                        {{ server.attributes.status|capitalize }}
+                        {{ server.attributes.status|capitalize if server.attributes.status else 'Unknown' }}
                     </span>
                 </div>
             </div>
@@ -230,7 +348,7 @@
                     <i class="fas fa-external-link-alt"></i> Open in Panel
                 </a>
                 {% if nodes %}
-                <button class="btn btn-info" onclick="openTransferModal()">
+                <button class="btn btn-secondary" onclick="openTransferModal()">
                     <i class="fas fa-exchange-alt"></i> Transfer Server
                 </button>
                 {% endif %}
@@ -238,12 +356,13 @@
         </div>
 
         <!-- Transfer Modal -->
-        <div id="transferModal" class="modal" style="display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
-            <div class="modal-content" style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px;">
+        <div id="transferModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeTransferModal()">&times;</span>
                 <h3>Transfer Server</h3>
-                <div style="margin-bottom: 15px;">
-                    <label for="nodeSelect">Target Node:</label>
-                    <select id="nodeSelect" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: 1px solid #ddd;">
+                <div class="form-group">
+                    <label for="nodeSelect" class="form-label">Target Node:</label>
+                    <select id="nodeSelect" class="form-control">
                         {% for node in nodes %}
                             {% if node.node_id != server.attributes.node %}
                             <option value="{{ node.node_id }}">{{ node.name }}</option>
@@ -251,9 +370,13 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-                    <button onclick="closeTransferModal()" class="btn" style="background-color: #6c757d; color: white;">Cancel</button>
-                    <button onclick="transferServer()" class="btn btn-primary">Transfer</button>
+                <div class="server-actions">
+                    <button onclick="transferServer()" class="btn btn-primary">
+                        <i class="fas fa-exchange-alt"></i> Transfer
+                    </button>
+                    <button onclick="closeTransferModal()" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
                 </div>
             </div>
         </div>
