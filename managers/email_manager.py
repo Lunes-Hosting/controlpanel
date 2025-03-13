@@ -14,7 +14,6 @@ Functions in this module interact with Flask-Mail to send emails to users.
 import threading
 import secrets
 import string
-import random
 from flask_mail import Mail, Message
 from flask import url_for
 
@@ -52,7 +51,7 @@ def generate_verification_token():
         str: Verification token
     """
     # Generate a secure random token
-    token = ''.join(random.choices(string.ascii_letters + string.digits, k=64))
+    token = ''.join(secrets.SystemRandom().choices(string.ascii_letters + string.digits, k=64))
     return token
 
 def send_verification_email(email, verification_token, inner_app):
@@ -91,7 +90,7 @@ def generate_reset_token():
         str: Reset token
     """
     # Generate a secure random token
-    token = ''.join(random.choices(string.ascii_letters + string.digits, k=64))
+    token = ''.join(secrets.SystemRandom().choices(string.ascii_letters + string.digits, k=64))
     return token
 
 def send_reset_email(email: str, reset_token: str, inner_app):

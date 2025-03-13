@@ -16,13 +16,13 @@ to manage game servers across the system.
 import requests
 import json
 import threading
-import random
 from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY, AUTODEPLOY_NEST_ID, PTERODACTYL_CLIENT_KEY
 from pterocache import PteroCache
 from managers.database_manager import DatabaseManager
 from .logging import webhook_log
 import time
 from security import safe_requests
+import secrets
 
 # Initialize cache
 cache = PteroCache()
@@ -270,7 +270,7 @@ def get_node_allocation(node_id: int):
         allocations = response.json()['data']
         free_allocations = [allocation['attributes']['id'] for allocation in allocations if not allocation['attributes']['assigned']]
         if free_allocations:
-            return random.choice(free_allocations)
+            return secrets.choice(free_allocations)
     return None
 
 def transfer_server(server_id: int, target_node_id: int) -> int:

@@ -53,6 +53,7 @@ import sys
 import requests
 from threadedreturn import ThreadWithReturnValue
 from security import safe_requests
+import secrets
 
 sys.path.append("..")
 from managers.authentication import login_required, admin_required
@@ -64,7 +65,6 @@ from managers.utils import HEADERS
 from products import products
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY
-import random
 
 servers = Blueprint('servers', __name__)
 
@@ -445,7 +445,7 @@ def create_server_submit():
                         headers=HEADERS, timeout=60).json()
     
     allocs = resp['data']
-    random.shuffle(allocs)
+    secrets.SystemRandom().shuffle(allocs)
     alloac_id = None
     for allocation in allocs:
         if not allocation['attributes']['assigned']:
