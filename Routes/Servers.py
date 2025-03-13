@@ -50,13 +50,21 @@ Handles allocation of:
 import asyncio
 from flask import Blueprint, request, render_template, session, flash, redirect, url_for, jsonify
 import sys
+import requests
 from threadedreturn import ThreadWithReturnValue
+from security import safe_requests
+import secrets
+
 sys.path.append("..")
-from scripts import *
+from managers.authentication import login_required, admin_required
+from managers.user_manager import get_ptero_id, get_id, get_name, check_if_user_suspended, get_user_verification_status_and_suspension_status
+from managers.server_manager import get_nodes, get_eggs, get_server_information, improve_list_servers, get_node_allocation, transfer_server
+from managers.credit_manager import get_credits, convert_to_product, use_credits, remove_credits
+from managers.logging import webhook_log
+from managers.utils import HEADERS
 from products import products
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY
-import random
 
 servers = Blueprint('servers', __name__)
 
@@ -160,7 +168,7 @@ def verify_server_ownership(server_id, user_email):
     Related Functions:
         - get_ptero_id(): Gets user's panel ID
     """
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60).json()
     ptero_id = get_ptero_id(user_email)
     return resp['attributes']['user'] == ptero_id[0] if ptero_id else False
 
@@ -186,58 +194,12 @@ def verify_server_ownership_by_ptero_id(server_id, ptero_id):
     Related Functions:
         - get_ptero_id(): Gets user's panel ID
     """
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60).json()
     try:
         return resp['attributes']['user'] == ptero_id if ptero_id else False
     except:
         return False
 
-@servers.route('/')
-@login_required
-def servers_index():
-    """
-    List all servers owned by authenticated user.
-    
-    Templates:
-        - servers/index.html: Server list view
-        
-    API Calls:
-        - Pterodactyl: List user's servers
-        - Pterodactyl: Get resource usage
-        
-    Process:
-        1. Verify authentication
-        2. Get user's panel ID
-        3. Fetch server list
-        4. Calculate resource usage
-        
-    Returns:
-        template: servers/index.html with:
-            - servers: User's server list
-            - resources: Usage statistics
-            - limits: Resource allocations
-            
-    Related Functions:
-        - get_user_servers(): Lists servers
-        - calculate_usage(): Sums resources
-    """
-        
-    ptero_id = get_user_ptero_id(session)
-    # Check if user is suspended
-    
-    verified, suspended = get_user_verification_status_and_suspension_status(session["email"])
-    #print(suspended)
-    #print(verified)
-
-    #verified = get_user_verification_status(session['email']) #uses db to get verification
-    #suspended = check_if_user_suspended(str(ptero_id[0]))  #uses db to get suspended
-    #print(suspended)
-    #print(verified)
-    servers_list = ()
-    if verified:
-        servers_list = improve_list_servers(ptero_id[0])
-        
-    return render_template('servers.html', servers=servers_list, verified=verified, suspended=suspended)
 
 @servers.route('/<server_id>')
 @login_required
@@ -279,7 +241,14 @@ def server(server_id):
         return "You can't view this server - you don't own it!"
         
     
-    servers_list = improve_list_servers(ptero_id) #improved
+    response = improve_list_servers(ptero_id) #improved
+    print(response)
+    
+    # Extract servers from the response
+    servers_list = []
+    if response and 'attributes' in response and 'relationships' in response['attributes']:
+        if 'servers' in response['attributes']['relationships']:
+            servers_list = response['attributes']['relationships']['servers']['data']
     
     # Filter available products
     products_local = [p for p in products if p['enabled']]
@@ -339,7 +308,14 @@ def create_server():
     if not verified:
         return redirect(url_for('user.index'))
 
-    servers_list = improve_list_servers(ptero_id[0])
+    response = improve_list_servers(ptero_id[0]) #improved
+    print(response)
+    
+    # Extract servers from the response
+    servers_list = []
+    if response and 'attributes' in response and 'relationships' in response['attributes']:
+        if 'servers' in response['attributes']['relationships']:
+            servers_list = response['attributes']['relationships']['servers']['data']
         
     nodes = get_nodes()
     project_id = request.args.get('project_id')
@@ -397,7 +373,7 @@ def delete_server(server_id):
         - delete_from_panel(): Removes server
         - update_resources(): Updates limits
     """
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60).json()
     
     # Get user's pterodactyl ID
     ptero_id = DatabaseManager.execute_query(
@@ -407,7 +383,7 @@ def delete_server(server_id):
     try:
         if resp['attributes']['user'] == ptero_id[0]:
             webhook_log(f"Server with id: {server_id} was deleted by user", 0)
-            requests.delete(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS)
+            requests.delete(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60)
             return redirect(url_for('user.index'))
         else:
             webhook_log(f"Server with id {server_id} attempted deleted from user {session["email"]}", 1)
@@ -428,7 +404,7 @@ def create_server_submit():
         'response': recaptcha_response
     }
 
-    response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data)
+    response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data, timeout=60)
     result = response.json()
     if not result['success']:
         flash("Failed captcha please try again")
@@ -465,11 +441,11 @@ def create_server_submit():
         }
     
 
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=10000",
-                        headers=HEADERS).json()
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=100000",
+                        headers=HEADERS, timeout=60).json()
     
     allocs = resp['data']
-    random.shuffle(allocs)
+    secrets.SystemRandom().shuffle(allocs)
     alloac_id = None
     for allocation in allocs:
         if not allocation['attributes']['assigned']:
@@ -481,7 +457,15 @@ def create_server_submit():
         return redirect(url_for('servers.create_server'))
             
     ptero_id = get_ptero_id(session['email'])[0]
-    servers_list = improve_list_servers(ptero_id)
+    response = improve_list_servers(ptero_id) #improved
+    print(response)
+    
+    # Extract servers from the response
+    servers_list = []
+    if response and 'attributes' in response and 'relationships' in response['attributes']:
+        if 'servers' in response['attributes']['relationships']:
+            servers_list = response['attributes']['relationships']['servers']['data']
+        
     products_local = list(products)
     for server_inc in servers_list:
         if server_inc['attributes']['user'] == ptero_id:
@@ -521,7 +505,7 @@ def create_server_submit():
         "environment": environment  # Use the environment variables we determined earlier
     }
 
-    res: dict = requests.post(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, json=body).json()
+    res: dict = requests.post(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, json=body, timeout=60).json()
 
     error = res.get('errors', None)
     if error is not None:
@@ -574,15 +558,24 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
     """
     Update server configuration.
     """
+    resp_thread = ThreadWithReturnValue(target=requests.get, args=(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", ), kwargs={"headers": HEADERS})
+    resp_thread.start()
     webhook_log(f"Server update with id: {server_id} was attempted")
     
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
     if check_if_user_suspended(str(get_ptero_id(session['email'])[0])):
         return ("Your Account has been suspended for breaking our TOS, if you believe this is a mistake you can submit "
                 "apeal at panel@lunes.host")
 
     ptero_id = get_ptero_id(session['email'])[0]
-    servers_list = improve_list_servers(ptero_id)
+    response = improve_list_servers(ptero_id) #improved
+    print(response)
+    
+    # Extract servers from the response
+    servers_list = []
+    if response and 'attributes' in response and 'relationships' in response['attributes']:
+        if 'servers' in response['attributes']['relationships']:
+            servers_list = response['attributes']['relationships']['servers']['data']
+        
     products_local = list(products)
     for server_inc in servers_list:
         if server_inc['attributes']['user'] == ptero_id:
@@ -602,18 +595,18 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
                 res = remove_credits(session['email'], credits_used)
                 if res == "SUSPEND":
                     flash("You are out of credits")
-                    return redirect(url_for('servers.servers_index'))
+                    return redirect(url_for('index'))
 
     if not found_product:
         return "You already have free server"
 
+    resp = resp_thread.join().json()
     body = main_product['limits']
     body["feature_limits"] = main_product['product_limits']
     body['allocation'] = resp['attributes']['allocation']
-    
-    resp2 = requests.patch(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}/build", headers=HEADERS,
-                           json=body)
-    return redirect(url_for('servers.servers_index'))
+    _resp2 = requests.patch(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}/build", headers=HEADERS,
+                           json=body, timeout=60)
+    return redirect(url_for('index'))
 
 @servers.route('/transfer/<server_id>')
 @login_required

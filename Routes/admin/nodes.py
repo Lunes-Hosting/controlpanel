@@ -29,12 +29,9 @@ All routes are protected by admin_required verification
 """
 
 from flask import render_template, request, session, redirect, url_for, flash
-import scripts
-from scripts import HEADERS, webhook_log, admin_required
+from managers.authentication import admin_required
 from Routes.admin import admin
-from managers.database_manager import DatabaseManager
-from config import PTERODACTYL_URL
-import requests
+from managers.server_manager import get_nodes, get_all_servers, transfer_server, get_node_allocation
 import sys
 import threading
 import time
@@ -72,7 +69,7 @@ def nodes():
         - get_nodes(): Fetches panel nodes
         - calculate_node_usage(): Gets utilization
     """
-    nodes = scripts.get_nodes(all=True)
+    nodes = get_nodes(all=True)
     return render_template('admin/nodes.html', nodes=nodes)
 
 
@@ -113,14 +110,14 @@ def node(node_id):
         - get_node_info(): Gets node details
         - get_node_servers(): Lists servers on node
     """
-    nodes = scripts.get_nodes(all=True)
+    nodes = get_nodes(all=True)
     node = next((node for node in nodes if node['node_id'] == node_id), None)
     if not node:
         flash('Node not found')
         return redirect(url_for('admin.nodes'))
     
     # Get all servers and filter by node
-    all_servers = scripts.get_all_servers()
+    all_servers = get_all_servers()
     print(f"Total servers: {len(all_servers)}")
     node_servers = [server for server in all_servers if server['attributes']['node'] == node_id]
     print(f"Servers on node {node_id}: {len(node_servers)}")
@@ -144,15 +141,41 @@ def do_transfers(node_servers, num_servers, target_node):
         4. Log results
     """
     transferred = 0
-    for server in node_servers[:num_servers]:
-        status = scripts.transfer_server(server['attributes']['id'], target_node)
+    attempted = 0
+    skipped = 0
+    
+    print(f"Starting transfer of up to {num_servers} servers to node {target_node}")
+    
+    for server in node_servers:
+        if attempted >= num_servers:
+            break
+            
+        server_id = server['attributes']['id']
+        attempted += 1
+        
+        # Check if allocation is available before attempting transfer
+        allocation = get_node_allocation(target_node)
+        if allocation is None:
+            print(f"Skipping server {server_id} - No free allocations on node {target_node}")
+            skipped += 1
+            continue
+            
+        # Attempt the transfer
+        status = transfer_server(server_id, target_node)
+        
         if status in [202, 204]:  # Accept both success status codes
             transferred += 1
-            print(f"Successfully transferred server {server['attributes']['id']} ({transferred}/{num_servers})", 0)
+            print(f"Successfully initiated transfer of server {server_id} ({transferred}/{num_servers})")
             if transferred < num_servers:
                 time.sleep(10)  # 10 second delay between transfers
+        elif status == 422:
+            # Skip this server but continue with others
+            skipped += 1
+            print(f"Skipped server {server_id} - Cannot be transferred (status: {status})")
         else:
-            print(f"Failed to transfer server {server['attributes']['id']} - Status: {status}", 2)
+            print(f"Failed to transfer server {server_id} - Status: {status}")
+    
+    print(f"Transfer batch complete: {transferred} transferred, {skipped} skipped, {attempted} attempted")
 
 
 @admin.route('/node/<int:node_id>/transfer', methods=['POST'])
@@ -184,23 +207,30 @@ def transfer_servers(node_id):
         - do_transfers(): Background transfer task
         - transfer_server(): Transfers individual server
     """
-    num_servers = int(request.form.get('num_servers', 0))
-    target_node = int(request.form.get('target_node', 0))
+    try:
+        num_servers = int(request.form.get('num_servers', 0))
+        target_node = int(request.form.get('target_node', 0))
+        
+        print(f"Transfer request: {num_servers} servers from node {node_id} to node {target_node}")
+        
+        if num_servers <= 0 or target_node == 0:
+            flash('Invalid transfer request')
+            return redirect(url_for('admin.node', node_id=node_id))
+        
+        # Get servers on this node
+        all_servers = get_all_servers()
+        node_servers = [server for server in all_servers if server['attributes']['node'] == node_id]
+        
+        # Start transfers in background thread
+        transfer_thread = threading.Thread(
+            target=do_transfers,
+            args=(node_servers, num_servers, target_node)
+        )
+        transfer_thread.start()
+        
+        flash(f'Started transfer of {num_servers} servers to node {target_node}', 'success')
+    except Exception as e:
+        print(f"Error starting transfer: {str(e)}")
+        flash(f'Error starting transfer: {str(e)}', 'error')
     
-    if num_servers <= 0 or target_node == 0:
-        flash('Invalid transfer request')
-        return redirect(url_for('admin.node', node_id=node_id))
-    
-    # Get servers on this node
-    all_servers = scripts.get_all_servers()
-    node_servers = [server for server in all_servers if server['attributes']['node'] == node_id]
-    
-    # Start transfers in background thread
-    transfer_thread = threading.Thread(
-        target=do_transfers,
-        args=(node_servers, num_servers, target_node)
-    )
-    transfer_thread.start()
-    
-    flash(f'Started transfer of {num_servers} servers. Transfers will happen every 10 seconds.')
     return redirect(url_for('admin.node', node_id=node_id))

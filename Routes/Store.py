@@ -48,11 +48,16 @@ Payment Flow:
 5. Transaction logged
 """
 
-from flask import Blueprint, request, render_template, session, flash
+from flask import Blueprint, request, render_template, session, flash, redirect, url_for
 import sys
 from threadedreturn import ThreadWithReturnValue
 sys.path.append("..")
-from scripts import *
+from managers.authentication import login_required
+from managers.user_manager import get_ptero_id, get_id
+from managers.credit_manager import add_credits
+from managers.email_manager import send_email
+from managers.logging import webhook_log
+from config import STRIPE_SECRET_KEY, YOUR_SUCCESS_URL, YOUR_CANCEL_URL
 from products import products
 import stripe
 

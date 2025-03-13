@@ -50,9 +50,19 @@ import requests
 import bcrypt
 
 from flask_limiter import Limiter
+from security import safe_requests
+
 sys.path.append("..")
 from pterocache import *
-from scripts import *
+from managers.authentication import login_required, login, register
+from managers.email_manager import send_email, generate_verification_token, send_verification_email, generate_reset_token, send_reset_email
+from managers.user_manager import account_get_information, get_id, get_name, instantly_delete_user, get_ptero_id
+from managers.server_manager import improve_list_servers, delete_server as manager_delete_server
+from managers.credit_manager import convert_to_product
+from managers.utils import HEADERS
+from managers.logging import webhook_log
+from products import products
+
 from cacheext import cache
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY
@@ -162,7 +172,14 @@ def index():
 
     session['suspended'] = suspended
 
-    servers = improve_list_servers(ptero_id)
+    response = improve_list_servers(ptero_id)
+    
+    # Extract servers from the response
+    servers = []
+    if response and 'attributes' in response and 'relationships' in response['attributes']:
+        if 'servers' in response['attributes']['relationships']:
+            servers = response['attributes']['relationships']['servers']['data']
+    
     server_count = len(servers)
     monthly_usage = sum(convert_to_product(server)['price'] for server in servers)
 
@@ -293,12 +310,10 @@ def reset_password_confirm(token):
         email = request.form.get('email')
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
-        tokendone = request.form.get("token")
 
-        reset_token = cache.get(email)
-        print(cache.get(email), token)
+        token_cache = cache.get(email)
 
-        if reset_token and reset_token == tokendone:
+        if token_cache == token:
             if password == confirm_password:
                 salt = bcrypt.gensalt(rounds=14)
                 password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
@@ -315,7 +330,7 @@ def reset_password_confirm(token):
                 )
 
                 # Update password in panel
-                info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60).json()['attributes']
+                info = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60).json()['attributes']
                 body = {
                     "username": info['username'],
                     "email": info['email'],
@@ -326,7 +341,7 @@ def reset_password_confirm(token):
 
                 requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body, timeout=60)
 
-                cache.delete(email)
+                cache.delete(token)
 
                 flash('Your password has been successfully reset.')
                 return redirect(url_for('user.login_user'))
@@ -408,7 +423,7 @@ def register_user():
             return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
         verification_token = generate_verification_token()
-        cache.set(email, verification_token, timeout=TOKEN_EXPIRATION_TIME)
+        cache.set(verification_token, email, timeout=TOKEN_EXPIRATION_TIME)
 
         email_thread = threading.Thread(
             target=send_verification_email, 
@@ -462,6 +477,7 @@ def resend_confirmation_email():
 
 
 @user.route('/verify_email/<token>', methods=['GET'])
+@login_required
 def verify_email(token):
     """
     Verify user's email address.
@@ -484,7 +500,7 @@ def verify_email(token):
     """
 
     email = cache.get(token)
-
+    print(email, cache)
     if email:
         DatabaseManager.execute_query(
             "UPDATE users SET email_verified_at = %s WHERE email = %s",
@@ -499,8 +515,8 @@ def verify_email(token):
 
     return redirect(url_for('index'))
 
-
 @user.route('/logout', methods=['GET'])
+@login_required
 def logout():
     """
     Log out current user.
@@ -522,6 +538,7 @@ def logout():
 
 
 @user.route('/account/delete', methods=['GET', 'POST'])
+@login_required
 def delete_account():
     """
     Handle user account self-deletion.
@@ -555,8 +572,6 @@ def delete_account():
         - delete_user(): Removes from Pterodactyl
         - webhook_log(): Logs account deletion
     """
-    if 'email' not in session:
-        return redirect(url_for("user.login_user"))
         
     if request.method == "GET":
         return render_template("delete_account.html")
@@ -579,10 +594,21 @@ def delete_account():
         session['suspended'] = temp_suspended
         
         # Get and delete all user's servers
+        print(email, ptero_id)
         servers = improve_list_servers(ptero_id)
-        for server in servers:
-            server_id = server['attributes']['id']
-            delete_server(server_id)
+        print(servers)
+        
+        # Process servers using the known structure
+        try:
+            servers_data = servers['attributes']['relationships']['servers']['data']
+            for server in servers_data:
+                server_id = server['attributes']['id']
+                print(f"Deleting server {server_id}")
+                result = manager_delete_server(server_id)
+                print(f"Server {server_id} deletion result: {result}")
+        except Exception as e:
+            print(f"Error processing servers: {str(e)}")
+            flash(f"Error deleting servers: {str(e)}")
         
         send_email(email, "Account Deletion", "Your account has been flagged for deletion. If you do not log back in within 30 days, your account will be permanently deleted.", current_app._get_current_object())
         webhook_log(f"USER Account of {email} is Flagged for Deletion!", 0)

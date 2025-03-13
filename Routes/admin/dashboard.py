@@ -21,7 +21,7 @@ All routes are protected by admin_required verification
 
 from flask import render_template, session
 from Routes.admin import admin
-from scripts import admin_required
+from managers.authentication import admin_required
 
 @admin.route("/")
 @admin_required

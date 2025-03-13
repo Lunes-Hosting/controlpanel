@@ -31,14 +31,16 @@ All routes are protected by admin_required verification
 """
 
 from flask import render_template, request, session, redirect, url_for, flash
-import scripts
-from scripts import HEADERS, webhook_log, admin_required
+from managers.authentication import admin_required
+from managers.utils import HEADERS
+from managers.logging import webhook_log
 from Routes.admin import admin
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL
 import requests
 import sys
 import json
+from security import safe_requests
 
 sys.path.append("..")
 
@@ -179,7 +181,7 @@ def admin_user_servers(user_id):
     if 'pterodactyl_id' in session:
         admin_ptero_id = session['pterodactyl_id']
     else:
-        admin_ptero_id = scripts.get_ptero_id(session['email'])
+        admin_ptero_id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = admin_ptero_id
     
     # Get user from database using database ID
@@ -198,10 +200,10 @@ def admin_user_servers(user_id):
         return "User does not have a Pterodactyl ID", 404
     
     # Get user's servers from panel using Pterodactyl ID
-    response = requests.get(
+    response = safe_requests.get(
         f"{PTERODACTYL_URL}/api/application/users/{ptero_id}?include=servers",
-        headers=HEADERS
-    )
+        headers=HEADERS, 
+    timeout=60)
     
     if response.status_code != 200:
         return "Failed to get user servers", 500
@@ -272,7 +274,7 @@ def admin_delete_user(user_id):
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
     else:
-        ptero_id = scripts.get_ptero_id(session['email'])
+        ptero_id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = ptero_id
     
     # Get user from database
@@ -286,10 +288,10 @@ def admin_delete_user(user_id):
         return redirect(url_for('admin.users'))
     
     # Get user's servers from panel
-    response = requests.get(
+    response = safe_requests.get(
         f"{PTERODACTYL_URL}/api/application/users/{user_id}?include=servers",
-        headers=HEADERS
-    )
+        headers=HEADERS, 
+    timeout=60)
     
     if response.status_code != 200:
         flash("Failed to get user servers", "error")
@@ -298,26 +300,32 @@ def admin_delete_user(user_id):
     user_info = response.json()
     
     # Delete each server
-    for server in user_info['attributes']['relationships']['servers']['data']:
-        server_id = server['attributes']['id']
-        
-        # Delete server from panel
-        delete_response = requests.delete(
-            f"{PTERODACTYL_URL}/api/application/servers/{server_id}",
-            headers=HEADERS,
-            params={'force': 'true'}
-        )
-        
-        if delete_response.status_code != 204:
-            flash(f"Failed to delete server {server_id}", "error")
-            return redirect(url_for('admin.users'))
-        
+    try:
+        servers_data = user_info['attributes']['relationships']['servers']['data']
+        for server in servers_data:
+            server_id = server['id']
+            
+            # Delete server from panel
+            delete_response = requests.delete(
+                f"{PTERODACTYL_URL}/api/application/servers/{server_id}",
+                headers=HEADERS,
+                params={'force': 'true'}, 
+            timeout=60)
+            
+            if delete_response.status_code != 204:
+                flash(f"Failed to delete server {server_id}", "error")
+                return redirect(url_for('admin.users'))
+    except Exception as e:
+        print(f"Error deleting servers: {str(e)}")
+        webhook_log(f"Error deleting servers for user {user_id}: {str(e)}", 2)
+        flash(f"Error deleting servers: {str(e)}", "error")
+        return redirect(url_for('admin.users'))
     
     # Delete user from panel
     delete_user_response = requests.delete(
         f"{PTERODACTYL_URL}/api/application/users/{user_id}",
-        headers=HEADERS
-    )
+        headers=HEADERS, 
+    timeout=60)
     
     if delete_user_response.status_code != 204:
         flash("Failed to delete user from panel", "error")
@@ -351,7 +359,7 @@ def admin_delete_user(user_id):
     return redirect(url_for('admin.users'))
 
 
-@admin.route('/user/<user_id>/toggle-suspension', methods=['POST'])
+@admin.route('/user/toggle_suspension/<user_id>', methods=['POST'])
 @admin_required
 def admin_toggle_suspension(user_id):
     """
@@ -386,7 +394,7 @@ def admin_toggle_suspension(user_id):
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
     else:
-        ptero_id = scripts.get_ptero_id(session['email'])
+        ptero_id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = ptero_id
     
     # Get user from database
@@ -410,10 +418,10 @@ def admin_toggle_suspension(user_id):
     )
     
     # Update user in panel
-    response = requests.get(
+    response = safe_requests.get(
         f"{PTERODACTYL_URL}/api/application/users/{user_id}",
-        headers=HEADERS
-    )
+        headers=HEADERS, 
+    timeout=60)
     
     if response.status_code != 200:
         flash("Failed to get user from panel", "error")
@@ -442,8 +450,8 @@ def admin_toggle_suspension(user_id):
     update_response = requests.patch(
         f"{PTERODACTYL_URL}/api/application/users/{user_id}",
         headers=HEADERS,
-        json=update_data
-    )
+        json=update_data, 
+    timeout=60)
     
     if update_response.status_code != 200:
         flash("Failed to update user in panel", "error")
