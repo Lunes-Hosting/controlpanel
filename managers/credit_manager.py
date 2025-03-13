@@ -13,12 +13,12 @@ to manage the credit system across the platform.
 """
 
 import threading
-import requests
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 from products import products
 from .logging import webhook_log
 from .server_manager import suspend_server, unsuspend_server
+from security import safe_requests
 
 # API authentication headers
 HEADERS = {
@@ -154,7 +154,7 @@ def use_credits():
         None
     """
     # Get all servers from Pterodactyl
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
     if response.status_code != 200:
         threading.Thread(target=webhook_log, args=(f"Failed to get servers for credit processing: {response.status_code}", 2)).start()
         return
@@ -175,7 +175,7 @@ def use_credits():
     # Process each user's servers
     for user_id, servers in user_servers.items():
         # Get user email from Pterodactyl
-        user_response = requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60)
+        user_response = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60)
         if user_response.status_code != 200:
             threading.Thread(target=webhook_log, args=(f"Failed to get user {user_id} for credit processing: {user_response.status_code}", 2)).start()
             continue
@@ -220,7 +220,7 @@ def check_to_unsuspend():
         None
     """
     # Get all servers from Pterodactyl
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
     if response.status_code != 200:
         threading.Thread(target=webhook_log, args=(f"Failed to get servers for unsuspension check: {response.status_code}", 2)).start()
         return
@@ -239,7 +239,7 @@ def check_to_unsuspend():
         user_id = server['attributes']['user']
         
         # Get user email from Pterodactyl
-        user_response = requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60)
+        user_response = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60)
         if user_response.status_code != 200:
             threading.Thread(target=webhook_log, args=(f"Failed to get user {user_id} for unsuspension check: {user_response.status_code}", 2)).start()
             continue

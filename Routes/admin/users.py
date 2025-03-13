@@ -40,6 +40,7 @@ from config import PTERODACTYL_URL
 import requests
 import sys
 import json
+from security import safe_requests
 
 sys.path.append("..")
 
@@ -199,7 +200,7 @@ def admin_user_servers(user_id):
         return "User does not have a Pterodactyl ID", 404
     
     # Get user's servers from panel using Pterodactyl ID
-    response = requests.get(
+    response = safe_requests.get(
         f"{PTERODACTYL_URL}/api/application/users/{ptero_id}?include=servers",
         headers=HEADERS, 
     timeout=60)
@@ -287,7 +288,7 @@ def admin_delete_user(user_id):
         return redirect(url_for('admin.users'))
     
     # Get user's servers from panel
-    response = requests.get(
+    response = safe_requests.get(
         f"{PTERODACTYL_URL}/api/application/users/{user_id}?include=servers",
         headers=HEADERS, 
     timeout=60)
@@ -417,7 +418,7 @@ def admin_toggle_suspension(user_id):
     )
     
     # Update user in panel
-    response = requests.get(
+    response = safe_requests.get(
         f"{PTERODACTYL_URL}/api/application/users/{user_id}",
         headers=HEADERS, 
     timeout=60)

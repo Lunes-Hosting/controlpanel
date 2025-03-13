@@ -39,8 +39,9 @@ from Routes.admin import admin
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL
 from products import products
-import requests
 import sys
+from security import safe_requests
+
 sys.path.append("..")
 
 @admin.route("/servers")
@@ -72,7 +73,7 @@ def admin_servers():
     per_page = 20
     
     # Get all servers from Pterodactyl
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60).json()
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60).json()
     all_servers = resp['data']
     
     # Filter servers based on search term (server ID or name)
@@ -217,7 +218,7 @@ def admin_manage_server(server_id):
         session['pterodactyl_id'] = ptero_id
 
     # Get server details from panel
-    response = requests.get(
+    response = safe_requests.get(
         f"{PTERODACTYL_URL}/api/application/servers/{server_id}",
         headers=HEADERS, 
     timeout=60)

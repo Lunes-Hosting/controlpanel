@@ -52,6 +52,8 @@ from flask import Blueprint, request, render_template, session, flash, redirect,
 import sys
 import requests
 from threadedreturn import ThreadWithReturnValue
+from security import safe_requests
+
 sys.path.append("..")
 from managers.authentication import login_required, admin_required
 from managers.user_manager import get_ptero_id, get_id, get_name, check_if_user_suspended, get_user_verification_status_and_suspension_status
@@ -166,7 +168,7 @@ def verify_server_ownership(server_id, user_email):
     Related Functions:
         - get_ptero_id(): Gets user's panel ID
     """
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60).json()
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60).json()
     ptero_id = get_ptero_id(user_email)
     return resp['attributes']['user'] == ptero_id[0] if ptero_id else False
 
@@ -192,7 +194,7 @@ def verify_server_ownership_by_ptero_id(server_id, ptero_id):
     Related Functions:
         - get_ptero_id(): Gets user's panel ID
     """
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60).json()
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60).json()
     try:
         return resp['attributes']['user'] == ptero_id if ptero_id else False
     except:
@@ -371,7 +373,7 @@ def delete_server(server_id):
         - delete_from_panel(): Removes server
         - update_resources(): Updates limits
     """
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60).json()
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60).json()
     
     # Get user's pterodactyl ID
     ptero_id = DatabaseManager.execute_query(
@@ -439,7 +441,7 @@ def create_server_submit():
         }
     
 
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=100000",
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=100000",
                         headers=HEADERS, timeout=60).json()
     
     allocs = resp['data']
