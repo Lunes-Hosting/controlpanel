@@ -155,15 +155,6 @@ def index():
     """Main route - redirects to login if not authenticated."""
 
 if not DEBUG_FRONTEND_MODE:
-    def webhook_log(message: str):
-        """
-        Send a message to the webhook log.
-        """
-        resp = requests.post(WEBHOOK_URL,
-                            json={"username": "Web Logs", "content": message})
-        print(resp.text) 
-
-
     # Load bot extensions
     extensions = ['discord_bot.cogs.statistics', 'discord_bot.cogs.users']
 

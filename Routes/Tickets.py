@@ -178,8 +178,6 @@ def ticket(ticket_id):
         (ticket_id,)
     )
 
-    print(user_info)
-    print(info)
     
     # Check permissions
     if info[3] == "closed" and not is_admin(session['email']):

@@ -242,7 +242,6 @@ def server(server_id):
         
     
     response = improve_list_servers(ptero_id) #improved
-    print(response)
     
     # Extract servers from the response
     servers_list = []
@@ -309,7 +308,6 @@ def create_server():
         return redirect(url_for('user.index'))
 
     response = improve_list_servers(ptero_id[0]) #improved
-    print(response)
     
     # Extract servers from the response
     servers_list = []
@@ -458,7 +456,6 @@ def create_server_submit():
             
     ptero_id = get_ptero_id(session['email'])[0]
     response = improve_list_servers(ptero_id) #improved
-    print(response)
     
     # Extract servers from the response
     servers_list = []
@@ -548,7 +545,6 @@ def admin_update_server_submit(server_id):
     """
 
     res = update_server_submit(server_id, True)
-    print(res)
     return redirect(url_for('admin.admin_server', server_id=server_id))
 
 
@@ -568,7 +564,6 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
 
     ptero_id = get_ptero_id(session['email'])[0]
     response = improve_list_servers(ptero_id) #improved
-    print(response)
     
     # Extract servers from the response
     servers_list = []
