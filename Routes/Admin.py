@@ -50,9 +50,9 @@ from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 import sys
 import json
-import requests
 import threading
 import datetime
+from security import safe_requests
 
 sys.path.append("..")
 
@@ -224,7 +224,7 @@ def admin_servers():
         - get_server_list(): Fetches panel servers
         - get_server_owner(): Maps server to user
     """
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60).json()
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60).json()
     return render_template("admin/servers.html", servers=resp['data'])
 
 
@@ -265,7 +265,7 @@ def admin_user(user_id):
         - get_user_info(): Gets panel user data
         - get_user_resources(): Gets usage stats
     """
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60).json()
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60).json()
     return resp
 
 

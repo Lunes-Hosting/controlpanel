@@ -52,6 +52,9 @@ from flask import Blueprint, request, render_template, session, flash, redirect,
 import sys
 import requests
 from threadedreturn import ThreadWithReturnValue
+from security import safe_requests
+import secrets
+
 sys.path.append("..")
 from managers.authentication import login_required, admin_required
 from managers.user_manager import get_ptero_id, get_id, get_name, check_if_user_suspended, get_user_verification_status_and_suspension_status
@@ -62,7 +65,6 @@ from managers.utils import HEADERS
 from products import products
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY
-import random
 
 servers = Blueprint('servers', __name__)
 
@@ -166,7 +168,7 @@ def verify_server_ownership(server_id, user_email):
     Related Functions:
         - get_ptero_id(): Gets user's panel ID
     """
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60).json()
     ptero_id = get_ptero_id(user_email)
     return resp['attributes']['user'] == ptero_id[0] if ptero_id else False
 
@@ -192,7 +194,7 @@ def verify_server_ownership_by_ptero_id(server_id, ptero_id):
     Related Functions:
         - get_ptero_id(): Gets user's panel ID
     """
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60).json()
     try:
         return resp['attributes']['user'] == ptero_id if ptero_id else False
     except:
@@ -371,7 +373,7 @@ def delete_server(server_id):
         - delete_from_panel(): Removes server
         - update_resources(): Updates limits
     """
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS).json()
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60).json()
     
     # Get user's pterodactyl ID
     ptero_id = DatabaseManager.execute_query(
@@ -381,7 +383,7 @@ def delete_server(server_id):
     try:
         if resp['attributes']['user'] == ptero_id[0]:
             webhook_log(f"Server with id: {server_id} was deleted by user", 0)
-            requests.delete(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS)
+            requests.delete(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60)
             return redirect(url_for('user.index'))
         else:
             webhook_log(f"Server with id {server_id} attempted deleted from user {session["email"]}", 1)
@@ -402,7 +404,7 @@ def create_server_submit():
         'response': recaptcha_response
     }
 
-    response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data)
+    response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data, timeout=60)
     result = response.json()
     if not result['success']:
         flash("Failed captcha please try again")
@@ -439,11 +441,11 @@ def create_server_submit():
         }
     
 
-    resp = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=100000",
-                        headers=HEADERS).json()
+    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=100000",
+                        headers=HEADERS, timeout=60).json()
     
     allocs = resp['data']
-    random.shuffle(allocs)
+    secrets.SystemRandom().shuffle(allocs)
     alloac_id = None
     for allocation in allocs:
         if not allocation['attributes']['assigned']:
@@ -503,7 +505,7 @@ def create_server_submit():
         "environment": environment  # Use the environment variables we determined earlier
     }
 
-    res: dict = requests.post(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, json=body).json()
+    res: dict = requests.post(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, json=body, timeout=60).json()
 
     error = res.get('errors', None)
     if error is not None:
@@ -603,7 +605,7 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
     body["feature_limits"] = main_product['product_limits']
     body['allocation'] = resp['attributes']['allocation']
     _resp2 = requests.patch(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}/build", headers=HEADERS,
-                           json=body)
+                           json=body, timeout=60)
     return redirect(url_for('index'))
 
 @servers.route('/transfer/<server_id>')

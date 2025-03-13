@@ -20,6 +20,7 @@ from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 from managers.database_manager import DatabaseManager
 from .logging import webhook_log
 from .user_manager import get_ptero_id, update_last_seen
+from security import safe_requests
 
 # API authentication headers
 HEADERS = {
@@ -101,7 +102,7 @@ def sync_users_script():
                         # Update Pterodactyl password if possible
                         ptero_id = get_ptero_id(email)
                         if ptero_id:
-                            info = requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60).json()['attributes']
+                            info = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60).json()['attributes']
                             body = {
                                 "username": info['username'],
                                 "email": info['email'],

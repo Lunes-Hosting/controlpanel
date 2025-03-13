@@ -16,12 +16,13 @@ to manage game servers across the system.
 import requests
 import json
 import threading
-import random
 from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY, AUTODEPLOY_NEST_ID, PTERODACTYL_CLIENT_KEY
 from pterocache import PteroCache
 from managers.database_manager import DatabaseManager
 from .logging import webhook_log
 import time
+from security import safe_requests
+import secrets
 
 # Initialize cache
 cache = PteroCache()
@@ -77,8 +78,8 @@ def get_autodeploy_info(project_id: int) -> list[dict]:
     res = DatabaseManager.execute_query("SELECT * FROM projects WHERE id = %s", (project_id,))
     if res is not None:
         egg_id = res[8]
-        egg_info = requests.get(f"{PTERODACTYL_URL}api/application/nests/{AUTODEPLOY_NEST_ID}/eggs/{egg_id}?include=variables", 
-            headers=HEADERS).json()
+        egg_info = safe_requests.get(f"{PTERODACTYL_URL}api/application/nests/{AUTODEPLOY_NEST_ID}/eggs/{egg_id}?include=variables", 
+            headers=HEADERS, timeout=60).json()
         attributes = egg_info['attributes']
         
         # Convert res[7] to a dictionary
@@ -166,12 +167,12 @@ def improve_list_servers(pterodactyl_id: int = None):
     }
     """
     if pterodactyl_id is None:
-        response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
         if response.status_code == 200:
             return response.json()
         return None
     else:
-        response = requests.get(f"{PTERODACTYL_URL}api/application/users/{pterodactyl_id}?include=servers", headers=HEADERS, timeout=60)
+        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{pterodactyl_id}?include=servers", headers=HEADERS, timeout=60)
         if response.status_code == 200:
             return response.json()
         return None
@@ -213,7 +214,7 @@ def get_server_information(server_id: int):
         }
     }
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS, timeout=60)
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS, timeout=60)
     if response.status_code == 200:
         return response.json()
     return None
@@ -264,12 +265,12 @@ def get_node_allocation(node_id: int):
         int: Random available allocation ID
         None: If no free allocation found
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=100000", headers=HEADERS, timeout=60)
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/nodes/{node_id}/allocations?per_page=100000", headers=HEADERS, timeout=60)
     if response.status_code == 200:
         allocations = response.json()['data']
         free_allocations = [allocation['attributes']['id'] for allocation in allocations if not allocation['attributes']['assigned']]
         if free_allocations:
-            return random.choice(free_allocations)
+            return secrets.choice(free_allocations)
     return None
 
 def transfer_server(server_id: int, target_node_id: int) -> int:
@@ -372,7 +373,7 @@ def get_all_servers():
         list: List of server objects
         None: If the request fails
     """
-    response = requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
     if response.status_code == 200:
         return response.json()['data']
     return None
