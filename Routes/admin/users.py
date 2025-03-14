@@ -401,10 +401,11 @@ def admin_toggle_suspension(user_id):
     
     if not db_user:
         flash("User not found in database", "error")
+        print("User not found in database", "error")
         return redirect(url_for('admin.users'))
     
     # Get current suspension status
-    current_status = db_user[9]  # Assuming suspended is at index 9
+    current_status = db_user[15]  # Assuming suspended is at index 9
     new_status = 0 if current_status == 1 else 1
     
     # Update user in database
