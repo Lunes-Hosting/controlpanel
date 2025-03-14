@@ -17,7 +17,8 @@ from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 from products import products
 from .logging import webhook_log
-from .server_manager import suspend_server, unsuspend_server
+from .server_manager import suspend_server, unsuspend_server, delete_server
+from .user_manager import check_if_user_suspended
 from security import safe_requests
 
 # API authentication headers
@@ -225,6 +226,7 @@ def check_to_unsuspend():
     2. Groups suspended servers by user
     3. For each user, checks which servers they can afford
     4. Unsuspends only the affordable servers
+    5. Deletes servers of suspended users
     
     Returns:
         None
@@ -241,16 +243,38 @@ def check_to_unsuspend():
     
     # Group suspended servers by user
     user_suspended_servers = {}
+    
+    # Cache user suspension status
+    suspension_status = {}
+    
+    # Process all servers first to check for suspended users
     for server in servers['data']:
-        # Only process suspended servers
+        user_id = server['attributes']['user']
+        server_id = server['attributes']['id']
+        server_name = server['attributes']['name']
+        
+        # Check user suspension only once per user
+        if user_id not in suspension_status:
+            suspension_status[user_id] = check_if_user_suspended(user_id)
+        
+        # Delete servers of suspended users
+        if suspension_status[user_id]:
+            threading.Thread(target=delete_server, args=(server_id,)).start()
+            threading.Thread(target=webhook_log, args=(f"Server {server_name} (ID: {server_id}) deleted due to user suspension", 1)).start()
+            continue
+        
+        # Only process suspended servers for unsuspension check
         if server['attributes']['suspended']:
-            user_id = server['attributes']['user']
             if user_id not in user_suspended_servers:
                 user_suspended_servers[user_id] = []
             user_suspended_servers[user_id].append(server)
     
     # Process each user's suspended servers
     for user_id, suspended_servers in user_suspended_servers.items():
+        # Skip suspended users (their servers have already been deleted)
+        if suspension_status.get(user_id, False):
+            continue
+            
         # Get user email from Pterodactyl
         user_response = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60)
         if user_response.status_code != 200:
