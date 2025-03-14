@@ -392,15 +392,10 @@ def admin_toggle_suspension(user_id):
         - toggle_user_status(): Updates status
         - log_status_change(): Records action
     """
-    if 'pterodactyl_id' in session:
-        ptero_id = session['pterodactyl_id']
-    else:
-        ptero_id = get_ptero_id(session['email'])
-        session['pterodactyl_id'] = ptero_id
     
     # Get user from database
     db_user = DatabaseManager.execute_query(
-        "SELECT * FROM users WHERE pterodactyl_id = %s", 
+        "SELECT * FROM users WHERE id = %s", 
         (user_id,)
     )
     
@@ -418,47 +413,6 @@ def admin_toggle_suspension(user_id):
         (new_status, db_user[5])
     )
     
-    # Update user in panel
-    response = safe_requests.get(
-        f"{PTERODACTYL_URL}/api/application/users/{user_id}",
-        headers=HEADERS, 
-    timeout=60)
-    
-    if response.status_code != 200:
-        flash("Failed to get user from panel", "error")
-        return redirect(url_for('admin.users'))
-    
-    user_info = response.json()
-    
-    # Prepare update data
-    update_data = {
-        "email": user_info['attributes']['email'],
-        "username": user_info['attributes']['username'],
-        "first_name": user_info['attributes']['first_name'],
-        "last_name": user_info['attributes']['last_name'],
-        "language": user_info['attributes']['language'],
-        "root_admin": user_info['attributes']['root_admin'],
-        "password": "",
-    }
-    
-    # Set suspension status
-    if new_status == 1:
-        update_data["suspended"] = True
-    else:
-        update_data["suspended"] = False
-    
-    # Update user in panel
-    update_response = requests.patch(
-        f"{PTERODACTYL_URL}/api/application/users/{user_id}",
-        headers=HEADERS,
-        json=update_data, 
-    timeout=60)
-    
-    if update_response.status_code != 200:
-        flash("Failed to update user in panel", "error")
-        return redirect(url_for('admin.users'))
-    
-    # Log the action
     action = "suspended" if new_status == 1 else "unsuspended"
     webhook_log(
         f"Admin {session['email']} {action} user {db_user[3]} (ID: {db_user[5]})",
