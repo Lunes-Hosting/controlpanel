@@ -411,7 +411,7 @@ def admin_toggle_suspension(user_id):
     # Update user in database
     DatabaseManager.execute_query(
         "UPDATE users SET suspended = %s WHERE id = %s", 
-        (new_status, db_user[5])
+        (new_status, user_id)
     )
     
     action = "suspended" if new_status == 1 else "unsuspended"
