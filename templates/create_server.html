@@ -132,6 +132,7 @@
                 >
                     Next
                 </button>
+                <div class="bg-red-500 text-white px-4 py-2 rounded-md mt-4 hidden" id="error-message"></div>
             </div>
 
             <!-- Step 2: Choose Plan -->
@@ -174,6 +175,7 @@
                 <button 
                     type="submit" 
                     class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors duration-200"
+                    disabled
                 >
                     Submit
                 </button>
@@ -190,15 +192,61 @@
         const nextStepBtn = document.getElementById('next-step');
         const planCards = document.querySelectorAll('.plan-card');
         const selectedPlanInput = document.getElementById('selected-plan');
+        const nameInput = document.getElementById('name');
+        const nodeSelect = document.getElementById('node_id');
+        const eggSelect = document.getElementById('egg_id');
+        const errorMessageDiv = document.getElementById('error-message');
+
+        // Validation function for step 1
+        function validateStep1() {
+            let isValid = true;
+            let errorMessage = "";
+            
+            // Clear previous validation styles
+            nameInput.classList.remove('border-red-500');
+            nodeSelect.classList.remove('border-red-500');
+            eggSelect.classList.remove('border-red-500');
+            
+            // Validate name
+            if (!nameInput.value.trim()) {
+                nameInput.classList.add('border-red-500');
+                errorMessage = "Please enter a server name";
+                isValid = false;
+            }
+            
+            // Validate node selection
+            if (nodeSelect.value === "" || nodeSelect.selectedIndex === 0) {
+                nodeSelect.classList.add('border-red-500');
+                errorMessage = errorMessage ? errorMessage + "<br>Please select a node" : "Please select a node";
+                isValid = false;
+            }
+            
+            // Validate software selection (if not disabled)
+            if (!eggSelect.disabled && (eggSelect.value === "" || eggSelect.selectedIndex === 0)) {
+                eggSelect.classList.add('border-red-500');
+                errorMessage = errorMessage ? errorMessage + "<br>Please select a software" : "Please select a software";
+                isValid = false;
+            }
+            
+            // Display error message if validation fails
+            if (!isValid) {
+                errorMessageDiv.innerHTML = errorMessage;
+                errorMessageDiv.classList.remove('hidden');
+            } else {
+                errorMessageDiv.classList.add('hidden');
+            }
+            
+            return isValid;
+        }
 
         // Next Step Button
         nextStepBtn.addEventListener('click', () => {
-            step1.classList.add('hidden');
-            //step2Btn.classlist.add('underline');
-            step2.classList.remove('hidden');
-            step1text.classList.remove('underline');
-            step2text.classList.add('underline');
-            //step2Btn.classList.add('step-info');
+            if (validateStep1()) {
+                step1.classList.add('hidden');
+                step2.classList.remove('hidden');
+                step1text.classList.remove('underline');
+                step2text.classList.add('underline');
+            }
         });
 
         // Plan Card Selection
@@ -209,7 +257,20 @@
                 card.classList.add('highlighted');
                 card.classList.add('scale-105')
                 selectedPlanInput.value = card.getAttribute('data-plan-id');
+                
+                // Enable submit button only when a plan is selected
+                document.querySelector('button[type="submit"]').disabled = false;
             });
+        });
+        
+        // Add validation before form submission
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (!selectedPlanInput.value) {
+                e.preventDefault();
+                alert('Please select a plan before submitting');
+                return false;
+            }
+            return true;
         });
     </script>
 </body>

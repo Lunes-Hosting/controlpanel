@@ -408,6 +408,24 @@ def create_server_submit():
         flash("Failed captcha please try again")
         return redirect(url_for('servers.create_server'))
 
+    # Validate required form fields
+    if not request.form.get('name'):
+        flash("Server name is required")
+        return redirect(url_for('servers.create_server'))
+        
+    if not request.form.get('node_id'):
+        flash("Please select a node")
+        return redirect(url_for('servers.create_server'))
+        
+    if not request.form.get('egg_id'):
+        flash("Please select a software")
+        return redirect(url_for('servers.create_server'))
+        
+    # Validate plan selection
+    if not request.form.get('plan'):
+        flash("Please select a plan")
+        return redirect(url_for('servers.create_server'))
+
     node_id = request.form['node_id']
     egg_id = request.form['egg_id']
     
@@ -471,15 +489,20 @@ def create_server_submit():
                 break
 
     found_product = False
-    for product in products_local:
-        if product['id'] == int(request.form.get('plan')):
-            found_product = True
-            main_product = product
-            credits_used = main_product['price'] / 30 / 24
-            res = remove_credits(session['email'], credits_used)
-            if res == "SUSPEND":
-                flash("You are out of credits")
-                return redirect(url_for('user.index'))
+    try:
+        plan_id = int(request.form.get('plan'))
+        for product in products_local:
+            if product['id'] == plan_id:
+                found_product = True
+                main_product = product
+                credits_used = main_product['price'] / 30 / 24
+                res = remove_credits(session['email'], credits_used)
+                if res == "SUSPEND":
+                    flash("You are out of credits")
+                    return redirect(url_for('user.index'))
+    except (ValueError, TypeError):
+        flash("Please select a valid plan")
+        return redirect(url_for('servers.create_server'))
 
     if not found_product:
         return "You already have free server"
