@@ -21,7 +21,7 @@ from flask_apscheduler import APScheduler
 from flask_limiter import Limiter
 from flask_mail import Mail, Message
 from managers.maintenance import sync_users_script
-from managers.credit_manager import use_credits, check_to_unsuspend
+from managers.credit_manager import use_credits, check_to_unsuspend, delete_suspended_users_servers
 
 from Routes.AuthenticationHandler import *
 from Routes.Servers import *
@@ -135,6 +135,14 @@ if not DEBUG_FRONTEND_MODE:
             print("Checking suspensions...")
             check_to_unsuspend()
             print("Suspension check complete")
+            
+    @scheduler.task('interval', id='delete_suspended_servers', seconds=120, misfire_grace_time=900)
+    def delete_suspended_servers():
+        """Delete servers of suspended users."""
+        with app.app_context():
+            print("Checking for servers of suspended users...")
+            delete_suspended_users_servers()
+            print("Suspended users servers check complete")
 
 
     @scheduler.task('interval', id='sync_users', seconds=60, misfire_grace_time=900)

@@ -226,7 +226,6 @@ def check_to_unsuspend():
     2. Groups suspended servers by user
     3. For each user, checks which servers they can afford
     4. Unsuspends only the affordable servers
-    5. Deletes servers of suspended users
     
     Returns:
         None
@@ -244,24 +243,9 @@ def check_to_unsuspend():
     # Group suspended servers by user
     user_suspended_servers = {}
     
-    # Cache user suspension status
-    suspension_status = {}
-    
-    # Process all servers first to check for suspended users
+    # Process all servers to find suspended ones
     for server in servers['data']:
         user_id = server['attributes']['user']
-        server_id = server['attributes']['id']
-        server_name = server['attributes']['name']
-        
-        # Check user suspension only once per user
-        if user_id not in suspension_status:
-            suspension_status[user_id] = check_if_user_suspended(user_id)
-        
-        # Delete servers of suspended users
-        if suspension_status[user_id]:
-            threading.Thread(target=delete_server, args=(server_id,)).start()
-            threading.Thread(target=webhook_log, args=(f"Server {server_name} (ID: {server_id}) deleted due to user suspension", 1)).start()
-            continue
         
         # Only process suspended servers for unsuspension check
         if server['attributes']['suspended']:
@@ -271,10 +255,6 @@ def check_to_unsuspend():
     
     # Process each user's suspended servers
     for user_id, suspended_servers in user_suspended_servers.items():
-        # Skip suspended users (their servers have already been deleted)
-        if suspension_status.get(user_id, False):
-            continue
-            
         # Get user email from Pterodactyl
         user_response = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60)
         if user_response.status_code != 200:
@@ -305,3 +285,44 @@ def check_to_unsuspend():
                 
                 # Deduct credits for this server
                 remaining_credits -= hourly_cost
+
+
+def delete_suspended_users_servers():
+    """
+    Scheduled task that deletes servers of suspended users.
+    
+    Process:
+    1. Gets all servers
+    2. Checks if each server's owner is suspended
+    3. Deletes servers of suspended users
+    
+    Returns:
+        None
+    """
+    # Get all servers from Pterodactyl
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+    if response.status_code != 200:
+        threading.Thread(target=webhook_log, args=(f"Failed to get servers for suspension check: {response.status_code}", 2)).start()
+        return
+        
+    servers = response.json()
+    if 'data' not in servers:
+        return
+    
+    # Cache user suspension status
+    suspension_status = {}
+    
+    # Process all servers to check for suspended users
+    for server in servers['data']:
+        user_id = server['attributes']['user']
+        server_id = server['attributes']['id']
+        server_name = server['attributes']['name']
+        
+        # Check user suspension only once per user
+        if user_id not in suspension_status:
+            suspension_status[user_id] = check_if_user_suspended(user_id)
+        
+        # Delete servers of suspended users
+        if suspension_status[user_id]:
+            threading.Thread(target=delete_server, args=(server_id,)).start()
+            threading.Thread(target=webhook_log, args=(f"Server {server_name} (ID: {server_id}) deleted due to user suspension", 1)).start()
