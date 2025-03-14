@@ -581,12 +581,18 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
             return "You can't update this server you dont own it!"
 
     found_product = False
+    selected_plan_id = int(request.form.get('plan'))
     for product in products_local:
-        if product['id'] == int(request.form.get('plan')):
+        if product['id'] == selected_plan_id:
             found_product = True
             main_product = product
             credits_used = main_product['price'] / 30 / 24
-            if bypass_owner_only is False:
+            
+            # Check if this is a free plan (memory = 128MB)
+            is_free_plan = main_product['limits']['memory'] == 128
+            
+            # Only check credits if not downgrading to free plan
+            if bypass_owner_only is False and not is_free_plan:
                 res = remove_credits(session['email'], credits_used)
                 if res == "SUSPEND":
                     flash("You are out of credits")

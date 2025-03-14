@@ -116,11 +116,7 @@
                 </div>
 
                 <!-- Update Plan Section -->
-                {% if credits == 0 %}
-                <div style="opacity: 40%;">
-                {% else %}
                 <div>
-                {% endif %}
                 <h2 class="text-2xl font-bold mb-4">Update Plan</h2>
                 <form action="{{ url_for('servers.update_server_submit', server_id=info['attributes']['id']) }}" method="post">
                     <div class="mb-4">
@@ -134,13 +130,13 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <{% if credits == 0 %}div{%else%}button{%endif%} type="submit" class="w-full bg-blue-500 text-center text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors duration-200">Submit</{% if credits == 0 %}div{%else%}button{%endif%}>
+                    <button type="submit" class="w-full bg-blue-500 text-center text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors duration-200">Submit</button>
                 </form>
                 </div>
                 {% if credits == 0 %}
                 <div class="mt-2 flex flex-row text-gray-300 gap-2 items-center">
                     <i class="fa-solid fa-circle-info"></i>
-                    <p>Upgrading your server can be done via purchasing credits.</p>
+                    <p>You can downgrade to a free plan or purchase credits to upgrade your server.</p>
                 </div>
                 {% endif %}
             </div>
