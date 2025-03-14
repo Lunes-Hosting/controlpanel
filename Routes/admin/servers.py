@@ -8,7 +8,6 @@ Templates Used:
 -------------
 - admin/servers.html: Server overview list
 - admin/server.html: Individual server management
-- admin/manage_server.html: Detailed server management
 
 Database Tables Used:
 ------------------
@@ -33,8 +32,9 @@ from flask import render_template, request, session, redirect, url_for, flash
 from managers.authentication import admin_required
 from managers.utils import HEADERS
 from managers.user_manager import get_ptero_id
-from managers.server_manager import get_server_information, delete_server
+from managers.server_manager import get_server_information, delete_server, suspend_server, unsuspend_server
 from managers.credit_manager import convert_to_product
+from managers.logging import webhook_log
 from Routes.admin import admin
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL
@@ -177,76 +177,59 @@ def admin_delete_server(server_id):
     return redirect(url_for('admin.admin_servers'))
 
 
-@admin.route('/manage/<server_id>')
+@admin.route('/toggle_server_suspension/<server_id>')
 @admin_required
-def admin_manage_server(server_id):
+def admin_toggle_server_suspension(server_id):
     """
-    Display admin server management page.
+    Toggle suspension status of a server.
     
     Args:
-        server_id: Server ID to manage
+        server_id: Server ID to toggle suspension for
         
     Templates:
-        - admin/manage_server.html: Server management
+        - Redirects to admin/server.html
         
     API Calls:
-        - Pterodactyl: Get server details
-        - Pterodactyl: Get resource limits
-        
-    Database Queries:
-        - Get owner information
+        - Pterodactyl: Suspend or unsuspend server
         
     Process:
         1. Verify admin status
-        2. Load server details
-        3. Get current limits
-        4. Load modification options
+        2. Get current server status
+        3. Toggle suspension state
+        4. Log action
         
     Returns:
-        template: admin/manage_server.html with:
-            - server: Server details
-            - limits: Resource limits
-            - options: Available actions
-            
-    Related Functions:
-        - get_server_details(): Gets configuration
+        redirect: To admin server page with:
+            - success: Update status
+            - message: Action result
     """
-    if 'pterodactyl_id' in session:
-        ptero_id = session['pterodactyl_id']
-    else:
-        ptero_id = get_ptero_id(session['email'])
-        session['pterodactyl_id'] = ptero_id
-
-    # Get server details from panel
-    response = safe_requests.get(
-        f"{PTERODACTYL_URL}/api/application/servers/{server_id}",
-        headers=HEADERS, 
-    timeout=60)
+    # Get server information to check current suspension status
+    server_info = get_server_information(server_id)
     
-    if response.status_code != 200:
-        flash("Server not found", "error")
+    if not server_info:
+        flash("Server not found")
         return redirect(url_for('admin.admin_servers'))
     
-    server_info = response.json()
+    # Toggle suspension status
+    is_suspended = server_info['attributes']['suspended']
     
-    # Get owner information directly from the server attributes
-    owner_id = server_info['attributes']['user']
-    owner = DatabaseManager.execute_query(
-        "SELECT * FROM users WHERE pterodactyl_id = %s", 
-        (owner_id,)
-    )
+    try:
+        if is_suspended:
+            # If currently suspended, unsuspend it
+            unsuspend_server(server_id)
+            flash("Server has been unsuspended successfully")
+        else:
+            # If currently not suspended, suspend it
+            suspend_server(server_id)
+            flash("Server has been suspended successfully")
+            
+        # Log the action
+        admin_email = session.get('email', 'Unknown')
+        action = "unsuspended" if is_suspended else "suspended"
+        webhook_log(f"Admin {admin_email} {action} server {server_info['attributes']['name']} (ID: {server_id})")
+        
+    except Exception as e:
+        flash(f"Error toggling server suspension: {str(e)}")
     
-    # Get available products
-    products_list = list(products)
-    
-    # Structure the server data to match what the template expects
-    server = {
-        'attributes': server_info['attributes']
-    }
-    
-    return render_template(
-        "admin/manage_server.html", 
-        server=server, 
-        owner=owner, 
-        products=products_list
-    )
+    # Redirect back to the server page
+    return redirect(url_for('admin.admin_server', server_id=server_id))

@@ -132,6 +132,24 @@
             background-color: #333;
         }
 
+        .btn-success {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #29b765;
+        }
+
+        .btn-warning {
+            background-color: #f1c40f;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #f39c12;
+        }
+
         .resource-card {
             background-color: #2a2a2a;
             border: 1px solid #333;
@@ -223,6 +241,15 @@
             padding-bottom: 10px;
             border-bottom: 1px solid #333;
         }
+
+        .suspension-badge {
+            background-color: #dc3545;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
     </style>
 </head>
 <body>
@@ -245,6 +272,9 @@
             <h1>
                 <i class="fas fa-server"></i>
                 {{ info['attributes']['name'] }}
+                {% if info['attributes']['suspended'] %}
+                <span class="suspension-badge">Suspended</span>
+                {% endif %}
             </h1>
             <div class="btn-group">
                 <a href="https://ctrl.lunes.host/server/{{ info['attributes']['uuid'].split('-')[0] }}" class="btn btn-primary">
@@ -253,6 +283,15 @@
                 <a href="{{ url_for('admin.admin_delete_server', server_id=info['attributes']['id']) }}" class="btn btn-danger">
                     <i class="fas fa-trash"></i> Delete
                 </a>
+                {% if info['attributes']['suspended'] %}
+                <a href="{{ url_for('admin.admin_toggle_server_suspension', server_id=info['attributes']['id']) }}" class="btn btn-success">
+                    <i class="fas fa-play"></i> Unsuspend
+                </a>
+                {% else %}
+                <a href="{{ url_for('admin.admin_toggle_server_suspension', server_id=info['attributes']['id']) }}" class="btn btn-warning">
+                    <i class="fas fa-pause"></i> Suspend
+                </a>
+                {% endif %}
             </div>
         </div>
 

@@ -35,6 +35,7 @@ from managers.authentication import admin_required
 from managers.utils import HEADERS
 from managers.logging import webhook_log
 from Routes.admin import admin
+from managers.user_manager import get_ptero_id
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL
 import requests

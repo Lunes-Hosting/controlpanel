@@ -470,60 +470,6 @@ def admin_user_servers(user_id):
     return render_template('admin/user_servers.html', servers=servers, user_info=user_info)
 
 
-@admin.route('/server/<server_id>')
-@admin_required
-def admin_manage_server(server_id):
-    """
-    Display admin server management page.
-    
-    Args:
-        server_id: Server ID to manage
-        
-    Templates:
-        - admin/manage_server.html: Server management
-        
-    API Calls:
-        - Pterodactyl: Get server details
-        - Pterodactyl: Get resource limits
-        
-    Database Queries:
-        - Get server configuration
-        - Get owner information
-        - Get server history
-        
-    Process:
-        1. Verify admin status
-        2. Load server details
-        3. Get current limits
-        4. Load modification options
-        
-    Returns:
-        template: admin/manage_server.html with:
-            - server: Server details
-            - limits: Resource limits
-            - history: Server changes
-            - options: Available actions
-            
-    Related Functions:
-        - get_server_details(): Gets configuration
-        - get_server_history(): Lists changes
-    """
-        
-    try:
-        # Get server details from Pterodactyl
-        server = get_server(server_id)
-        if not server:
-            flash("Server not found")
-            return redirect(url_for('admin.users'))
-            
-        return render_template('admin/manage_server.html', server=server)
-        
-    except Exception as e:
-        print(f"Error fetching server details: {e}")
-        flash("Error fetching server details. Check logs for details.")
-        return redirect(url_for('admin.users'))
-
-
 @admin.route('/user/delete/<user_id>', methods=['POST'])
 @admin_required
 def admin_delete_user(user_id):
