@@ -182,8 +182,11 @@ def use_credits():
             
         user_email = user_response.json()['attributes']['email']
         
-        # Calculate total credits needed for all servers
-        total_credits_needed = 0
+        # Get current user credits
+        user_credits = get_credits(user_email)
+        remaining_credits = user_credits
+        
+        # Process each server individually
         for server in servers:
             # Skip suspended servers
             if server['attributes']['suspended']:
@@ -191,19 +194,27 @@ def use_credits():
                 
             # Get product info based on server specs
             product = convert_to_product(server)
-            total_credits_needed += product['price']/30/24
-        
-        # Remove credits if needed
-        if total_credits_needed > 0:
-            result = remove_credits(user_email, total_credits_needed)
+            hourly_cost = product['price']/30/24
             
-            # If user doesn't have enough credits, suspend all servers
-            if result == "SUSPEND":
-                threading.Thread(target=webhook_log, args=(f"User {user_email} out of credits. Suspending servers.", 1)).start()
-                for server in servers:
-                    if not server['attributes']['suspended']:
-                        server_id = server['attributes']['id']
-                        threading.Thread(target=suspend_server, args=(server_id,)).start()
+            # Check if user has enough credits for this server
+            if remaining_credits >= hourly_cost:
+                # User can afford this server, deduct credits
+                remaining_credits -= hourly_cost
+            else:
+                # User can't afford this server, suspend it
+                server_id = server['attributes']['id']
+                server_name = server['attributes']['name']
+                threading.Thread(target=webhook_log, args=(f"User {user_email} can't afford server {server_name} (ID: {server_id}). Suspending.", 1)).start()
+                threading.Thread(target=suspend_server, args=(server_id,)).start()
+        
+        # Update user's credits with the remaining amount
+        if user_credits > 0:
+            # Calculate how many credits were used
+            credits_used = user_credits - remaining_credits
+            if credits_used > 0:
+                # Update database with new credit amount
+                update_query = "UPDATE users SET credits = %s WHERE email = %s"
+                DatabaseManager.execute_query(update_query, (remaining_credits, user_email))
 
 def check_to_unsuspend():
     """
@@ -211,10 +222,9 @@ def check_to_unsuspend():
     
     Process:
     1. Gets all servers
-    2. For each suspended server:
-        - Checks if owner has required credits
-        - Checks if owner qualifies for free tier
-        - Unsuspends if either condition met
+    2. Groups suspended servers by user
+    3. For each user, checks which servers they can afford
+    4. Unsuspends only the affordable servers
     
     Returns:
         None
@@ -228,16 +238,19 @@ def check_to_unsuspend():
     servers = response.json()
     if 'data' not in servers:
         return
-        
-    # Check each suspended server
+    
+    # Group suspended servers by user
+    user_suspended_servers = {}
     for server in servers['data']:
-        # Skip servers that are not suspended
-        if not server['attributes']['suspended']:
-            continue
-            
-        server_id = server['attributes']['id']
-        user_id = server['attributes']['user']
-        
+        # Only process suspended servers
+        if server['attributes']['suspended']:
+            user_id = server['attributes']['user']
+            if user_id not in user_suspended_servers:
+                user_suspended_servers[user_id] = []
+            user_suspended_servers[user_id].append(server)
+    
+    # Process each user's suspended servers
+    for user_id, suspended_servers in user_suspended_servers.items():
         # Get user email from Pterodactyl
         user_response = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60)
         if user_response.status_code != 200:
@@ -245,15 +258,26 @@ def check_to_unsuspend():
             continue
             
         user_email = user_response.json()['attributes']['email']
-        
-        # Get product info based on server specs
-        product = convert_to_product(server)
-        credits_needed = product['price']/30/24  # Require 24 hours worth of credits
-        
-        # Check if user has enough credits
         user_credits = get_credits(user_email)
         
-        if user_credits >= credits_needed:
-            # User has enough credits, unsuspend server
-            threading.Thread(target=webhook_log, args=(f"Unsuspending server {server_id} for user {user_email} (has {user_credits} credits)", 1)).start()
-            threading.Thread(target=unsuspend_server, args=(server_id,)).start()
+        # Sort servers by cost (cheapest first) to maximize number of servers that can be unsuspended
+        sorted_servers = sorted(suspended_servers, key=lambda s: convert_to_product(s)['price'])
+        
+        # Try to unsuspend as many servers as possible
+        remaining_credits = user_credits
+        for server in sorted_servers:
+            server_id = server['attributes']['id']
+            server_name = server['attributes']['name']
+            
+            # Get product info based on server specs
+            product = convert_to_product(server)
+            hourly_cost = product['price']/30/24
+            
+            # Check if user has enough credits for this server
+            if remaining_credits >= hourly_cost:
+                # User can afford this server, unsuspend it
+                threading.Thread(target=webhook_log, args=(f"Unsuspending server {server_name} (ID: {server_id}) for user {user_email} (has {remaining_credits:.2f} credits)", 1)).start()
+                threading.Thread(target=unsuspend_server, args=(server_id,)).start()
+                
+                # Deduct credits for this server
+                remaining_credits -= hourly_cost
