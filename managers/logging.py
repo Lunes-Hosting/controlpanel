@@ -14,7 +14,7 @@ import requests
 import json
 import datetime
 import threading
-from config import WEBHOOK_URL
+from config import WEBHOOK_URL, TICKET_WEBHOOK_URL
 
 # Status code mapping for log messages
 STATUS_MAP = {
@@ -26,19 +26,24 @@ STATUS_MAP = {
     4: {"color": 0x9B59B6, "title": "Debug"}       # Purple
 }
 
-def webhook_log(embed_message: str, status: int = -1, non_embed_message: str = None):
+def webhook_log(embed_message: str, status: int = -1, non_embed_message: str = None, is_ticket: bool = False):
     """
     Sends a log message to a Discord webhook with formatting.
 
     Args:
-        message: Message to send.
+        embed_message: Message to send in the embed.
         status: Status of Message (-1: Debug, 0: Info, 1: Warning, 2: Error).
+        non_embed_message: Optional message to send outside the embed.
+        is_ticket: Whether this log is related to tickets (uses TICKET_WEBHOOK_URL if True).
 
     Returns:
         None
     """
+    # Determine which webhook URL to use
+    webhook_url = TICKET_WEBHOOK_URL if is_ticket and TICKET_WEBHOOK_URL else WEBHOOK_URL
+    
     # Skip if no webhook URL configured
-    if not WEBHOOK_URL:
+    if not webhook_url:
         return
         
     # Get status color and title
@@ -64,8 +69,7 @@ def webhook_log(embed_message: str, status: int = -1, non_embed_message: str = N
     # Send webhook asynchronously
     def send_webhook():
         try:
-            pass
-            requests.post(WEBHOOK_URL, json=payload)
+            requests.post(webhook_url, json=payload)
         except Exception as e:
             print(f"Error sending webhook: {str(e)}")
     

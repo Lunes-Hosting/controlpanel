@@ -108,7 +108,7 @@ def create_ticket_submit():
         (comment_id, ticket_id, user_id, message, timestamp)
     )
     
-    webhook_log(f"Ticket created by `{session['email']}` with title `{title}` <@&1024761808428466257> https://betadash.lunes.host/tickets/{ticket_id}")
+    webhook_log(f"Ticket created by `{session['email']}` with title `{title}` <@&1024761808428466257> https://betadash.lunes.host/tickets/{ticket_id}", is_ticket=True)
     return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
 
 @tickets.route('/message/submit/<ticket_id>', methods=['POST'])
@@ -145,7 +145,7 @@ def add_message_submit(ticket_id):
             (ticket_id,)
         )
 
-        webhook_log(f"Ticket comment added by `{session['email']}` with message `{message}`  https://betadash.lunes.host/tickets/{ticket_id}", non_embed_message="<@&1024761808428466257>")
+        webhook_log(f"Ticket comment added by `{session['email']}` with message `{message}`  https://betadash.lunes.host/tickets/{ticket_id}", non_embed_message="<@&1024761808428466257>", is_ticket=True)
         
     else:
         email = DatabaseManager.execute_query(
@@ -158,7 +158,7 @@ def add_message_submit(ticket_id):
             (ticket_id,)
         )
 
-        webhook_log(f"Ticket comment added by staff member `{session['email']}` with message `{message}` https://betadash.lunes.host/tickets/{ticket_id}")
+        webhook_log(f"Ticket comment added by staff member `{session['email']}` with message `{message}` https://betadash.lunes.host/tickets/{ticket_id}", is_ticket=True)
     
     return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
 
