@@ -27,6 +27,7 @@ All routes are protected by admin_required verification
 from flask import render_template, request, session, redirect, url_for, flash
 from managers.authentication import admin_required
 from Routes.admin import admin
+from managers.user_manager import get_ptero_id
 from managers.database_manager import DatabaseManager
 from datetime import datetime, timedelta
 
