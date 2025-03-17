@@ -51,12 +51,12 @@ def add_credits(email: str, amount: int, set_client: bool = True):
     result = DatabaseManager.execute_query(query, (email,))
     
     if result:
-        current_credits = int(result[0])
+        current_credits = float(result[0])
         new_credits = current_credits + amount
         
         # Update credits
         update_query = "UPDATE users SET credits = %s WHERE email = %s"
-        DatabaseManager.execute_query(update_query, (new_credits, email))
+        DatabaseManager.execute_query(update_query, (float(new_credits), email))
         
         # Optionally set role to client
         if set_client:
@@ -90,13 +90,13 @@ def remove_credits(email: str, amount: float):
     result = DatabaseManager.execute_query(query, (email,))
     
     if result:
-        current_credits = int(result[0])
+        current_credits = float(result[0])
         if current_credits >= amount:
             new_credits = current_credits - amount
             
             # Update credits
             update_query = "UPDATE users SET credits = %s WHERE email = %s"
-            DatabaseManager.execute_query(update_query, (new_credits, email))
+            DatabaseManager.execute_query(update_query, (float(new_credits), email))
             
             return None
         else:
@@ -105,19 +105,19 @@ def remove_credits(email: str, amount: float):
 
 def get_credits(email: str):
     """
-    Returns int of amount of credits in database.
+    Returns float of amount of credits in database.
     
     Args:
         email: User's email
     
     Returns:
-        int: Credits amount
+        float: Credits amount
     """
     query = "SELECT credits FROM users WHERE email = %s"
     result = DatabaseManager.execute_query(query, (email,))
     if result:
-        return int(result[0])
-    return 0
+        return float(result[0])
+    return 0.0
 
 def convert_to_product(data):
     """
@@ -184,7 +184,7 @@ def use_credits():
         user_email = user_response.json()['attributes']['email']
         
         # Get current user credits
-        user_credits = get_credits(user_email)
+        user_credits = float(get_credits(user_email))
         remaining_credits = user_credits
         
         # Process each server individually
@@ -195,7 +195,7 @@ def use_credits():
                 
             # Get product info based on server specs
             product = convert_to_product(server)
-            hourly_cost = product['price']/30/24
+            hourly_cost = float(product['price'])/30.0/24.0
             
             # Check if user has enough credits for this server
             if remaining_credits >= hourly_cost:
@@ -215,7 +215,7 @@ def use_credits():
             if credits_used > 0:
                 # Update database with new credit amount
                 update_query = "UPDATE users SET credits = %s WHERE email = %s"
-                DatabaseManager.execute_query(update_query, (remaining_credits, user_email))
+                DatabaseManager.execute_query(update_query, (float(remaining_credits), user_email))
 
 def check_to_unsuspend():
     """
@@ -262,7 +262,7 @@ def check_to_unsuspend():
             continue
             
         user_email = user_response.json()['attributes']['email']
-        user_credits = get_credits(user_email)
+        user_credits = float(get_credits(user_email))
         
         # Sort servers by cost (cheapest first) to maximize number of servers that can be unsuspended
         sorted_servers = sorted(suspended_servers, key=lambda s: convert_to_product(s)['price'])
@@ -275,7 +275,7 @@ def check_to_unsuspend():
             
             # Get product info based on server specs
             product = convert_to_product(server)
-            hourly_cost = product['price']/30/24
+            hourly_cost = float(product['price'])/30.0/24.0
             
             # Check if user has enough credits for this server
             if remaining_credits >= hourly_cost:
