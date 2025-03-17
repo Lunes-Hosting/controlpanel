@@ -20,6 +20,7 @@ from .logging import webhook_log
 from .server_manager import suspend_server, unsuspend_server, delete_server
 from .user_manager import check_if_user_suspended
 from security import safe_requests
+import datetime
 
 # API authentication headers
 HEADERS = {
@@ -285,7 +286,18 @@ def check_to_unsuspend():
                 
                 # Deduct credits for this server
                 remaining_credits -= hourly_cost
+            else:
+                # Check if server has been suspended for too long
+                try:
+                    suspended_at = server['attributes']['updated_at']
+                    suspension_time = datetime.datetime.strptime(suspended_at, "%Y-%m-%dT%H:%M:%S+00:00")
+                    suspension_duration = datetime.datetime.now() - suspension_time
 
+                    if suspension_duration.days > 3:
+                        threading.Thread(target=webhook_log, args=(f"Deleting server {server_name} (ID: {server_id}) due to suspension for more than 3 days", 1)).start()
+                        threading.Thread(target=delete_server, args=(server_id,)).start()
+                except (ValueError, KeyError) as e:
+                    threading.Thread(target=webhook_log, args=(f"Error processing suspension duration for server {server_id}: {str(e)}", 1)).start()
 
 def delete_suspended_users_servers():
     """
