@@ -59,7 +59,7 @@ sys.path.append("..")
 from managers.authentication import login_required, admin_required
 from managers.user_manager import get_ptero_id, get_id, get_name, check_if_user_suspended, get_user_verification_status_and_suspension_status
 from managers.server_manager import get_nodes, get_eggs, get_server_information, improve_list_servers, get_node_allocation, transfer_server
-from managers.credit_manager import get_credits, convert_to_product, use_credits, remove_credits
+from managers.credit_manager import get_credits, convert_to_product, use_credits, remove_credits, add_credits
 from managers.logging import webhook_log
 from managers.utils import HEADERS
 from products import products
