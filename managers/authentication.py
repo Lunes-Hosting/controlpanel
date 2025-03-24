@@ -151,7 +151,7 @@ def register(email: str, password: str, name: str, ip: str):
     3. Creates user in Pterodactyl
     4. Creates user in local database with:
         - Hashed password
-        - Default 25 credits
+        - Default 10 credits
         - Stored IP
     
     Args:
@@ -215,7 +215,7 @@ def register(email: str, password: str, name: str, ip: str):
         # Insert user into database
         query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, ip, credits) VALUES (%s, %s, %s, %s, %s, %s, %s)")
         password_hash = passthread.join()
-        values = (name, email, password_hash, user_id, data['attributes']['id'], ip, 25)
+        values = (name, email, password_hash, user_id, data['attributes']['id'], ip, 10)
         DatabaseManager.execute_query(query, values)
         
         return data
