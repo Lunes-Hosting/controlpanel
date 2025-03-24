@@ -12,6 +12,7 @@ Modules:
 - tickets.py: Support ticket management routes
 - nodes.py: Node management routes
 - dashboard.py: Admin dashboard routes
+- activity_logs.py: Activity logs management routes
 
 Access Control:
 -------------
@@ -29,5 +30,6 @@ from Routes.admin.users import *
 from Routes.admin.servers import *
 from Routes.admin.tickets import *
 from Routes.admin.nodes import *
+from Routes.admin.activity_logs import *
 
 # All routes are registered to the admin blueprint in their respective modules

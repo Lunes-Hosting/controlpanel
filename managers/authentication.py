@@ -126,18 +126,15 @@ def login(email: str, password: str, ip: str):
                 ).start()
                 
                 # Log the cancellation
-                threading.Thread(
-                    target=webhook_log, 
-                    args=(f"User {email} logged in, cancelling pending account deletion", 0)
-                ).start()
+                webhook_log(f"User {email} logged in, cancelling pending account deletion", 0, database_log=True)
             
             # Log successful login
-            threading.Thread(target=webhook_log, args=(f"User {email} logged in from {ip}", 0)).start()
+            webhook_log(f"User {email} logged in from {ip}", 0, database_log=True)
             
             return result
     
     # Log failed login attempt
-    threading.Thread(target=webhook_log, args=(f"Failed login attempt for {email} from {ip}", 1)).start()
+    webhook_log(f"Failed login attempt for {email} from {ip}", 1, database_log=True)
     
     return None
 
@@ -179,14 +176,14 @@ def register(email: str, password: str, name: str, ip: str):
         banned_emails = set(blocked_emails)
             
         if "+" in email or any(banned in email for banned in banned_emails):
-            webhook_log(f"Failed to register email {email} with IP {ip} due to email blacklist", non_embed_message="<@491266830674034699>")
+            webhook_log(f"Failed to register email {email} with IP {ip} due to email blacklist", non_embed_message="<@491266830674034699>", database_log=True)
 
             session['suspended'] = True
             return "Failed to register due to blacklist! Contact panel@lunes.host if this is a mistake"
     except Exception as e:
         print(f"Error checking blocked emails: {str(e)}")
     
-    webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered")
+    webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered", database_log=True)
     
     # Check if IP is already registered
     results = DatabaseManager.execute_query("SELECT * FROM users WHERE ip = %s", (ip,))

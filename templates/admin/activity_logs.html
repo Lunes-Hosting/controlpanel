@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin - Activity Logs</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Dark theme styles */
+        html, body {
+            background-color: #121212 !important;
+            color: #e0e0e0;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #121212;
+        }
+
+        /* Ensure no white spaces */
+        body > div {
+            background-color: #121212;
+        }
+
+        .page-header {
+            background-color: #1e1e1e;
+            color: white;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .page-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .card {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+
+        .search-container {
+            background-color: #2a2a2a;
+            padding: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        #searchInput {
+            background-color: #3a3a3a;
+            border: 1px solid #555;
+            color: white;
+            width: 300px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table thead {
+            background-color: #2a2a2a;
+        }
+
+        table th, table td {
+            padding: 12px;
+            border-bottom: 1px solid #333;
+            color: #e0e0e0;
+        }
+
+        table tr:nth-child(even) {
+            background-color: #252525;
+        }
+
+        table tr:hover {
+            background-color: #2e2e2e;
+        }
+
+        .badge {
+            padding: 3px 6px;
+            border-radius: 3px;
+        }
+
+        .badge-info {
+            background-color: #17a2b8;
+            color: white;
+        }
+
+        .badge-warning {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        .badge-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .badge-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .badge-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .badge-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            overflow-x: auto;
+            white-space: nowrap;
+            max-width: 100%;
+            padding: 10px;
+        }
+
+        .pagination-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        .pagination a, 
+        .pagination span {
+            padding: 5px 10px;
+            margin: 0 2px;
+            border: 1px solid #444;
+            text-decoration: none;
+            color: #e0e0e0;
+            border-radius: 3px;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .pagination a:hover {
+            background-color: #2a2a2a;
+        }
+
+        .pagination .current {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+
+        .pagination-ellipsis {
+            padding: 5px;
+            color: #666;
+        }
+
+        .message-content {
+            max-width: 400px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .view-details-link {
+            display: inline-block;
+            padding: 6px 12px;
+            background-color: #3498DB;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .view-details-link:hover {
+            background-color: #2980B9;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+        }
+
+        .modal-content {
+            background-color: #2a2a2a;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #555;
+            width: 80%;
+            max-width: 800px;
+            border-radius: 5px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: white;
+            text-decoration: none;
+        }
+
+        pre {
+            background-color: #333;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            color: #e0e0e0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .detail-row {
+            margin-bottom: 10px;
+        }
+        
+        .full-message {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #1e1e1e;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body>
+    {% include 'admin/admin_taskbar.html' %}
+    
+    <div class="container">
+        <div class="page-header">
+            <h1>Activity Logs</h1>
+            <span>Total Logs: {{ total_logs }}</span>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="card">
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search log content..." value="{{ search_term }}">
+            </div>
+            
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Message</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if logs %}
+                            {% for log in logs %}
+                                <tr>
+                                    <td>{{ log.id }}</td>
+                                    <td>{{ log.create_time }}</td>
+                                    <td>
+                                        {% if log.status == 'Info' %}
+                                            <span class="badge badge-info">Info</span>
+                                        {% elif log.status == 'Warning' %}
+                                            <span class="badge badge-warning">Warning</span>
+                                        {% elif log.status == 'Error' %}
+                                            <span class="badge badge-danger">Error</span>
+                                        {% elif log.status == 'Success' %}
+                                            <span class="badge badge-success">Success</span>
+                                        {% elif log.status == 'Debug' %}
+                                            <span class="badge badge-secondary">Debug</span>
+                                        {% elif log.status == 'No Code' %}
+                                            <span class="badge badge-secondary">No Code</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">{{ log.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="message-content">{{ log.message }}</td>
+                                    <td>
+                                        <a href="{{ url_for('admin.view_log_details', log_id=log.id) }}" class="view-details-link">
+                                            View Details
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" style="text-align: center;">No logs found</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            
+            {% if total_pages > 1 %}
+                <div class="pagination">
+                    <div class="pagination-container">
+                        {% if current_page > 1 %}
+                            <a href="{{ url_for('admin.activity_logs', page=1, search=search_term) }}">&laquo; First</a>
+                            <a href="{{ url_for('admin.activity_logs', page=current_page-1, search=search_term) }}">Previous</a>
+                        {% endif %}
+                        
+                        {% set start_page = [current_page - 2, 1]|max %}
+                        {% set end_page = [start_page + 4, total_pages]|min %}
+                        {% set start_page = [end_page - 4, 1]|max %}
+                        
+                        {% if start_page > 1 %}
+                            <a href="{{ url_for('admin.activity_logs', page=1, search=search_term) }}">1</a>
+                            {% if start_page > 2 %}
+                                <span class="pagination-ellipsis">...</span>
+                            {% endif %}
+                        {% endif %}
+                        
+                        {% for p in range(start_page, end_page + 1) %}
+                            {% if p == current_page %}
+                                <span class="current">{{ p }}</span>
+                            {% else %}
+                                <a href="{{ url_for('admin.activity_logs', page=p, search=search_term) }}">{{ p }}</a>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if end_page < total_pages %}
+                            {% if end_page < total_pages - 1 %}
+                                <span class="pagination-ellipsis">...</span>
+                            {% endif %}
+                            <a href="{{ url_for('admin.activity_logs', page=total_pages, search=search_term) }}">{{ total_pages }}</a>
+                        {% endif %}
+                        
+                        {% if current_page < total_pages %}
+                            <a href="{{ url_for('admin.activity_logs', page=current_page+1, search=search_term) }}">Next</a>
+                            <a href="{{ url_for('admin.activity_logs', page=total_pages, search=search_term) }}">Last &raquo;</a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-search functionality
+            const searchInput = document.getElementById('searchInput');
+            
+            let searchTimeout;
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                
+                // Add a small delay to prevent too many requests while typing
+                searchTimeout = setTimeout(() => {
+                    const searchTerm = this.value.trim();
+                    
+                    // Redirect with search term
+                    if (searchTerm) {
+                        window.location.href = `{{ url_for('admin.activity_logs') }}?search=${encodeURIComponent(searchTerm)}`;
+                    } else {
+                        window.location.href = `{{ url_for('admin.activity_logs') }}`;
+                    }
+                }, 500); // 500ms delay
+            });
+        });
+    </script>
+</body>
+</html>

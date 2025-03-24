@@ -64,7 +64,7 @@ def add_credits(email: str, amount: int, set_client: bool = True):
             role_query = "UPDATE users SET role = 'client' WHERE email = %s"
             DatabaseManager.execute_query(role_query, (email,))
             
-        threading.Thread(target=webhook_log, args=(f"Added {amount} credits to {email}. New balance: {new_credits}", 0)).start()
+        webhook_log(f"Added {amount} credits to {email}. New balance: {new_credits}", database_log=True)
 
 def remove_credits(email: str, amount: float):
     """
@@ -158,12 +158,12 @@ def use_credits():
     # Get all servers from Pterodactyl
     response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
     if response.status_code != 200:
-        threading.Thread(target=webhook_log, args=(f"Failed to get servers for credit processing: {response.status_code}", 2)).start()
+        webhook_log(f"Failed to get servers for credit processing: {response.status_code}", database_log=True)
         return
         
     servers = response.json()
     if 'data' not in servers:
-        threading.Thread(target=webhook_log, args=("No servers found for credit processing", 1)).start()
+        webhook_log("No servers found for credit processing")
         return
         
     # Group servers by user
@@ -179,7 +179,7 @@ def use_credits():
         # Get user email from Pterodactyl
         user_response = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60)
         if user_response.status_code != 200:
-            threading.Thread(target=webhook_log, args=(f"Failed to get user {user_id} for credit processing: {user_response.status_code}", 2)).start()
+            webhook_log(f"Failed to get user {user_id} for credit processing: {user_response.status_code}", database_log=False)
             continue
             
         user_email = user_response.json()['attributes']['email']
@@ -206,7 +206,7 @@ def use_credits():
                 # User can't afford this server, suspend it
                 server_id = server['attributes']['id']
                 server_name = server['attributes']['name']
-                threading.Thread(target=webhook_log, args=(f"User {user_email} can't afford server {server_name} (ID: {server_id}). Suspending.", 1)).start()
+                webhook_log(f"User {user_email} can't afford server {server_name} (ID: {server_id}). Suspending.", database_log=True)
                 threading.Thread(target=suspend_server, args=(server_id,)).start()
         
         # Update user's credits with the remaining amount
@@ -281,7 +281,7 @@ def check_to_unsuspend():
             # Check if user has enough credits for this server
             if remaining_credits >= hourly_cost:
                 # User can afford this server, unsuspend it
-                threading.Thread(target=webhook_log, args=(f"Unsuspending server {server_name} (ID: {server_id}) for user {user_email} (has {remaining_credits:.2f} credits)", 1)).start()
+                webhook_log(f"Unsuspending server {server_name} (ID: {server_id}) for user {user_email} (has {remaining_credits:.2f} credits)", database_log=True)
                 threading.Thread(target=unsuspend_server, args=(server_id,)).start()
                 
                 # Deduct credits for this server
@@ -294,7 +294,7 @@ def check_to_unsuspend():
                     suspension_duration = datetime.datetime.now() - suspension_time
 
                     if suspension_duration.days > 3:
-                        threading.Thread(target=webhook_log, args=(f"Deleting server {server_name} (ID: {server_id}) due to suspension for more than 3 days", 1)).start()
+                        webhook_log(f"Deleting server {server_name} (ID: {server_id}) due to suspension for more than 3 days", database_log=True)
                         threading.Thread(target=delete_server, args=(server_id,)).start()
                 except (ValueError, KeyError) as e:
                     threading.Thread(target=webhook_log, args=(f"Error processing suspension duration for server {server_id}: {str(e)}", 1)).start()

@@ -209,7 +209,7 @@ def instantly_delete_user(email: str, skip_email: bool = False):
             # Finally delete the user
             DatabaseManager.execute_query("DELETE FROM users WHERE id = %s", (user_id[0],))
             
-            threading.Thread(target=webhook_log, args=(f"Successfully deleted user {email}", 1)).start()
+            webhook_log(f"Successfully deleted user {email}", 1, database_log=True)
             
             # Send email notification if not skipped
             if not skip_email:
@@ -220,10 +220,10 @@ def instantly_delete_user(email: str, skip_email: bool = False):
                 
             return 204
         else:
-            threading.Thread(target=webhook_log, args=(f"User {email} not found in database during deletion", 2)).start()
+            webhook_log(f"User {email} not found in database during deletion", 2, database_log=True)
             return 404
     else:
-        threading.Thread(target=webhook_log, args=(f"Failed to delete {email} from Pterodactyl - Status: {response.status_code}", 2)).start()
+        webhook_log(f"Failed to delete {email} from Pterodactyl - Status: {response.status_code}", 2, database_log=True)
         return response.status_code
 
 def delete_user(pterodactyl_id: int):

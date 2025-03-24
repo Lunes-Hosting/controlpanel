@@ -293,7 +293,7 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
     # Get allocation on target node
     allocation_id = get_node_allocation(target_node_id)
     if not allocation_id:
-        webhook_log(f"Failed to get allocation for node {target_node_id} when transferring server {server_id}", 2)
+        webhook_log(f"Failed to get allocation for node {target_node_id} when transferring server {server_id}", 2, database_log=True)
         return 400  # No free allocation
 
     # Build transfer request

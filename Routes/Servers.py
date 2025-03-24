@@ -380,11 +380,11 @@ def delete_server(server_id):
     )
     try:
         if resp['attributes']['user'] == ptero_id[0]:
-            webhook_log(f"Server with id: {server_id} was deleted by user", 0)
+            webhook_log(f"Server with id: {server_id} was deleted by user", 0, database_log=True)
             requests.delete(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60)
             return redirect(url_for('user.index'))
         else:
-            webhook_log(f"Server with id {server_id} attempted deleted from user {session["email"]}", 1)
+            webhook_log(f"Server with id {server_id} attempted deleted from user {session["email"]}", 1, database_log=True)
             return "You can't delete this server you dont own it!"
     except KeyError:
         webhook_log(f"Server with id {server_id} not found", 1)
@@ -531,8 +531,8 @@ def create_server_submit():
     if error is not None:
         flash("Failed to create server try a different node or open a ticket")
         add_credits(session['email'], credits_used, False)
-        webhook_log(f"Server was just created: ```{res}```", non_embed_message="<@491266830674034699>")
-    webhook_log(f"Server was just created: ```{res}```")
+        webhook_log(f"Server was just created: ```{res}```", non_embed_message="<@491266830674034699>", database_log=True)
+    webhook_log(f"Server was just created: ```{res}```", database_log=True)
     return redirect(url_for('user.index'))
 
 
@@ -579,7 +579,7 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
     """
     resp_thread = ThreadWithReturnValue(target=requests.get, args=(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", ), kwargs={"headers": HEADERS})
     resp_thread.start()
-    webhook_log(f"Server update with id: {server_id} was attempted")
+    webhook_log(f"Server update with id: {server_id} was attempted", database_log=True)
     
     if check_if_user_suspended(str(get_ptero_id(session['email'])[0])):
         return ("Your Account has been suspended for breaking our TOS, if you believe this is a mistake you can submit "

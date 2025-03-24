@@ -45,12 +45,12 @@ def sync_users_script():
             request_time = user[2]
             
             if datetime.datetime.now() - request_time > datetime.timedelta(days=30):
-                threading.Thread(target=webhook_log, args=(f"Processing pending deletion for {email} after 30 days", 1)).start()
+                webhook_log(f"Processing pending deletion for {email} after 30 days", database_log=True)
                 
                 # First verify the user still exists
                 user_exists = db.execute_query("SELECT * FROM users WHERE email = %s", (email,))
                 if not user_exists:
-                    threading.Thread(target=webhook_log, args=(f"User {email} already deleted, cleaning up pending deletion entry", 1)).start()
+                    webhook_log(f"User {email} already deleted, cleaning up pending deletion entry", database_log=True)
                     db.execute_query("DELETE FROM pending_deletions WHERE email = %s", (email,))
                     continue
                 
@@ -81,10 +81,10 @@ def sync_users_script():
                     # Clean up pending deletion entry
                     threading.Thread(target=db.execute_query, args=("DELETE FROM pending_deletions WHERE email = %s", (email,))).start()
                     
-                    threading.Thread(target=webhook_log, args=(f"Successfully processed pending deletion for {email}", 1)).start()
+                    webhook_log(f"Successfully processed pending deletion for {email}", database_log=True)
                     
                 except Exception as e:
-                    threading.Thread(target=webhook_log, args=(f"Error processing pending deletion for {email}: {str(e)}", 2)).start()
+                    webhook_log(f"Error processing pending deletion for {email}: {str(e)}", database_log=True)
     
     # Reset passwords for long-inactive users
     query = f"SELECT last_seen, email FROM users"
@@ -94,7 +94,7 @@ def sync_users_script():
             if last_seen is not None:
                 if datetime.datetime.now() - last_seen > datetime.timedelta(days=180):
                     try:
-                        threading.Thread(target=webhook_log, args=(f"Resetting password for inactive user {email}", 1)).start()
+                        webhook_log(f"Resetting password for inactive user {email}", database_log=True)
                         new_password = secrets.token_hex(32)
                         hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt(rounds=14))
                         threading.Thread(target=db.execute_query, args=("UPDATE users SET password = %s WHERE email = %s", (hashed_password, email))).start()

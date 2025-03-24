@@ -15,6 +15,7 @@ import json
 import datetime
 import threading
 from config import WEBHOOK_URL, TICKET_WEBHOOK_URL
+from .database_manager import DatabaseManager
 
 # Status code mapping for log messages
 STATUS_MAP = {
@@ -26,9 +27,9 @@ STATUS_MAP = {
     4: {"color": 0x9B59B6, "title": "Debug"}       # Purple
 }
 
-def webhook_log(embed_message: str, status: int = -1, non_embed_message: str = None, is_ticket: bool = False):
+def webhook_log(embed_message: str, status: int = -1, non_embed_message: str = None, is_ticket: bool = False, database_log: bool = False):
     """
-    Sends a log message to a Discord webhook with formatting.
+    Sends a log message to a Discord webhook with formatting and logs to activity_logs table.
 
     Args:
         embed_message: Message to send in the embed.
@@ -42,10 +43,6 @@ def webhook_log(embed_message: str, status: int = -1, non_embed_message: str = N
     # Determine which webhook URL to use
     webhook_url = TICKET_WEBHOOK_URL if is_ticket and TICKET_WEBHOOK_URL else WEBHOOK_URL
     
-    # Skip if no webhook URL configured
-    if not webhook_url:
-        return
-        
     # Get status color and title
     status_info = STATUS_MAP.get(status, STATUS_MAP[-1])
     
@@ -65,6 +62,28 @@ def webhook_log(embed_message: str, status: int = -1, non_embed_message: str = N
     # Add non-embed message if provided
     if non_embed_message:
         payload["content"] = non_embed_message
+    
+    # Log to activity_logs table
+    log_content = json.dumps({
+        "status": status_info["title"],
+        "message": embed_message,
+        "non_embed_message": non_embed_message,
+        "is_ticket": is_ticket,
+        "timestamp": datetime.datetime.now().isoformat()
+    })
+    
+    if database_log:
+        try:
+            # Insert into activity_logs table
+            query = "INSERT INTO activity_logs (create_time, content) VALUES (%s, %s)"
+            values = (datetime.datetime.now(), log_content)
+            DatabaseManager.execute_query(query, values)
+        except Exception as e:
+            print(f"Error logging to activity_logs: {str(e)}")
+    
+    # Skip webhook if no URL configured
+    if not webhook_url:
+        return
     
     # Send webhook asynchronously
     def send_webhook():

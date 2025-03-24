@@ -226,7 +226,7 @@ def admin_toggle_server_suspension(server_id):
         # Log the action
         admin_email = session.get('email', 'Unknown')
         action = "unsuspended" if is_suspended else "suspended"
-        webhook_log(f"Admin {admin_email} {action} server {server_info['attributes']['name']} (ID: {server_id})")
+        webhook_log(f"Admin {admin_email} {action} server {server_info['attributes']['name']} (ID: {server_id})", database_log=True)
         
     except Exception as e:
         flash(f"Error toggling server suspension: {str(e)}")

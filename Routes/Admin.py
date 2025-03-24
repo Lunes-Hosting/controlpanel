@@ -324,7 +324,7 @@ def admin_server(server_id):
 @admin_required
 def admin_delete_server(server_id):
 
-    webhook_log(f"ADMIN {session["email"]} deleted the pterodactyl server of id {server_id}")
+    webhook_log(f"ADMIN {session["email"]} deleted the pterodactyl server of id {server_id}", database_log=True)
     delete_server(server_id)
 
     return redirect(url_for("admin.admin_servers"))
@@ -534,7 +534,7 @@ def admin_delete_user(user_id):
         # Finally delete user from database
         DatabaseManager.execute_query("DELETE FROM users WHERE id = %s", (user_id,))
         
-        webhook_log(f"Admin `{session['email']}` deleted user `{user_email}`", 0)
+        webhook_log(f"Admin `{session['email']}` deleted user `{user_email}`", 0, database_log=True)
         flash("User and all associated data deleted successfully")
         
     except Exception as e:
@@ -592,7 +592,7 @@ def admin_toggle_suspension(user_id):
         DatabaseManager.execute_query("UPDATE users SET suspended = %s WHERE id = %s", (new_status, user_id))
         
         action = "suspended" if new_status == 1 else "unsuspended"
-        webhook_log(f"Admin `{session['email']}` {action} user `{user_email}`")
+        webhook_log(f"Admin `{session['email']}` {action} user `{user_email}`", 0, database_log=True)
         flash(f"User has been {action}.")
         
     except Exception as e:

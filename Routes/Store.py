@@ -237,7 +237,7 @@ def success():
             return redirect(url_for("user.index"))
             #return url_for('index')
         add_credits(check_session['customer_email'], credits_to_add)
-        webhook_log(f"**NEW PAYMENT ALERT**: User with email: {check_session['customer_email']} bought {credits_to_add} credits.")
+        webhook_log(f"**NEW PAYMENT ALERT**: User with email: {check_session['customer_email']} bought {credits_to_add} credits.", database_log=True)
         flash("Success")
         return redirect(url_for("user.index"))
         #return url_for('index')

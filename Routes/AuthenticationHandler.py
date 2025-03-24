@@ -588,7 +588,7 @@ def delete_account():
             return redirect(url_for('index'))
             
         email, ptero_id = user_info
-        webhook_log(f"User `{email}` deleted their account")
+        webhook_log(f"User `{email}` deleted their account", database_log=True)
         temp_suspended = session.get('suspended', False)
         session.clear()
         session['suspended'] = temp_suspended
@@ -611,7 +611,7 @@ def delete_account():
             flash(f"Error deleting servers: {str(e)}")
         
         send_email(email, "Account Deletion", "Your account has been flagged for deletion. If you do not log back in within 30 days, your account will be permanently deleted.", current_app._get_current_object())
-        webhook_log(f"USER Account of {email} is Flagged for Deletion!", 0)
+        webhook_log(f"USER Account of {email} is Flagged for Deletion!", 0, database_log=True)
         db.execute_query("INSERT INTO pending_deletions (email, deletion_requested_time) VALUES (%s, %s)", (email, datetime.datetime.now()))
             
         flash("Your account has been flagged for deletion. If you do not log back in within 30 days, your account will be permanently deleted.")
