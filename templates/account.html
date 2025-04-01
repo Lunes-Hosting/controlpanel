@@ -76,7 +76,16 @@
                         </div>
                         <div class="space-y-3">
                             <p><strong class="text-gray-400">Email:</strong> <span class="text-white">{{ email }}</span></p>
-                            <p><strong class="text-gray-400">Credits:</strong> <span class="text-white">{{ credits }}</span></p>
+                            <p>
+                                <strong class="text-gray-400">Credits:</strong> 
+                                <span class="text-white">{{ credits }}</span>
+                                <span class="tooltip-container relative inline-block ml-2">
+                                    <i class="fa-solid fa-circle-question text-blue-400 text-sm"></i>
+                                    <span class="tooltip absolute z-10 w-72 bg-gray-800 text-white text-sm p-3 rounded-md shadow-lg -left-72 top-0 border border-blue-500 hidden">
+                                        The control panel uses a credit-based system. Credits are charged hourly based on the monthly price (price / 30 / 24). This means that the price of your servers won't be charged right away when you create a server, but instead, the credits are reduced hourly—giving you the option to cancel and create servers freely anytime. When you run out of credits, your server will automatically be suspended.
+                                    </span>
+                                </span>
+                            </p>
                             <p><strong class="text-gray-400">Server Count:</strong> <span class="text-white">{{ server_count }}</span></p>
                             <p><strong class="text-gray-400">Monthly Usage:</strong> <span class="text-white">{{ monthly_usage }}</span></p>
                         </div>                        
@@ -309,6 +318,9 @@
             max-width: 500px;
             border-radius: 8px;
             color: white;
+        }
+        .tooltip-container:hover .tooltip {
+            display: block;
         }
     </style>
 
