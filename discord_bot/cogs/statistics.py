@@ -42,7 +42,7 @@ class Statistics(commands.Cog):
         
         try:
             # Calculate the bot's latency in milliseconds
-            latency = round(self.bot.latency * 1000)
+            latency = round(self.bot.latency)
             
             # Create an embed with the ping information
             embed = discord.Embed(title="Bot Latency", color=discord.Color.green())
