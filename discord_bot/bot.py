@@ -23,7 +23,7 @@ async def on_ready():
 
 @bot.command(description="Sends the bot's latency.") # this decorator makes a slash command
 async def ping(ctx): # a slash command will be created with the name "ping"
-    await ctx.respond(f"Pong! Latency is {bot.latency}")
+    await ctx.respond(f"Pong! Latency is {round(bot.latency * 1000)}ms")
 
 
 async def run_bot():
