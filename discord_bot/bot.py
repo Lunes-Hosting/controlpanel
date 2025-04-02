@@ -21,5 +21,10 @@ async def on_ready():
 
     asyncio.create_task(change_presence())
 
+@bot.command(description="Sends the bot's latency.") # this decorator makes a slash command
+async def ping(ctx): # a slash command will be created with the name "ping"
+    await ctx.respond(f"Pong! Latency is {bot.latency}")
+
+
 async def run_bot():
     await bot.start(TOKEN)
