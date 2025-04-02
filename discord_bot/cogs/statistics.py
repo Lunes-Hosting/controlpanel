@@ -36,5 +36,23 @@ class Statistics(commands.Cog):
             await ctx.respond(f"Error fetching statistics: {str(e)}", ephemeral=True)
             logger.error(f'Error with discord command "/stats": {str(e)}')
 
+    @slash_command(name="ping", description="Show bot latency in milliseconds")
+    async def ping_command(self, ctx):
+        await ctx.defer(ephemeral=False)
+        
+        try:
+            # Calculate the bot's latency in milliseconds
+            latency = round(self.bot.latency * 1000)
+            
+            # Create an embed with the ping information
+            embed = discord.Embed(title="Bot Latency", color=discord.Color.green())
+            embed.add_field(name="Ping", value=f"{latency}ms", inline=False)
+            
+            await ctx.respond(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            await ctx.respond(f"Error checking ping: {str(e)}", ephemeral=True)
+            logger.error(f'Error with discord command "/ping": {str(e)}')
+
 def setup(bot):
     bot.add_cog(Statistics(bot))
