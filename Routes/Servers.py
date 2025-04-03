@@ -453,7 +453,8 @@ def create_server_submit():
             "BUILD_NUMBER": "latest",
             "MINECRAFT_VERSION": "latest",
             "MEMORY_OVERHEAD": "1500",
-            "SERVER JAR FILE": "server.jar",
+            "SERVER_JARFILE": "server.jar",
+            "VANILLA_VERSION": "latest"
         }
     
 
