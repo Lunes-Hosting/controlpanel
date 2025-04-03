@@ -19,7 +19,8 @@ from managers.database_manager import DatabaseManager
 from .logging import webhook_log
 from .user_manager import update_ip, update_last_seen
 from functools import wraps
-from flask import session, redirect, url_for, current_app, render_template
+from flask import session, redirect, url_for, current_app, render_template, request
+from urllib.parse import quote
 from managers.email_manager import send_email
 
 
@@ -33,7 +34,8 @@ HEADERS = {
 def login_required(f):
     """
     Decorator that checks if a user is logged in.
-    Redirects to login page if not logged in.
+    Redirects to login page if not logged in and passes the original URL
+    as a query parameter for redirect after successful login.
     
     Args:
         f: Function to decorate
@@ -44,7 +46,9 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'email' not in session:
-            return redirect(url_for('user.login_user'))
+            # Pass the original URL as a query parameter, properly URL-encoded
+            next_url = request.url
+            return redirect(url_for('user.login_user', next=quote(next_url)))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -52,6 +56,7 @@ def admin_required(f):
     """
     Decorator that checks if a user is an admin.
     Redirects to login page if not logged in or returns error if not admin.
+    Passes the original URL as a query parameter for redirect after successful login.
     
     Args:
         f: Function to decorate
@@ -62,7 +67,9 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'email' not in session:
-            return redirect(url_for('user.login_user'))
+            # Pass the original URL as a query parameter, properly URL-encoded
+            next_url = request.url
+            return redirect(url_for('user.login_user', next=quote(next_url)))
         
         from .user_manager import is_admin
         if not is_admin(session['email']):

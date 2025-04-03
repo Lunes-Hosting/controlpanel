@@ -128,14 +128,22 @@ def login_user():
                 return response
             except AttributeError:
                 session['email'] = email
-                return redirect(session.pop("next", url_for("user.index")))
-                # return redirect(url_for('index'))
+                # Check for next parameter in form data, URL args, then fall back to session next
+                next_page = request.form.get('next') or request.args.get('next') or session.pop("next", url_for("user.index"))
+                # Make sure we have a valid URL to redirect to
+                if not next_page or next_page == 'None' or next_page == '':
+                    next_page = url_for("user.index")
+                return redirect(next_page)
         except Exception as e:
             print(e)
             flash("An error occurred during login. Please try again.")
     if 'email' in session:
-        return redirect(session.pop("next", url_for("user.index")))
-        # return redirect(url_for("user.index"))
+        # Check for next parameter in form data, URL args, then fall back to session next
+        next_page = request.form.get('next') or request.args.get('next') or session.pop("next", url_for("user.index"))
+        # Make sure we have a valid URL to redirect to
+        if not next_page or next_page == 'None' or next_page == '':
+            next_page = url_for("user.index")
+        return redirect(next_page)
     return render_template("login.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
 

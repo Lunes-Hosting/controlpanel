@@ -40,7 +40,8 @@
                     <span>Accounts inactive for 6+ months will have their passwords reset.</span>
                 </div>
             </div>
-            <form action="{{ url_for('user.login_user') }}" method="POST"> 
+            <form action="{{ url_for('user.login_user') }}" method="POST">
+                <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
                 <div class="mb-4">
                     <label class="block text-gray-400 text-sm font-bold mb-2" for="email">Email</label>
                     <input type="text" id="email" name="email" placeholder="myemail@gmail.com" class="w-full px-3 py-2 bg-gray-900 border-2 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
