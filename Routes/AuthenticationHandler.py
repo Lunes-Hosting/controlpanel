@@ -618,11 +618,11 @@ def delete_account():
             print(f"Error processing servers: {str(e)}")
             flash(f"Error deleting servers: {str(e)}")
         
-        send_email(email, "Account Deletion", "Your account has been flagged for deletion. If you do not log back in within 30 days, your account will be permanently deleted.", current_app._get_current_object())
+        send_email(email, "Account Deletion", "Your account has been flagged for deletion. If you do not log back in within 15 days, your account will be permanently deleted.", current_app._get_current_object())
         webhook_log(f"USER Account of {email} is Flagged for Deletion!", 0, database_log=True)
         db.execute_query("INSERT INTO pending_deletions (email, deletion_requested_time) VALUES (%s, %s)", (email, datetime.datetime.now()))
             
-        flash("Your account has been flagged for deletion. If you do not log back in within 30 days, your account will be permanently deleted.")
+        flash("Your account has been flagged for deletion. If you do not log back in within 15 days, your account will be permanently deleted.")
 
     except Exception as e:
         print(f"Error deleting account: {e}")
