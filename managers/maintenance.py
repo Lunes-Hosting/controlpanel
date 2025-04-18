@@ -152,7 +152,7 @@ def delete_inactive_free_servers():
             product = convert_to_product(server)
             
             # Check if this is a free tier server (price = 0)
-            if float(product['price']) == 0:
+            if int(product['price']) == 0:
                 # Get user's last seen time
                 last_seen_result = db.execute_query("SELECT last_seen FROM users WHERE pterodactyl_id = %s", (user_id,))
                 
