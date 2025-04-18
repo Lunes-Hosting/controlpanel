@@ -144,6 +144,14 @@ if not DEBUG_FRONTEND_MODE:
             delete_suspended_users_servers()
             print("Suspended users servers check complete")
 
+    @scheduler.task('interval', id='delete_inactive_free_servers', seconds=3600, misfire_grace_time=900)
+    def delete_inactive_free_servers_task():
+        """Delete free tier servers of users who haven't logged in for 15+ days."""
+        with app.app_context():
+            print("Checking for inactive free tier servers...")
+            from managers.maintenance import delete_inactive_free_servers
+            delete_inactive_free_servers()
+            print("Inactive free tier servers check complete")
 
     @scheduler.task('interval', id='sync_users', seconds=60, misfire_grace_time=900)
     def sync_user_data():
@@ -152,7 +160,6 @@ if not DEBUG_FRONTEND_MODE:
         sync_users_script()
         pterocache.update_all()
         print("User sync complete")
-
 
 
     scheduler.start()
