@@ -32,20 +32,20 @@ HEADERS = {
 def sync_users_script():
     """
     Handles periodic maintenance tasks:
-    1. Process pending deletions after 30 days
+    1. Process pending deletions after 15 days
     2. Reset passwords for inactive users (180+ days)
     """
     db = DatabaseManager()
     
-    # Process pending deletions after 30 days
+    # Process pending deletions after 15 days
     results = db.execute_query("SELECT * FROM pending_deletions", fetch_all=True)
     if results:
         for user in results:
             email = user[1]
             request_time = user[2]
             
-            if datetime.datetime.now() - request_time > datetime.timedelta(days=30):
-                webhook_log(f"Processing pending deletion for {email} after 30 days", database_log=True)
+            if datetime.datetime.now() - request_time > datetime.timedelta(days=15):
+                webhook_log(f"Processing pending deletion for {email} after 15 days", database_log=True)
                 
                 # First verify the user still exists
                 user_exists = db.execute_query("SELECT * FROM users WHERE email = %s", (email,))
