@@ -49,7 +49,9 @@ def login_required(f):
             # Pass the original URL as a query parameter, properly URL-encoded
             next_url = request.url
             return redirect(url_for('user.login_user', next=quote(next_url)))
+        update_last_seen(session['email'])
         return f(*args, **kwargs)
+        
     return decorated_function
 
 def admin_required(f):
