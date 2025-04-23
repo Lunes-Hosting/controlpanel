@@ -34,6 +34,7 @@ from discord_bot.bot import bot, run_bot
 import asyncio
 import importlib
 import sys
+import datetime
 from managers.logging import webhook_log
 from cacheext import cache
 from threading import Thread
@@ -53,6 +54,7 @@ app.config.update(
     MAX_CONTENT_LENGTH=10 * 1024 * 1024,  # 10 MB
     SESSION_PERMANENT=True,
     SESSION_TYPE="filesystem",
+    PERMANENT_SESSION_LIFETIME=datetime.timedelta(days=7),  # Set session timeout to 7 days
     SECRET_KEY=SECRET_KEY,
     SCHEDULER_API_ENABLED=True,
     MAIL_SERVER=MAIL_SERVER,
