@@ -38,6 +38,7 @@ import datetime
 from managers.logging import webhook_log
 from cacheext import cache
 from threading import Thread
+import datetime
 
 if ENABLE_BOT and not DEBUG_FRONTEND_MODE:
     from discord_bot.bot import bot, run_bot
@@ -146,6 +147,24 @@ if not DEBUG_FRONTEND_MODE:
             delete_suspended_users_servers()
             print("Suspended users servers check complete")
 
+    @scheduler.task('interval', id='delete_inactive_free_servers', seconds=3600, misfire_grace_time=900)
+    def delete_inactive_free_servers_task():
+        """Delete free tier servers of users who haven't logged in for 15+ days."""
+        with app.app_context():
+            print("Checking for inactive free tier servers...")
+            from managers.maintenance import delete_inactive_free_servers
+            delete_inactive_free_servers()
+            print("Inactive free tier servers check complete")
+
+    # Schedule the first run of delete_inactive_free_servers to happen 60 seconds after startup
+    @scheduler.task('date', id='initial_delete_inactive_free_servers', run_date=datetime.datetime.now() + datetime.timedelta(seconds=60))
+    def initial_delete_inactive_free_servers_task():
+        """Initial run of delete_inactive_free_servers shortly after startup."""
+        with app.app_context():
+            print("Running initial check for inactive free tier servers...")
+            from managers.maintenance import delete_inactive_free_servers
+            delete_inactive_free_servers()
+            print("Initial inactive free tier servers check complete")
 
     @scheduler.task('interval', id='sync_users', seconds=60, misfire_grace_time=900)
     def sync_user_data():
@@ -154,7 +173,6 @@ if not DEBUG_FRONTEND_MODE:
         sync_users_script()
         pterocache.update_all()
         print("User sync complete")
-
 
 
     scheduler.start()
@@ -183,6 +201,7 @@ if not DEBUG_FRONTEND_MODE:
 if __name__ == '__main__':
     # Create separate processes for Flask and the Discord bot
     webhook_log("**----------------DASHBOARD HAS STARTED UP----------------**")
+    
     if ENABLE_BOT and not DEBUG_FRONTEND_MODE:
         bot_thread = Thread(target=start_bot_loop, daemon=True)
         bot_thread.start()

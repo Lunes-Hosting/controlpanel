@@ -32,20 +32,20 @@ HEADERS = {
 def sync_users_script():
     """
     Handles periodic maintenance tasks:
-    1. Process pending deletions after 30 days
+    1. Process pending deletions after 15 days
     2. Reset passwords for inactive users (180+ days)
     """
     db = DatabaseManager()
     
-    # Process pending deletions after 30 days
+    # Process pending deletions after 15 days
     results = db.execute_query("SELECT * FROM pending_deletions", fetch_all=True)
     if results:
         for user in results:
             email = user[1]
             request_time = user[2]
             
-            if datetime.datetime.now() - request_time > datetime.timedelta(days=30):
-                webhook_log(f"Processing pending deletion for {email} after 30 days", database_log=True)
+            if datetime.datetime.now() - request_time > datetime.timedelta(days=15):
+                webhook_log(f"Processing pending deletion for {email} after 15 days", database_log=True)
                 
                 # First verify the user still exists
                 user_exists = db.execute_query("SELECT * FROM users WHERE email = %s", (email,))
@@ -114,3 +114,57 @@ def sync_users_script():
                             update_last_seen(email)
                     except Exception as e:
                         threading.Thread(target=webhook_log, args=(f"Error resetting password for {email}: {str(e)}", 2)).start()
+
+def delete_inactive_free_servers():
+    """
+    Handles deletion of free tier servers whose owners haven't logged in for 15+ days.
+    
+    Process:
+    1. Gets all servers from Pterodactyl
+    2. Identifies free tier servers based on specs
+    3. Checks last login time of server owners
+    4. Deletes servers of inactive users (15+ days)
+    5. Logs deletions
+    """
+    db = DatabaseManager()
+    
+    # Get all servers from Pterodactyl
+    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+    if response.status_code != 200:
+        webhook_log(f"Failed to get servers for inactive free tier check: {response.status_code}", database_log=True)
+        return
+        
+    servers = response.json()
+    if 'data' not in servers:
+        webhook_log("No servers found for inactive free tier check")
+        return
+    
+    # Process each server
+    for server in servers['data']:
+        try:
+            user_id = server['attributes']['user']
+            server_id = server['attributes']['id']
+            server_name = server['attributes']['name']
+
+            
+            # Get product info based on server specs
+            from managers.credit_manager import convert_to_product
+            product = convert_to_product(server)
+            
+            # Check if this is a free tier server (price = 0)
+            if int(product['price']) == 0:
+                # Get user's last seen time
+                last_seen_result = db.execute_query("SELECT last_seen FROM users WHERE pterodactyl_id = %s", (user_id,))
+                
+                if last_seen_result and last_seen_result[0]:
+                    last_seen = last_seen_result[0]
+                    
+                    # Check if user hasn't logged in for 15+ days
+                    if datetime.datetime.now() - last_seen > datetime.timedelta(days=15):
+                        # Delete the server
+                        from managers.server_manager import delete_server
+                        delete_server(server_id)
+                        
+                        webhook_log(f"Deleted free tier server {server_name} (ID: {server_id}) due to owner inactivity (15+ days)", database_log=True)
+        except Exception as e:
+            webhook_log(f"Error processing server for inactive free tier check: {str(e)}", database_log=True)
