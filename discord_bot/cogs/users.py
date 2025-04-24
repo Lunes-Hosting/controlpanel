@@ -26,7 +26,7 @@ class Users(commands.Cog):
             if not current_credits:
                 await ctx.respond(f"Error: User with email {email} not found", ephemeral=False)
                 return
-            # Update Credits
+            # Update credits
 
             DatabaseManager.execute_query(
                 "UPDATE users SET credits = credits + %s WHERE email = %s",
