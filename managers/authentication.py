@@ -22,6 +22,7 @@ from functools import wraps
 from flask import session, redirect, url_for, current_app, render_template, request
 from urllib.parse import quote
 from managers.email_manager import send_email
+from security import safe_requests
 
 
 # API authentication headers
@@ -180,7 +181,7 @@ def register(email: str, password: str, name: str, ip: str):
 
     # Check for blocked emails
     try:
-        resp_emails = requests.get("https://lunes.host/blockedemails.txt", timeout=60)
+        resp_emails = safe_requests.get("https://lunes.host/blockedemails.txt", timeout=60)
         blocked_emails = [line.strip() for line in resp_emails.text.splitlines() if line.strip()]
         banned_emails = set(blocked_emails)
             
