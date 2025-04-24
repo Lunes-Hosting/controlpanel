@@ -3,6 +3,8 @@
 import threading
 from config import *
 import requests
+from security import safe_requests
+
 class PteroCache():
     
     def __init__(self) -> None:
@@ -23,7 +25,7 @@ class PteroCache():
     def fetch_eggs(self, nest_id, results):
         """ Fetch eggs from a given nest and store the response """
         try:
-            response = requests.get(
+            response = safe_requests.get(
                 f"{PTERODACTYL_URL}api/application/nests/{nest_id}/eggs",
                 headers=self.HEADERS,
                 timeout=60,
@@ -39,7 +41,7 @@ class PteroCache():
         
         try:
             available_eggs = []
-            nests = requests.get(f"{PTERODACTYL_URL}api/application/nests", headers=self.HEADERS, timeout=60)
+            nests = safe_requests.get(f"{PTERODACTYL_URL}api/application/nests", headers=self.HEADERS, timeout=60)
             nests.raise_for_status()
             nests_data = nests.json()
 
@@ -77,7 +79,7 @@ class PteroCache():
     def update_node_cache(self):
         available_nodes = []
         all_nodes = []
-        nodes = requests.get(f"{PTERODACTYL_URL}api/application/nodes", headers=self.HEADERS, timeout=60).json()
+        nodes = safe_requests.get(f"{PTERODACTYL_URL}api/application/nodes", headers=self.HEADERS, timeout=60).json()
         for node in nodes['data']:
             all_nodes.append({"node_id": node['attributes']['id'], "name": node['attributes']['name']})
             if "full" not in node['attributes']['name'].lower():
