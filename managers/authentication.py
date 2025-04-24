@@ -46,9 +46,9 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'email' not in session:
-            # Pass the original URL as a query parameter, properly URL-encoded
-            next_url = request.url
-            return redirect(url_for('user.login_user', next=quote(next_url)))
+            # Only pass the path portion of the URL for redirection after login
+            next_url = request.path
+            return redirect(url_for('user.login_user', next=next_url))
         update_last_seen(session['email'])
         return f(*args, **kwargs)
         
@@ -69,9 +69,9 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'email' not in session:
-            # Pass the original URL as a query parameter, properly URL-encoded
-            next_url = request.url
-            return redirect(url_for('user.login_user', next=quote(next_url)))
+            # Only pass the path portion of the URL for redirection after login
+            next_url = request.path
+            return redirect(url_for('user.login_user', next=next_url))
         
         from .user_manager import is_admin
         if not is_admin(session['email']):
