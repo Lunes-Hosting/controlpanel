@@ -62,7 +62,6 @@ class Users(commands.Cog):
             embed.add_field(name="Pterodactyl ID:", value=str(UserDB.get_user_info(email)['pterodactyl_id']), inline=False)
             embed.add_field(name="Suspended:", value=str(str(bool(UserDB.get_user_info(email)['suspended']))), inline=False)
             await ctx.respond(embed=embed, ephemeral=True)
-ylic=True)
             logger.info(f"Fetched user info for {email}")
         except Exception as e:
             await ctx.respond(f"Error fetching user info: {str(e)}", ephemeral=True)
