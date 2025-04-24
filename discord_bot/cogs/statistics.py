@@ -13,7 +13,7 @@ class Statistics(commands.Cog):
     @slash_command(name="stats", description="Show total servers and users")
     async def trigger_command(self, ctx):
         await ctx.defer(ephemeral=False)
-        if not ctx.author.guild_permissions.administrator:
+        if not (ctx.author.guild_permissions.administrator or discord.utils.get(ctx.author.roles, id=1364999900135165993)):
             await ctx.respond("You do not have permission to use this command.", ephemeral=True)
             return
 
