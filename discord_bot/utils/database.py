@@ -6,14 +6,25 @@ class UserDB():
 
     def get_user_info(email):
         try:
-            user_info = DatabaseManager.execute_query("SELECT credits, role, pterodactyl_id, suspended FROM users WHERE email = %s",(email,) )
+            user_info = DatabaseManager.execute_query("SELECT credits, role, pterodactyl_id, id, suspended FROM users WHERE email = %s",(email,) )
             if not user_info:
                 return "Error: User not found"
-            return {"credits": user_info[0], "role": user_info[1], "pterodactyl_id": user_info[2], "suspended": user_info[3]}
+            return {"credits": user_info[0], "role": user_info[1], "pterodactyl_id": user_info[2], "id": user_info[3], "suspended": user_info[4]}
+        except Exception as e:
+            logger.error(f"Error fetching user info: {str(e)}")
+            return "Error fetching user info"
+    
+    def get_discord_user_info(discord_id):
+        try:
+            user_info = DatabaseManager.execute_query("SELECT credits, role, pterodactyl_id, id, suspended, email FROM users WHERE discord_id = %s",(discord_id,) )
+            if not user_info:
+                return "Error: User not found"
+            return {"credits": user_info[0], "role": user_info[1], "pterodactyl_id": user_info[2], "id": user_info[3], "suspended": user_info[4], "email": user_info[5]}
         except Exception as e:
             logger.error(f"Error fetching user info: {str(e)}")
             return "Error fetching user info"
         
+
     def suspend_user(email):
         try:
             send_email(email, "Account Suspended", "Your account has been suspended.", current_app._get_current_object())
@@ -46,3 +57,10 @@ class UserDB():
         except Exception as e:
             logger.error(f"Error fetching suspended users: {str(e)}")
             return "Error fetching suspended users"
+    def link_discord(email, discord_id):
+        try:
+            DatabaseManager.execute_query("UPDATE users SET discord_id = %s WHERE email = %s",(discord_id,email))
+            return "User linked to Discord"
+        except Exception as e:
+            logger.error(f"Error linking user to Discord: {str(e)}")
+            return "Error linking user to Discord"

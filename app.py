@@ -123,6 +123,7 @@ app.register_blueprint(admin, url_prefix="/admin")
 
 
 if not DEBUG_FRONTEND_MODE:
+# if False:
     @scheduler.task('interval', id='credit_usage', seconds=3600, misfire_grace_time=900)
     def process_credits():
         """Process hourly credit usage for all servers."""
@@ -184,7 +185,7 @@ def index():
 
 if not DEBUG_FRONTEND_MODE:
     # Load bot extensions
-    extensions = ['discord_bot.cogs.statistics', 'discord_bot.cogs.users']
+    extensions = ['discord_bot.cogs.statistics', 'discord_bot.cogs.users', 'discord_bot.cogs.linking']
 
     for extension in extensions:
         print(f'Loading {extension}')

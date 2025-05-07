@@ -52,15 +52,17 @@ class Users(commands.Cog):
             await ctx.respond("You do not have permission to use this command.", ephemeral=True)
             return
         try:
-            if isinstance(UserDB.get_user_info(email), str):
-                await ctx.respond(f"{UserDB.get_user_info(email)}", ephemeral=True)
+            info = UserDB.get_user_info(email)
+            if isinstance(info, str):
+                await ctx.respond(f"{info}", ephemeral=True)
                 return
             embed = discord.Embed(title="Lunes User Information", color=discord.Color.yellow())
             embed.add_field(name="Email:", value=str(email), inline=False)
-            embed.add_field(name="Credits:", value=str(UserDB.get_user_info(email)['credits']), inline=False)
-            embed.add_field(name="Role:", value=str(UserDB.get_user_info(email)['role']), inline=False)
-            embed.add_field(name="Pterodactyl ID:", value=str(UserDB.get_user_info(email)['pterodactyl_id']), inline=False)
-            embed.add_field(name="Suspended:", value=str(str(bool(UserDB.get_user_info(email)['suspended']))), inline=False)
+            embed.add_field(name="Credits:", value=info['credits'], inline=False)
+            embed.add_field(name="Role:", value=info['role'], inline=False)
+            embed.add_field(name="Pterodactyl ID:", value=info['pterodactyl_id'], inline=False)
+            embed.add_field(name="Suspended:", value=str(str(bool(info['suspended']))), inline=False)
+            embed.add_field(name="Manage", value=f"https://betadash.lunes.host/admin/user/{info['id']}/servers", inline=False)
             await ctx.respond(embed=embed, ephemeral=True)
             logger.info(f"Fetched user info for {email}")
         except Exception as e:
