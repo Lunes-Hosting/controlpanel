@@ -90,6 +90,9 @@ class Linking(commands.Cog):
     @slash_command(name="getuser", description="Get user info")
     async def getuser_command(self, ctx, user: discord.Option(discord.User, "User")):
         await ctx.defer(ephemeral=True)
+        if not (ctx.author.guild_permissions.administrator or discord.utils.get(ctx.author.roles, id=1364999900135165993)):
+            await ctx.respond("You do not have permission to use this command.", ephemeral=False)
+            return
         try:
             info = UserDB.get_discord_user_info(user.id)
             if isinstance(info, str):
