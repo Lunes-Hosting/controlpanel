@@ -189,7 +189,7 @@ def register(email: str, password: str, name: str, ip: str):
             webhook_log(f"Failed to register email {email} with IP {ip} due to email blacklist", non_embed_message="<@491266830674034699>", database_log=True)
 
             session['suspended'] = True
-            return "Failed to register due to blacklist! Contact panel@lunes.host if this is a mistake"
+            return "Temporary emails are not allowed! Contact panel@lunes.host if this is a mistake"
     except Exception as e:
         print(f"Error checking blocked emails: {str(e)}")
     
