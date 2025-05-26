@@ -6,12 +6,12 @@ from managers.database_manager import DatabaseManager
 from managers.email_manager import send_email_without_app_context
 from ..utils.database import UserDB
 from ..utils.logger import logger
-import random
 import string
 import importlib.util
 import sys
 import os
 import datetime
+import secrets
 
 class Linking(commands.Cog):
     def __init__(self, bot, flask_app=None):
@@ -40,7 +40,7 @@ class Linking(commands.Cog):
             if isinstance(UserDB.get_user_info(email), str):
                 await ctx.respond(f"{UserDB.get_user_info(email)}", ephemeral=True)
                 return
-            code = ''.join(random.choices(string.ascii_letters + string.digits, k=6)).lower()
+            code = ''.join(secrets.SystemRandom().choices(string.ascii_letters + string.digits, k=6)).lower()
             self.codes[code] = email
             
             # Load config dynamically without importing it directly
