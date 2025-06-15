@@ -240,6 +240,6 @@ def toggle_ticket_status(ticket_id):
         "UPDATE tickets SET status = %s WHERE id = %s",
         (new_status, ticket_id)
     )
-    if is_admin(seesion['email']):
+    if is_admin(session['email']):
       return redirect(url_for('admin.admin_tickets_index'))
     return redirect(url_for('tickets.tickets_index'))
