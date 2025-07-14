@@ -102,16 +102,29 @@ def sync_users_script():
                         # Update Pterodactyl password if possible
                         ptero_id = get_ptero_id(email)
                         if ptero_id:
-                            info = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60).json()['attributes']
-                            body = {
-                                "username": info['username'],
-                                "email": info['email'],
-                                "first_name": info['first_name'],
-                                "last_name": info['last_name'],
-                                "password": new_password
-                            }
-                            requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body, timeout=60)
-                            update_last_seen(email)
+                            # Get user info from Pterodactyl with proper error handling
+                            response = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60)
+                            if response.status_code == 200:
+                                response_data = response.json()
+                                if 'attributes' in response_data:
+                                    info = response_data['attributes']
+                                    body = {
+                                        "username": info['username'],
+                                        "email": info['email'],
+                                        "first_name": info['first_name'],
+                                        "last_name": info['last_name'],
+                                        "password": new_password
+                                    }
+                                    patch_response = requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body, timeout=60)
+                                    if patch_response.status_code in [200, 201, 204]:
+                                        update_last_seen(email)
+                                        webhook_log(f"Successfully reset password for inactive user {email} in Pterodactyl", database_log=True)
+                                    else:
+                                        webhook_log(f"Failed to update Pterodactyl password for {email}: Status {patch_response.status_code}", database_log=True)
+                                else:
+                                    webhook_log(f"Missing 'attributes' in Pterodactyl API response for user {email}", database_log=True)
+                            else:
+                                webhook_log(f"Failed to get user info from Pterodactyl for {email}: Status {response.status_code}", database_log=True)
                     except Exception as e:
                         threading.Thread(target=webhook_log, args=(f"Error resetting password for {email}: {str(e)}", 2)).start()
 
