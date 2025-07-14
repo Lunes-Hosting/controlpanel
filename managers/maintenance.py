@@ -173,7 +173,7 @@ def delete_inactive_free_servers():
                     last_seen = last_seen_result[0]
                     
                     # Check if user hasn't logged in for 15+ days
-                    if datetime.datetime.now() - last_seen > datetime.timedelta(days=15):
+                    if datetime.datetime.now() - last_seen > datetime.timedelta(days=17):
                         # Delete the server
                         from managers.server_manager import delete_server
                         delete_server(server_id)
