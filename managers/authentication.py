@@ -80,6 +80,32 @@ def admin_required(f):
         
         return f(*args, **kwargs)
     return decorated_function
+    
+def support_required(f):
+    """
+    Decorator that checks if a user is a support.
+    Redirects to login page if not logged in or returns error if not support.
+    Passes the original URL as a query parameter for redirect after successful login.
+    
+    Args:
+        f: Function to decorate
+        
+    Returns:
+        Function: Decorated function
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'email' not in session:
+            # Only pass the path portion of the URL for redirection after login
+            next_url = request.path
+            return redirect(url_for('user.login_user', next=next_url))
+        
+        from .user_manager import is_support
+        if not is_support(session['email']):
+            return render_template('admin/forbidden.html')
+        
+        return f(*args, **kwargs)
+    return decorated_function
 
 def login(email: str, password: str, ip: str):
     """
