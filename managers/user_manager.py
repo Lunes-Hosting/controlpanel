@@ -159,13 +159,13 @@ def is_admin(email: str):
 
 def is_support(email: str):
     """
-    Checks if user is an admin.
+    Checks if user is a support staff.
     
     Args:
         email: User's email
     
     Returns:
-        bool: Whether user is an admin
+        bool: Whether user is a support staff.
     """
     query = "SELECT role FROM users WHERE email = %s"
     result = DatabaseManager.execute_query(query, (email,))
