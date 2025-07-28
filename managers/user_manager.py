@@ -157,6 +157,20 @@ def is_admin(email: str):
     result = DatabaseManager.execute_query(query, (email,))
     return result and result[0] == "admin"
 
+def is_support(email: str):
+    """
+    Checks if user is an admin.
+    
+    Args:
+        email: User's email
+    
+    Returns:
+        bool: Whether user is an admin
+    """
+    query = "SELECT role FROM users WHERE email = %s"
+    result = DatabaseManager.execute_query(query, (email,))
+    return result and result[0] == "support"
+
 def check_if_user_suspended(pterodactyl_id: str):
     """
     Returns the bool value of if a user is suspended, if user is not found with the pterodactyl id it returns None
