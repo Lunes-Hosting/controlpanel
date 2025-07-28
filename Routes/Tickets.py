@@ -52,7 +52,7 @@ import sys, time, datetime
 from threadedreturn import ThreadWithReturnValue
 sys.path.append("..")
 from managers.authentication import login_required
-from managers.user_manager import get_id, get_name, is_admin
+from managers.user_manager import get_id, get_name, is_admin, is_support
 from managers.email_manager import send_email
 from managers.logging import webhook_log
 from managers.database_manager import DatabaseManager
