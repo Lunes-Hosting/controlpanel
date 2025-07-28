@@ -139,7 +139,7 @@ def add_message_submit(ticket_id):
         (comment_id, ticket_id, user_id, message, timestamp)
     )
 
-    if not is_admin(session['email']):
+    if not is_admin(session['email']) and not is_support(session['email']):
         DatabaseManager.execute_query(
             "UPDATE tickets SET reply_status = 'waiting', last_reply = NOW() WHERE id = %s",
             (ticket_id,)
@@ -182,7 +182,7 @@ def ticket(ticket_id):
     # Check permissions
     if info[3] == "closed" and not is_admin(session['email']):
         return redirect(url_for('tickets.tickets_index'))
-    if user_info[2] != "admin" and info[1] != user_info[0]:
+    if user_info[2] != "admin" and user_info[2] != "support" and info[1] != user_info[0]:
         return redirect(url_for('tickets.tickets_index'))
     
     # Get messages
@@ -230,7 +230,7 @@ def toggle_ticket_status(ticket_id):
 
     current_status = info[3]
 
-    if user_info[2] != "admin" and info[1] != user_info[0]:
+    if user_info[2] != "admin" and user_info[2] != "support" and info[1] != user_info[0]:
         return redirect(url_for('tickets.tickets_index'))
 
     # Toggle the status
