@@ -32,7 +32,7 @@ from managers.database_manager import DatabaseManager
 from datetime import datetime, timedelta
 
 @admin.route('/tickets')
-@support_required
+@admin_required
 def admin_tickets_index():
     """
     Display list of all support tickets with filter options.
