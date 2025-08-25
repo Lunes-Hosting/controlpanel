@@ -73,6 +73,19 @@ TOKEN_EXPIRATION_TIME = 1800  # 30 minutes
 
 pterocache = PteroCache()
 
+def _get_client_ip(req: 'flask.Request') -> str:
+    """Best-effort real client IP behind Cloudflare/Proxies.
+    Order: CF-Connecting-IP -> X-Forwarded-For (first) -> remote_addr.
+    """
+    ip = req.headers.get('CF-Connecting-IP')
+    if not ip:
+        xff = req.headers.get('X-Forwarded-For')
+        if xff:
+            ip = xff.split(',')[0].strip()
+    if not ip:
+        ip = req.remote_addr
+    return ip
+
 @user.route('/login', methods=['POST', 'GET'])
 def login_user():
     """
@@ -116,7 +129,7 @@ def login_user():
         data = request.form
         email = data.get('email')
         password = data.get('password')
-        ip = request.headers.get('Cf-Connecting-Ip', request.remote_addr)
+        ip = _get_client_ip(request)
         try:
             response = login(email, password, ip)
             if response is None:
@@ -414,7 +427,7 @@ def register_user():
         email = data.get('email')
         password = data.get('password')
         name = data.get('username')
-        ip = request.headers.get('Cf-Connecting-Ip', request.remote_addr)
+        ip = _get_client_ip(request)
 
         # Check if 'suspended' key exists in session, if not, initialize it to False
         if 'suspended' not in session:
