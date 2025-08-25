@@ -30,7 +30,7 @@ Access Control:
 All routes are protected by admin_required verification
 """
 
-from flask import render_template, request, session, redirect, url_for, flash
+from flask import render_template, request, session, redirect, url_for, flash, jsonify
 from managers.authentication import admin_required
 from managers.utils import HEADERS
 from managers.logging import webhook_log
@@ -147,6 +147,84 @@ def users():
         total_users=total_users,
         search_term=search_term
     )
+
+
+@admin.route('/users/audit_recent_multi', methods=['GET', 'POST'])
+@admin_required
+def audit_recent_multi():
+    """
+    Audit users created within the last 48 hours who are not 'client' or 'admin'
+    and have more than 2 servers. Returns JSON list. If POST with suspend=1,
+    it will mark those users as suspended in the database.
+
+    Returns:
+        application/json: {
+            "count": int,
+            "offenders": [ {id, email, name, role, pterodactyl_id, created_at, server_count} ],
+            "suspended": bool
+        }
+    """
+    # Fetch candidate users from DB
+    candidates = DatabaseManager.execute_query(
+        """
+        SELECT id, email, name, role, pterodactyl_id, created_at
+        FROM users
+        WHERE created_at >= NOW() - INTERVAL 48 HOUR
+          AND role NOT IN ('client','admin')
+        """,
+        tuple(),
+        fetch_all=True
+    )
+
+    offenders = []
+    if candidates:
+        for uid, email, name, role, panel_id, created_at in candidates:
+            try:
+                if not panel_id:
+                    continue
+                resp = safe_requests.get(
+                    f"{PTERODACTYL_URL}/api/application/users/{panel_id}?include=servers",
+                    headers=HEADERS,
+                    timeout=60
+                )
+                if resp.status_code != 200:
+                    continue
+                data = resp.json()
+                servers = data['attributes']['relationships']['servers']['data']
+                server_count = len(servers)
+                if server_count > 2:
+                    offenders.append({
+                        'id': uid,
+                        'email': email,
+                        'name': name,
+                        'role': role,
+                        'pterodactyl_id': panel_id,
+                        'created_at': created_at.isoformat() if hasattr(created_at, 'isoformat') else str(created_at),
+                        'server_count': server_count
+                    })
+            except Exception as e:
+                print(f"audit_recent_multi error for user {email}: {e}")
+                continue
+
+    suspended = False
+    if request.method == 'POST' and request.form.get('suspend') == '1' and offenders:
+        for off in offenders:
+            DatabaseManager.execute_query(
+                "UPDATE users SET suspended = 1 WHERE id = %s",
+                (off['id'],)
+            )
+        webhook_log(
+            f"Admin {session['email']} suspended {len(offenders)} recent multi-server offenders",
+            "admin",
+            database_log=True
+        )
+        suspended = True
+
+    return jsonify({
+        'count': len(offenders),
+        'offenders': offenders,
+        'suspended': suspended
+    })
 
 
 @admin.route('/user/<user_id>/servers')
