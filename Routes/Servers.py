@@ -336,7 +336,18 @@ def create_server():
     if response and 'attributes' in response and 'relationships' in response['attributes']:
         if 'servers' in response['attributes']['relationships']:
             servers_list = response['attributes']['relationships']['servers']['data']
-        
+
+    # Enforce max 2 servers for non-client users
+    role_row = DatabaseManager.execute_query(
+        "SELECT role FROM users WHERE email = %s",
+        (session['email'],)
+    )
+    if role_row and role_row[0] != 'client' and role_row[0] != 'admin' and role_row[0] != 'support':
+        user_server_count = len(servers_list)
+        if user_server_count >= 2:
+            flash("You have reached the maximum of 2 servers for non-client accounts.")
+            return redirect(url_for('user.index'))
+
     nodes = get_nodes()
     project_id = request.args.get('project_id')
     if project_id is None:
@@ -429,6 +440,23 @@ def create_server_submit():
     if not result['success']:
         flash("Failed captcha please try again")
         return redirect(url_for('servers.create_server'))
+
+    # Enforce max 2 servers for non-client users
+    role_row = DatabaseManager.execute_query(
+        "SELECT role FROM users WHERE email = %s",
+        (session['email'],)
+    )
+    if role_row and role_row[0] != 'client':
+        # Count current servers
+        ptero_id_local = get_ptero_id(session['email'])[0]
+        response_local = improve_list_servers(ptero_id_local)
+        current_servers = []
+        if response_local and 'attributes' in response_local and 'relationships' in response_local['attributes']:
+            if 'servers' in response_local['attributes']['relationships']:
+                current_servers = response_local['attributes']['relationships']['servers']['data']
+        if len(current_servers) >= 2:
+            flash("You have reached the maximum of 2 servers for non-client accounts.")
+            return redirect(url_for('user.index'))
 
     # Enforce 15-minute cooldown from registration
     created_at_row = DatabaseManager.execute_query(
