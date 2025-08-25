@@ -497,7 +497,7 @@ def resend_confirmation_email():
     return redirect(url_for('index'))
 
 
-@user.route('/verify_email/<token>', methods=['GET'])
+@user.route('/verify_email/<token>', methods=['GET', 'POST'])
 @login_required
 def verify_email(token):
     """
@@ -520,20 +520,32 @@ def verify_email(token):
         - webhook_log(): Logs verification event
     """
 
+    # Require CAPTCHA before verifying email
+    if request.method == 'GET':
+        return render_template('verify_email.html', RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY, token=token)
+
+    # POST: validate Turnstile/Recaptcha
+    recaptcha_response = request.form.get('g-recaptcha-response')
+    data = {
+        'secret': RECAPTCHA_SECRET_KEY,
+        'response': recaptcha_response
+    }
+    response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data, timeout=60)
+    result = response.json()
+    if not result.get('success'):
+        flash('Failed captcha please try again')
+        return render_template('verify_email.html', RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY, token=token)
+
     email = cache.get(token)
-    print(email, cache)
     if email:
         DatabaseManager.execute_query(
             "UPDATE users SET email_verified_at = %s WHERE email = %s",
             (datetime.datetime.now(), email)
         )
-
         cache.delete(token)
-
         flash('Your email has been successfully verified.')
     else:
         flash('Invalid or expired verification token.')
-
     return redirect(url_for('index'))
 
 @user.route('/logout', methods=['GET'])
