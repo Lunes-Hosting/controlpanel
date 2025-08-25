@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Email</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}"/>
+</head>
+<body class="text-white" style="background-size: 10px 10px;font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
+  <div id="flash-messages relative">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="bg-red-500 text-white p-2 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{{ message }}</span>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <div class="p-4 lg:p-0 min-h-screen flex items-center justify-center bg-gray-900">
+    <div class="max-w-md w-full bg-gray-900 border-2 border-blue-500 p-8 shadow-2xl shadow-blue-500/20 rounded-md shadow-lg relative">
+      <img class="w-12 h-12 absolute top-[-20px] sm:top-[-24px] left-1/2 transform -translate-x-1/2" src="{{ url_for('static', filename='images/Luneslogo.png') }}"/>
+      <div class="text-center">
+        <h1 class="text-3xl font-bold mb-4">Verify Your Email</h1>
+        <p class="text-gray-400 mb-6">Complete the CAPTCHA to verify your email address.</p>
+      </div>
+      <form method="POST" action="{{ url_for('user.verify_email', token=token) }}">
+        <div class="g-recaptcha mb-6 w-full" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
+        <div class="mb-4">
+          <button type="submit" class="hover:scale-105 w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-200">Verify Email</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var flashMessages = document.getElementById("flash-messages");
+      if (flashMessages) {
+        setTimeout(function() {
+          flashMessages.style.display = "none";
+        }, 5000);
+      }
+    });
+  </script>
+</body>
+</html>
