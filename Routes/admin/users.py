@@ -177,21 +177,30 @@ def audit_recent_multi():
     )
 
     offenders = []
+    debug_info = {
+        'candidates_count': len(candidates) if candidates else 0,
+        'skipped_no_panel_id': 0,
+        'skipped_api_error': 0,
+        'skipped_other': 0
+    }
     if candidates:
         for uid, email, name, role, panel_id, created_at in candidates:
             try:
                 if not panel_id:
+                    debug_info['skipped_no_panel_id'] += 1
                     continue
+                # Use dedicated servers list endpoint for reliability
                 resp = safe_requests.get(
-                    f"{PTERODACTYL_URL}/api/application/users/{panel_id}?include=servers",
+                    f"{PTERODACTYL_URL}/api/application/users/{panel_id}/servers",
                     headers=HEADERS,
                     timeout=60
                 )
                 if resp.status_code != 200:
+                    debug_info['skipped_api_error'] += 1
                     continue
                 data = resp.json()
-                servers = data['attributes']['relationships']['servers']['data']
-                server_count = len(servers)
+                server_list = data.get('data', [])
+                server_count = len(server_list)
                 if server_count > 2:
                     offenders.append({
                         'id': uid,
@@ -204,6 +213,7 @@ def audit_recent_multi():
                     })
             except Exception as e:
                 print(f"audit_recent_multi error for user {email}: {e}")
+                debug_info['skipped_other'] += 1
                 continue
 
     suspended = False
@@ -220,11 +230,14 @@ def audit_recent_multi():
         )
         suspended = True
 
-    return jsonify({
+    result = {
         'count': len(offenders),
         'offenders': offenders,
         'suspended': suspended
-    })
+    }
+    if request.args.get('debug') == '1':
+        result['debug'] = debug_info
+    return jsonify(result)
 
 
 @admin.route('/user/<user_id>/servers')
