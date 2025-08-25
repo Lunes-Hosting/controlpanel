@@ -246,7 +246,7 @@ def register(email: str, password: str, name: str, ip: str):
         user_id = DatabaseManager.execute_query("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
         
         # Insert user into database
-        query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, ip, credits) VALUES (%s, %s, %s, %s, %s, %s, %s)")
+        query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, ip, credits, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())")
         password_hash = passthread.join()
         values = (name, email, password_hash, user_id, data['attributes']['id'], ip, 10)
         DatabaseManager.execute_query(query, values)

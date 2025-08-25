@@ -48,6 +48,7 @@ Handles allocation of:
 """
 
 import asyncio
+import datetime
 from flask import Blueprint, request, render_template, session, flash, redirect, url_for, jsonify
 import sys
 import requests
@@ -307,6 +308,27 @@ def create_server():
     if not verified:
         return redirect(url_for('user.index'))
 
+    # Enforce 15-minute cooldown from registration
+    created_at_row = DatabaseManager.execute_query(
+        "SELECT created_at FROM users WHERE email = %s",
+        (session['email'],)
+    )
+    if created_at_row and created_at_row[0] is not None:
+        try:
+            created_at = created_at_row[0]
+            now = datetime.datetime.utcnow()
+            # If created_at is timezone-aware, normalize by removing tzinfo for comparison
+            if hasattr(created_at, 'tzinfo') and created_at.tzinfo is not None:
+                created_at = created_at.replace(tzinfo=None)
+            remaining = (created_at + datetime.timedelta(minutes=15)) - now
+            if remaining.total_seconds() > 0:
+                minutes_left = int(remaining.total_seconds() // 60) + (1 if remaining.total_seconds() % 60 else 0)
+                flash(f"You can create servers {minutes_left} minute(s) after registering. Please try again later.")
+                return redirect(url_for('user.index'))
+        except Exception:
+            # If any parsing error occurs, fail open (allow) to avoid blocking legitimate users
+            pass
+
     response = improve_list_servers(ptero_id[0]) #improved
     
     # Extract servers from the response
@@ -407,6 +429,25 @@ def create_server_submit():
     if not result['success']:
         flash("Failed captcha please try again")
         return redirect(url_for('servers.create_server'))
+
+    # Enforce 15-minute cooldown from registration
+    created_at_row = DatabaseManager.execute_query(
+        "SELECT created_at FROM users WHERE email = %s",
+        (session['email'],)
+    )
+    if created_at_row and created_at_row[0] is not None:
+        try:
+            created_at = created_at_row[0]
+            now = datetime.datetime.utcnow()
+            if hasattr(created_at, 'tzinfo') and created_at.tzinfo is not None:
+                created_at = created_at.replace(tzinfo=None)
+            if (now - created_at) < datetime.timedelta(minutes=15):
+                remaining = (created_at + datetime.timedelta(minutes=15)) - now
+                minutes_left = int(remaining.total_seconds() // 60) + (1 if remaining.total_seconds() % 60 else 0)
+                flash(f"You must wait {minutes_left} more minute(s) after registering before creating a server.")
+                return redirect(url_for('user.index'))
+        except Exception:
+            pass
 
     # Validate required form fields
     if not request.form.get('name'):
