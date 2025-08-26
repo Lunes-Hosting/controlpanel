@@ -36,7 +36,7 @@ class PteroCache():
             print(f"Error fetching eggs for nest {nest_id}: {e}")
 
     def update_egg_cache(self):
-        disabled_nests = {15, 23}
+        disabled_nests = {15, 23, 19}
         disabled_eggs = {55, 3}
         
         try:
