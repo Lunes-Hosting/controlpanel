@@ -313,7 +313,13 @@ def create_server():
         "SELECT created_at FROM users WHERE email = %s",
         (session['email'],)
     )
-    if created_at_row and created_at_row[0] is not None:
+    # Bypass cooldown for clients
+    role_row = DatabaseManager.execute_query(
+        "SELECT role FROM users WHERE email = %s",
+        (session['email'],)
+    )
+    is_client = bool(role_row and role_row[0] == 'client')
+    if not is_client and created_at_row and created_at_row[0] is not None:
         try:
             created_at = created_at_row[0]
             now = datetime.datetime.utcnow()
@@ -323,7 +329,10 @@ def create_server():
             remaining = (created_at + datetime.timedelta(minutes=30)) - now
             if remaining.total_seconds() > 0:
                 minutes_left = int(remaining.total_seconds() // 60) + (1 if remaining.total_seconds() % 60 else 0)
-                flash(f"You can create servers {minutes_left} minute(s) after registering. Please try again later.")
+                flash(
+                    f"You can create servers {minutes_left} minute(s) after registering. "
+                    f"Purchase to get client role and create instantly."
+                )
                 return redirect(url_for('user.index'))
         except Exception:
             # If any parsing error occurs, fail open (allow) to avoid blocking legitimate users
@@ -458,21 +467,29 @@ def create_server_submit():
             flash("You have reached the maximum of 2 servers for non-client accounts.")
             return redirect(url_for('user.index'))
 
-    # Enforce 15-minute cooldown from registration
+    # Enforce 30-minute cooldown from registration (bypass if client)
     created_at_row = DatabaseManager.execute_query(
         "SELECT created_at FROM users WHERE email = %s",
         (session['email'],)
     )
-    if created_at_row and created_at_row[0] is not None:
+    role_row_submit = DatabaseManager.execute_query(
+        "SELECT role FROM users WHERE email = %s",
+        (session['email'],)
+    )
+    is_client_submit = bool(role_row_submit and role_row_submit[0] == 'client')
+    if not is_client_submit and created_at_row and created_at_row[0] is not None:
         try:
             created_at = created_at_row[0]
             now = datetime.datetime.utcnow()
             if hasattr(created_at, 'tzinfo') and created_at.tzinfo is not None:
                 created_at = created_at.replace(tzinfo=None)
-            if (now - created_at) < datetime.timedelta(minutes=15):
-                remaining = (created_at + datetime.timedelta(minutes=15)) - now
+            if (now - created_at) < datetime.timedelta(minutes=30):
+                remaining = (created_at + datetime.timedelta(minutes=30)) - now
                 minutes_left = int(remaining.total_seconds() // 60) + (1 if remaining.total_seconds() % 60 else 0)
-                flash(f"You must wait {minutes_left} more minute(s) after registering before creating a server.")
+                flash(
+                    f"You must wait {minutes_left} more minute(s) after registering before creating a server. "
+                    f"Purchase to get client role and create instantly."
+                )
                 return redirect(url_for('user.index'))
         except Exception:
             pass
