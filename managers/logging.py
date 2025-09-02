@@ -88,7 +88,7 @@ def webhook_log(embed_message: str, status: int = -1, non_embed_message: str = N
     # Send webhook asynchronously
     def send_webhook():
         try:
-            requests.post(webhook_url, json=payload)
+            requests.post(webhook_url, json=payload, timeout=60)
         except Exception as e:
             print(f"Error sending webhook: {str(e)}")
     
