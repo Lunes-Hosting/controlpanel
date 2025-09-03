@@ -53,7 +53,7 @@
 
         <div class="card p-5">
             <div class="section-title mb-4">Most Popular Plans</div>
-            <canvas id="plansChart" height="120"></canvas>
+            <canvas id="plansChart" height="320"></canvas>
         </div>
     </div>
 
@@ -72,18 +72,35 @@
                     borderColor: 'rgba(59, 130, 246, 1)',
                     borderWidth: 1,
                     borderRadius: 6,
+                    maxBarThickness: 24,
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                indexAxis: 'y',
                 plugins: {
                     legend: { labels: { color: '#e5e7eb' } },
                     tooltip: { enabled: true },
                 },
                 scales: {
-                    x: { ticks: { color: '#cbd5e1' }, grid: { color: '#2a2a2a' } },
-                    y: { beginAtZero: true, ticks: { color: '#cbd5e1' }, grid: { color: '#2a2a2a' } }
+                    x: {
+                        type: 'logarithmic',
+                        ticks: {
+                            color: '#cbd5e1',
+                            callback: (v) => v,
+                        },
+                        grid: { color: '#2a2a2a' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#cbd5e1',
+                            autoSkip: true,
+                            maxTicksLimit: 12,
+                        },
+                        grid: { color: '#2a2a2a' }
+                    }
                 }
             }
         });
