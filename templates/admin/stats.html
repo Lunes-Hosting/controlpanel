@@ -14,6 +14,8 @@
         .metric .value { font-size: 1.8rem; font-weight: 700; }
         .metric .label { color: #a3a3a3; }
         .section-title { font-size: 1.25rem; font-weight: 600; }
+        .chart-wrap { height: 360px; }
+        .chart-wrap canvas { width: 100% !important; height: 100% !important; }
     </style>
 </head>
 <body>
@@ -53,7 +55,9 @@
 
         <div class="card p-5">
             <div class="section-title mb-4">Most Popular Plans</div>
-            <canvas id="plansChart" height="320"></canvas>
+            <div class="chart-wrap">
+                <canvas id="plansChart"></canvas>
+            </div>
         </div>
     </div>
 
@@ -76,8 +80,8 @@
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                responsive: false,
+                maintainAspectRatio: true,
                 indexAxis: 'y',
                 plugins: {
                     legend: { labels: { color: '#e5e7eb' } },
