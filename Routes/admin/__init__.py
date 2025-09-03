@@ -31,5 +31,6 @@ from Routes.admin.servers import *
 from Routes.admin.tickets import *
 from Routes.admin.nodes import *
 from Routes.admin.activity_logs import *
+from Routes.admin.stats import *
 
 # All routes are registered to the admin blueprint in their respective modules

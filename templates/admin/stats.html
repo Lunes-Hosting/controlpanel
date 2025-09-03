@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - Statistics</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        html, body { background-color: #121212 !important; color: #e0e0e0; }
+        .card { background-color: #1e1e1e; border: 1px solid #333; border-radius: 12px; }
+        .metric { display:flex; align-items:center; gap:12px; }
+        .metric .value { font-size: 1.8rem; font-weight: 700; }
+        .metric .label { color: #a3a3a3; }
+        .section-title { font-size: 1.25rem; font-weight: 600; }
+    </style>
+</head>
+<body>
+    {% include 'admin/admin_taskbar.html' %}
+
+    <div class="max-w-7xl mx-auto p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-semibold">Platform Statistics</h1>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="card p-5">
+                <div class="metric">
+                    <div class="value">{{ total_users }}</div>
+                </div>
+                <div class="label mt-1">Total Users</div>
+            </div>
+            <div class="card p-5">
+                <div class="metric">
+                    <div class="value">{{ total_clients }}</div>
+                </div>
+                <div class="label mt-1">Total Clients</div>
+            </div>
+            <div class="card p-5">
+                <div class="metric">
+                    <div class="value">{{ total_servers }}</div>
+                </div>
+                <div class="label mt-1">Total Servers</div>
+            </div>
+            <div class="card p-5">
+                <div class="metric">
+                    <div class="value">{{ free_servers }}/{{ paid_servers }}</div>
+                </div>
+                <div class="label mt-1">Free / Paid Servers</div>
+            </div>
+        </div>
+
+        <div class="card p-5">
+            <div class="section-title mb-4">Most Popular Plans</div>
+            <canvas id="plansChart" height="120"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const labels = {{ chart_labels|tojson }};
+        const values = {{ chart_values|tojson }};
+        const ctx = document.getElementById('plansChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Servers by Plan',
+                    data: values,
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#e5e7eb' } },
+                    tooltip: { enabled: true },
+                },
+                scales: {
+                    x: { ticks: { color: '#cbd5e1' }, grid: { color: '#2a2a2a' } },
+                    y: { beginAtZero: true, ticks: { color: '#cbd5e1' }, grid: { color: '#2a2a2a' } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
