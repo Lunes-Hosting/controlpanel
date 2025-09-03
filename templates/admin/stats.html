@@ -15,6 +15,7 @@
         .metric .label { color: #a3a3a3; }
         .section-title { font-size: 1.25rem; font-weight: 600; }
         .chart-wrap { position: relative; height: 360px; }
+        .chart-wrap canvas { display: block; }
     </style>
 </head>
 <body>
@@ -76,6 +77,8 @@
                     borderWidth: 1,
                     borderRadius: 6,
                     maxBarThickness: 24,
+                    categoryPercentage: 0.7,
+                    barPercentage: 0.9,
                 }]
             },
             options: {
@@ -86,12 +89,27 @@
                     legend: { labels: { color: '#e5e7eb' } },
                     tooltip: { enabled: true },
                 },
+                animation: false,
+                layout: { padding: { left: 0, right: 8, top: 8, bottom: 8 } },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'y',
+                    intersect: true
+                },
+                devicePixelRatio: 1,
                 scales: {
                     x: {
                         type: 'logarithmic',
                         ticks: {
                             color: '#cbd5e1',
-                            callback: (v) => v,
+                            callback: function(value) {
+                                // Format log ticks nicely (1, 2, 5 x 10^n)
+                                const remain = value / Math.pow(10, Math.floor(Math.log10(value)));
+                                if (remain === 1 || remain === 2 || remain === 5) {
+                                    return value.toLocaleString();
+                                }
+                                return '';
+                            },
                         },
                         grid: { color: '#2a2a2a' }
                     },
