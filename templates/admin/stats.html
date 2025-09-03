@@ -14,8 +14,7 @@
         .metric .value { font-size: 1.8rem; font-weight: 700; }
         .metric .label { color: #a3a3a3; }
         .section-title { font-size: 1.25rem; font-weight: 600; }
-        .chart-wrap { height: 360px; }
-        .chart-wrap canvas { width: 100% !important; height: 100% !important; }
+        .chart-wrap { position: relative; height: 360px; }
     </style>
 </head>
 <body>
@@ -80,8 +79,8 @@
                 }]
             },
             options: {
-                responsive: false,
-                maintainAspectRatio: true,
+                responsive: true,
+                maintainAspectRatio: false,
                 indexAxis: 'y',
                 plugins: {
                     legend: { labels: { color: '#e5e7eb' } },
