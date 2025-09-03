@@ -51,6 +51,30 @@
                 </div>
                 <div class="label mt-1">Free / Paid Servers</div>
             </div>
+            <div class="card p-5">
+                <div class="metric">
+                    <div class="value">{{ total_tickets }}</div>
+                </div>
+                <div class="label mt-1">Total Tickets</div>
+            </div>
+            <div class="card p-5">
+                <div class="metric">
+                    <div class="value">{{ total_ticket_messages }}</div>
+                </div>
+                <div class="label mt-1">Total Ticket Messages</div>
+            </div>
+            <div class="card p-5">
+                <div class="metric">
+                    <div class="value">{{ '%.2f'|format(total_credits_circulation) }}</div>
+                </div>
+                <div class="label mt-1">Credits In Circulation (excl. admins)</div>
+            </div>
+            <div class="card p-5">
+                <div class="metric">
+                    <div class="value">{{ '%.2f'|format(total_monthly_credits_used) }}</div>
+                </div>
+                <div class="label mt-1">Total Monthly Credits Used</div>
+            </div>
         </div>
 
         <div class="card p-5">
