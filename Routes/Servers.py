@@ -308,7 +308,7 @@ def create_server():
     if not verified:
         return redirect(url_for('user.index'))
 
-    # Enforce 30-minute cooldown from registration
+    # Enforce 2-minute cooldown from registration
     created_at_row = DatabaseManager.execute_query(
         "SELECT created_at FROM users WHERE email = %s",
         (session['email'],)
@@ -326,7 +326,7 @@ def create_server():
             # If created_at is timezone-aware, normalize by removing tzinfo for comparison
             if hasattr(created_at, 'tzinfo') and created_at.tzinfo is not None:
                 created_at = created_at.replace(tzinfo=None)
-            remaining = (created_at + datetime.timedelta(minutes=30)) - now
+            remaining = (created_at + datetime.timedelta(minutes=2)) - now
             if remaining.total_seconds() > 0:
                 minutes_left = int(remaining.total_seconds() // 60) + (1 if remaining.total_seconds() % 60 else 0)
                 flash(
@@ -467,7 +467,7 @@ def create_server_submit():
             flash("You have reached the maximum of 2 servers for non-client accounts.")
             return redirect(url_for('user.index'))
 
-    # Enforce 30-minute cooldown from registration (bypass if client)
+    # Enforce 2-minute cooldown from registration (bypass if client)
     created_at_row = DatabaseManager.execute_query(
         "SELECT created_at FROM users WHERE email = %s",
         (session['email'],)
@@ -483,8 +483,8 @@ def create_server_submit():
             now = datetime.datetime.utcnow()
             if hasattr(created_at, 'tzinfo') and created_at.tzinfo is not None:
                 created_at = created_at.replace(tzinfo=None)
-            if (now - created_at) < datetime.timedelta(minutes=30):
-                remaining = (created_at + datetime.timedelta(minutes=30)) - now
+            if (now - created_at) < datetime.timedelta(minutes=2):
+                remaining = (created_at + datetime.timedelta(minutes=2)) - now
                 minutes_left = int(remaining.total_seconds() // 60) + (1 if remaining.total_seconds() % 60 else 0)
                 flash(
                     f"You must wait {minutes_left} more minute(s) after registering before creating a server. "
