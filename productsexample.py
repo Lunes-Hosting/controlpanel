@@ -228,10 +228,10 @@ products = [
         "enabled": False,
         "price_link": None,
         "id": 10,
-        "name": "16GB custom",
+        "name": "4GB custom",
         "price": 1,
         "limits": {
-            "memory": 16000,
+            "memory": 4000,
             "swap": 0,
             "disk": 12000,
             "io": 500,
@@ -244,7 +244,7 @@ products = [
         }
     },
     {
-        "enabled": True,
+        "enabled": False,
         "price_link": "price_1QujfbEluFVXNifhX5oXW8sw",
         "id": 11,
         "name": "Credits Bundle",
