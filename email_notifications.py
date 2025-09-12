@@ -221,7 +221,7 @@ def main():
             return
     
     # Send emails
-    send_bulk_emails(users[1172:], args.subject, args.message)
+    send_bulk_emails(users, args.subject, args.message)
 
 if __name__ == "__main__":
 

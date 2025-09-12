@@ -47,6 +47,8 @@ if ENABLE_BOT and not DEBUG_FRONTEND_MODE:
         'discord_bot.cogs.statistics',
         'discord_bot.cogs.users',
         'discord_bot.cogs.funstuff',
+        'discord_bot.cogs.blackjack',
+        'discord_bot.cogs.coinflip',
     ]
 
 # Initialize Flask app and extensions
@@ -185,7 +187,7 @@ def index():
 
 if not DEBUG_FRONTEND_MODE:
     # Load bot extensions
-    extensions = ['discord_bot.cogs.statistics', 'discord_bot.cogs.users', 'discord_bot.cogs.linking']
+    extensions = ['discord_bot.cogs.statistics', 'discord_bot.cogs.users', 'discord_bot.cogs.linking', 'discord_bot.cogs.blackjack', 'discord_bot.cogs.coinflip']
 
     for extension in extensions:
         print(f'Loading {extension}')
