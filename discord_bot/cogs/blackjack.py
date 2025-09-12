@@ -152,7 +152,7 @@ class Blackjack(commands.Cog):
         self.flask_app = flask_app
 
     @slash_command(name="blackjack", description="Play blackjack with credits")
-    async def blackjack(self, ctx: discord.ApplicationContext, credits: discord.Option(int, "Bet amount (credits)"): int):  # type: ignore
+    async def blackjack(self, ctx, credits: discord.Option(int, "Bet amount (credits)")):  # type: ignore
         await ctx.defer(ephemeral=False)
         # Verify user is linked and not suspended
         info = UserDB.get_discord_user_info(ctx.author.id)
