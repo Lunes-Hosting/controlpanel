@@ -2,6 +2,7 @@ import discord  # type: ignore
 from discord.ext import commands  # type: ignore
 from discord.commands import slash_command  # type: ignore
 import random
+import secrets
 
 from ..utils.database import UserDB
 from managers.credit_manager import add_credits, remove_credits
@@ -39,7 +40,8 @@ class Coinflip(commands.Cog):
             return
 
         user_choice = side.lower()
-        result = random.choice(["heads", "tails"])  # fair 50/50
+        # Use cryptographically secure randomness to avoid any PRNG perception bias
+        result = secrets.choice(["heads", "tails"])  # fair 50/50
 
         win = user_choice == result
 
