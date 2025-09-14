@@ -14,12 +14,9 @@ async def on_ready():
     logger.info(f'Logged into Discord Bot: {bot.user}')
     
     
-    async def change_presence():
-        while True:
-            await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Lunes Hosting"))
-            await asyncio.sleep(60)  
 
-    asyncio.create_task(change_presence())
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Lunes Hosting")) 
+
 
 @bot.command(description="Sends the bot's latency.") # this decorator makes a slash command
 async def ping(ctx): # a slash command will be created with the name "ping"
