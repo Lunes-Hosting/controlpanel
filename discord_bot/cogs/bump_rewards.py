@@ -31,8 +31,8 @@ class BumpRewards(commands.Cog):
                 return
             if not message.embeds:
                 # Some bots add embeds shortly after sending. Try a few delayed re-fetches.
-                logger.debug(f"DISBOARD message {message.id} has 0 embeds initially; scheduling re-fetch attempts")
-                self.bot.loop.create_task(self._refetch_and_process(message))
+                logger.debug(f"DISBOARD message {message.id} has 0 embeds initially; starting re-fetch attempts inline")
+                await self._refetch_and_process(message)
                 return
 
             await self._process_message(message)
@@ -54,12 +54,35 @@ class BumpRewards(commands.Cog):
         except Exception as e:
             logger.error(f"Failed in on_message_edit handler: {e}")
 
+    @commands.Cog.listener()
+    async def on_raw_message_edit(self, payload: discord.RawMessageUpdateEvent):  # type: ignore
+        try:
+            # Raw event fires even if message not in cache. We fetch and process.
+            channel = self.bot.get_channel(payload.channel_id)
+            if channel is None or not isinstance(channel, discord.abc.Messageable):  # type: ignore
+                return
+            try:
+                msg = await channel.fetch_message(payload.message_id)  # type: ignore[attr-defined]
+            except Exception as ex:
+                logger.error(f"on_raw_message_edit fetch failed for message {payload.message_id}: {ex}")
+                return
+            logger.debug(
+                f"on_raw_message_edit: id={getattr(msg, 'id', None)} author_id={getattr(msg.author, 'id', None)} embeds={len(msg.embeds) if getattr(msg, 'embeds', None) else 0}"
+            )
+            if getattr(msg.author, 'id', None) != DISBOARD_BOT_ID:
+                return
+            await self._process_message(msg)
+        except Exception as e:
+            logger.error(f"Failed in on_raw_message_edit handler: {e}")
+
     async def _refetch_and_process(self, original: discord.Message):
         """Refetch the message a few times to see if embeds were attached later."""
         try:
             import asyncio
             delays = [1.0, 3.0, 5.0]
+            logger.debug(f"_refetch_and_process: starting for message {original.id} with delays={delays}")
             for d in delays:
+                logger.debug(f"_refetch_and_process: sleeping {d}s before refetch for message {original.id}")
                 await asyncio.sleep(d)
                 try:
                     fetched = await original.channel.fetch_message(original.id)
