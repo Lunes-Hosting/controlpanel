@@ -17,21 +17,13 @@ class BumpRewards(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):  # type: ignore
         try:
-            logger.debug(
-                f"on_message: id={message.id} author_id={getattr(message.author, 'id', None)} "
-                f"author_bot={getattr(message.author, 'bot', None)} guild_id={getattr(message.guild, 'id', None)} "
-                f"channel_id={getattr(message.channel, 'id', None)} content_len={len(message.content) if hasattr(message, 'content') and message.content else 0} "
-                f"embeds={len(message.embeds) if hasattr(message, 'embeds') and message.embeds else 0}"
-            )
             # Only care about messages from the DISBOARD bot
             if message.author.id != DISBOARD_BOT_ID:
-                logger.debug(
-                    f"Skipping message {message.id}: author {message.author.id} != DISBOARD_BOT_ID {DISBOARD_BOT_ID}"
-                )
                 return
+            logger.debug(f"DISBOARD message {message.id}: embeds={len(message.embeds) if message.embeds else 0}")
             if not message.embeds:
                 # Some bots add embeds shortly after sending. Try a few delayed re-fetches.
-                logger.debug(f"DISBOARD message {message.id} has 0 embeds initially; starting re-fetch attempts inline")
+                logger.debug(f"DISBOARD message {message.id}: no embeds; refetching shortly")
                 await self._refetch_and_process(message)
                 return
 
@@ -42,13 +34,11 @@ class BumpRewards(commands.Cog):
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message):  # type: ignore
         try:
-            logger.debug(
-                f"on_message_edit: id={getattr(after, 'id', None)} author_id={getattr(after.author, 'id', None)} "
-                f"before_embeds={len(before.embeds) if hasattr(before, 'embeds') and before.embeds else 0} "
-                f"after_embeds={len(after.embeds) if hasattr(after, 'embeds') and after.embeds else 0}"
-            )
             if getattr(after.author, 'id', None) != DISBOARD_BOT_ID:
                 return
+            logger.debug(
+                f"on_message_edit: id={getattr(after, 'id', None)} embeds={len(after.embeds) if after.embeds else 0}"
+            )
             # Re-run the same detection on the edited message
             await self._process_message(after)
         except Exception as e:
@@ -66,11 +56,11 @@ class BumpRewards(commands.Cog):
             except Exception as ex:
                 logger.error(f"on_raw_message_edit fetch failed for message {payload.message_id}: {ex}")
                 return
-            logger.debug(
-                f"on_raw_message_edit: id={getattr(msg, 'id', None)} author_id={getattr(msg.author, 'id', None)} embeds={len(msg.embeds) if getattr(msg, 'embeds', None) else 0}"
-            )
             if getattr(msg.author, 'id', None) != DISBOARD_BOT_ID:
                 return
+            logger.debug(
+                f"on_raw_message_edit: id={getattr(msg, 'id', None)} embeds={len(msg.embeds) if getattr(msg, 'embeds', None) else 0}"
+            )
             await self._process_message(msg)
         except Exception as e:
             logger.error(f"Failed in on_raw_message_edit handler: {e}")
@@ -80,21 +70,25 @@ class BumpRewards(commands.Cog):
         try:
             import asyncio
             delays = [1.0, 3.0, 5.0]
-            logger.debug(f"_refetch_and_process: starting for message {original.id} with delays={delays}")
+            logger.debug(f"refetch: start message {original.id} delays={delays}")
             for d in delays:
-                logger.debug(f"_refetch_and_process: sleeping {d}s before refetch for message {original.id}")
                 await asyncio.sleep(d)
                 try:
                     fetched = await original.channel.fetch_message(original.id)
-                    logger.debug(
-                        f"Refetch attempt after {d}s: message {original.id} embeds={len(fetched.embeds) if fetched.embeds else 0}"
-                    )
+                    if fetched.embeds:
+                        logger.debug(
+                            f"refetch: message {original.id} got embeds={len(fetched.embeds)} after {d}s"
+                        )
+                    else:
+                        logger.debug(
+                            f"refetch: message {original.id} still no embeds after {d}s"
+                        )
                     if fetched.embeds:
                         await self._process_message(fetched)
                         return
                 except Exception as ex:
                     logger.error(f"Refetch failed for message {original.id} after {d}s: {ex}")
-            logger.debug(f"Refetch attempts exhausted for message {original.id}; still no embeds")
+            logger.debug(f"refetch: done message {original.id}; no embeds found")
         except Exception as e:
             logger.error(f"_refetch_and_process error for message {getattr(original, 'id', None)}: {e}")
 
@@ -108,7 +102,6 @@ class BumpRewards(commands.Cog):
         # Check interaction name first
         try:
             interaction_name = getattr(getattr(message, 'interaction', None), 'name', None)
-            logger.debug(f"(process) interaction_name={interaction_name}")
             if isinstance(interaction_name, str) and interaction_name.lower() == 'bump':
                 matched = True
                 logger.info(f"Message {message.id}: matched DISBOARD by interaction name 'bump'")
@@ -118,9 +111,6 @@ class BumpRewards(commands.Cog):
             try:
                 # discord.EmbedProxy for image with .url attr
                 img_url = getattr(emb.image, "url", None) if getattr(emb, "image", None) else None
-                logger.debug(
-                    f"Process embed[{idx}]: title={getattr(emb, 'title', None)} img_url={img_url} target={DISBOARD_BUMP_IMAGE}"
-                )
                 if not matched and emb.image and img_url == DISBOARD_BUMP_IMAGE:
                     matched = True
                     logger.info(
@@ -139,21 +129,6 @@ class BumpRewards(commands.Cog):
                 logger.error(f"Error inspecting embed on message {message.id} (process phase): {ex}")
                 continue
         if not matched:
-            try:
-                embed_summary = [
-                    {
-                        "title": getattr(e, "title", None),
-                        "image": getattr(getattr(e, "image", None), "url", None) if getattr(e, "image", None) else None,
-                        "author": getattr(getattr(e, "author", None), "name", None) if getattr(e, "author", None) else None,
-                        "description": getattr(e, "description", None),
-                    }
-                    for e in (message.embeds or [])
-                ]
-            except Exception as ex:
-                embed_summary = f"<error summarizing embeds: {ex}>"
-            logger.debug(
-                f"Message {message.id}: DISBOARD author but embed did not match bump image URL (process phase); embed_summary={embed_summary}"
-            )
             return
 
         # Identify the user who initiated the slash command
@@ -197,20 +172,20 @@ class BumpRewards(commands.Cog):
                 logger.error(f"Failed to prompt unlinked bumper {bumper_id} (process phase): {e}")
             return
 
-        # Award 1 credit to the linked email
+        # Award 3 credit to the linked email
         email = info.get("email")
         try:
             logger.info(
-                f"(process) Awarding +1 credit to email={email} (discord_id={bumper_id}) for DISBOARD bump"
+                f"(process) Awarding +3 credit to email={email} (discord_id={bumper_id}) for DISBOARD bump"
             )
-            add_credits(email, 1, set_client=False)
+            add_credits(email, 3, set_client=False)
             await message.channel.send(
                 content=(
                     f"<@{bumper_id}>, thanks for the bump on [{message.guild.name} | DISBOARD: Discord Server List]"
-                    f"(https://disboard.org/server/{message.guild.id})! +1 credit added to your account."
+                    f"(https://disboard.org/server/{message.guild.id})! +3 credit added to your account."
                 )
             )
-            logger.info(f"(process) Awarded +1 credit to {email} for DISBOARD bump by {bumper_id}")
+            logger.info(f"(process) Awarded +3 credit to {email} for DISBOARD bump by {bumper_id}")
         except Exception as e:
             logger.error(f"Failed to add bump credit for {email} ({bumper_id}) (process phase): {e}")
             try:
