@@ -1,7 +1,7 @@
 import discord  # type: ignore
 from discord.ext import commands  # type: ignore
 from discord.commands import slash_command  # type: ignore
-from typing import List, Tuple
+from typing import List
 import random
 
 from ..utils.database import UserDB
@@ -43,11 +43,12 @@ def format_hand(hand: List[str]) -> str:
 
 
 class BlackjackView(discord.ui.View):
-    def __init__(self, ctx: discord.ApplicationContext, email: str, bet: int):
+    def __init__(self, ctx: discord.ApplicationContext, email: str, bet: int, cog: "Blackjack"):
         super().__init__(timeout=60)
         self.ctx = ctx
         self.email = email
         self.bet = bet
+        self.cog = cog
         self.player_hand: List[str] = []
         self.dealer_hand: List[str] = []
         self.deck = new_deck()
@@ -79,6 +80,12 @@ class BlackjackView(discord.ui.View):
             if isinstance(child, discord.ui.Button):
                 child.disabled = True
         self.game_over = True
+        # Remove from active registry if present
+        try:
+            if hasattr(self, "cog") and self.ctx.author.id in self.cog.active_games:
+                self.cog.active_games.pop(self.ctx.author.id, None)
+        except Exception:
+            pass
 
     async def settle(self, interaction: discord.Interaction):  # type: ignore
         p = hand_value(self.player_hand)
@@ -150,6 +157,8 @@ class Blackjack(commands.Cog):
     def __init__(self, bot, flask_app=None):
         self.bot = bot
         self.flask_app = flask_app
+        # Track active games per user to enforce auto-loss on concurrent starts
+        self.active_games: dict[int, BlackjackView] = {}
 
     @slash_command(name="blackjack", description="Play blackjack with credits")
     async def blackjack(self, ctx, credits: discord.Option(int, "Bet amount (credits)")):  # type: ignore
@@ -173,14 +182,59 @@ class Blackjack(commands.Cog):
             await ctx.respond(f"Insufficient credits. You have {current_credits}.", ephemeral=True)
             return
 
-        # Pre-reserve by attempting to remove credits now to prevent double-spend via multiple sessions
-        # We will give back on push or add double on win by adding 2x if we removed now. To match user's request
-        # (win gets amount, lose loses amount), we'll only remove on loss to keep simple and match current systems.
-        # Therefore, we do NOT pre-deduct. We'll only remove on loss at settlement.
+        # Pre-reserve: we follow current system of only removing credits on loss at settlement.
 
-        view = BlackjackView(ctx, email=email, bet=int(credits))
+        # If a game is already in progress for this user and not finished, auto-forfeit it as a loss
+        existing = self.active_games.get(ctx.author.id)
+        if existing and not getattr(existing, "game_over", False):
+            try:
+                # Force a loss: deduct credits and update the existing game message
+                try:
+                    remove_credits(existing.email, float(existing.bet))
+                    footer = f"Auto-loss: started a new game before finishing the previous one. -{existing.bet} credits"
+                except Exception as e:
+                    logger.error(f"Auto-loss credit removal failed for {existing.email}: {e}")
+                    footer = "Previous game auto-forfeited due to starting a new one, but credit update failed. Please contact support."
+
+                # Build final embed showing dealer's full hand
+                embed = existing.status_embed(final=True)
+                embed.set_footer(text=f"Bet: {existing.bet} credits | {footer}")
+
+                # Disable buttons and mark game over
+                existing.end_game()
+
+                # Try to edit the original message if available
+                msg = getattr(existing, "message", None)
+                if msg is not None:
+                    try:
+                        await msg.edit(embed=embed, view=existing)
+                    except Exception as e:
+                        logger.error(f"Failed to edit auto-forfeited game message: {e}")
+            except Exception as e:
+                logger.error(f"Failed to auto-forfeit existing blackjack game for user {ctx.author.id}: {e}")
+
+        view = BlackjackView(ctx, email=email, bet=int(credits), cog=self)
         embed = view.status_embed(final=False)
-        await ctx.respond(embed=embed, view=view, ephemeral=False)
+        # Send and keep a handle to the message so we can update it if needed
+        try:
+            msg = await ctx.respond(embed=embed, view=view, ephemeral=False)
+            # Some discord libs return a Message, others require fetching original response
+            # If respond returns a Message, store it; otherwise try to fetch
+            if hasattr(msg, "edit"):
+                view.message = msg
+            else:
+                try:
+                    view.message = await ctx.interaction.original_response()
+                except Exception:
+                    view.message = None
+        except Exception:
+            # Fallback: try to fetch and continue
+            try:
+                view.message = await ctx.interaction.original_response()
+            except Exception:
+                view.message = None
+        # Register the active game
+        self.active_games[ctx.author.id] = view
 
 
 def setup(bot, flask_app=None):

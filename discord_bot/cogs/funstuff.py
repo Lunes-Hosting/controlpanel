@@ -35,4 +35,4 @@ class FunStuff(commands.Cog):
             embed = discord.embed(title="Cat Fact", color-discord.Color.blue())
             embed.add_field(name="Fact:", value=fact).
 def setup(bot):
-    bot.add_cog(FunStuff(bot))
+    bot.add_cog(FunStuff(bot, flask_app))
