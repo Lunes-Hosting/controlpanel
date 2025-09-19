@@ -100,8 +100,20 @@ class BumpRewards(commands.Cog):
 
     async def _process_message(self, message: discord.Message):
         """Core detection and reward logic, shared by on_message and edit/refetch paths."""
-        # Find the bump confirmation embed by image URL
+        # Find the bump confirmation by either:
+        # - image URL match (classic DISBOARD confirmation), OR
+        # - interaction name == 'bump', OR
+        # - embed description contains 'Bump done' text
         matched = False
+        # Check interaction name first
+        try:
+            interaction_name = getattr(getattr(message, 'interaction', None), 'name', None)
+            logger.debug(f"(process) interaction_name={interaction_name}")
+            if isinstance(interaction_name, str) and interaction_name.lower() == 'bump':
+                matched = True
+                logger.info(f"Message {message.id}: matched DISBOARD by interaction name 'bump'")
+        except Exception as ex:
+            logger.error(f"(process) reading interaction name failed for message {message.id}: {ex}")
         for idx, emb in enumerate(message.embeds):
             try:
                 # discord.EmbedProxy for image with .url attr
@@ -109,10 +121,18 @@ class BumpRewards(commands.Cog):
                 logger.debug(
                     f"Process embed[{idx}]: title={getattr(emb, 'title', None)} img_url={img_url} target={DISBOARD_BUMP_IMAGE}"
                 )
-                if emb.image and img_url == DISBOARD_BUMP_IMAGE:
+                if not matched and emb.image and img_url == DISBOARD_BUMP_IMAGE:
                     matched = True
                     logger.info(
                         f"Message {message.id}: matched DISBOARD bump embed by image URL (process phase)"
+                    )
+                    break
+                # Text signature fallback when no image; avoid matching /debug by requiring 'Bump done'
+                desc = getattr(emb, 'description', '') or ''
+                if not matched and isinstance(desc, str) and 'bump done' in desc.lower():
+                    matched = True
+                    logger.info(
+                        f"Message {message.id}: matched DISBOARD bump by description text 'Bump done'"
                     )
                     break
             except Exception as ex:
