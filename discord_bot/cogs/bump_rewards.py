@@ -30,7 +30,20 @@ class BumpRewards(commands.Cog):
                 )
                 return
             if not message.embeds:
-                logger.debug(f"Skipping message {message.id}: no embeds on DISBOARD message")
+                # Log raw embed-like fields even if not present to help debug
+                try:
+                    embed_summary = [
+                        {
+                            "title": getattr(e, "title", None),
+                            "image": getattr(getattr(e, "image", None), "url", None) if getattr(e, "image", None) else None,
+                            "author": getattr(getattr(e, "author", None), "name", None) if getattr(e, "author", None) else None,
+                            "description": getattr(e, "description", None),
+                        }
+                        for e in (message.embeds or [])
+                    ]
+                except Exception as ex:
+                    embed_summary = f"<error summarizing embeds: {ex}>"
+                logger.debug(f"Skipping message {message.id}: no embeds on DISBOARD message; embed_summary={embed_summary}")
                 return
 
             # Find the bump confirmation embed by image URL
@@ -126,6 +139,21 @@ class BumpRewards(commands.Cog):
                     pass
         except Exception as e:
             logger.error(f"Failed to handle DISBOARD bump: {e}")
+
+    @commands.Cog.listener()
+    async def on_message_edit(self, before: discord.Message, after: discord.Message):  # type: ignore
+        try:
+            logger.debug(
+                f"on_message_edit: id={getattr(after, 'id', None)} author_id={getattr(after.author, 'id', None)} "
+                f"before_embeds={len(before.embeds) if hasattr(before, 'embeds') and before.embeds else 0} "
+                f"after_embeds={len(after.embeds) if hasattr(after, 'embeds') and after.embeds else 0}"
+            )
+            if getattr(after.author, 'id', None) != DISBOARD_BOT_ID:
+                return
+            # Re-run the same detection on the edited message
+            await self.on_message(after)
+        except Exception as e:
+            logger.error(f"Failed in on_message_edit handler: {e}")
 
 
 def setup(bot, flask_app=None):
