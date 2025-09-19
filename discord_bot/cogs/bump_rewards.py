@@ -99,9 +99,13 @@ class BumpRewards(commands.Cog):
         # - interaction name == 'bump', OR
         # - embed description contains 'Bump done' text
         matched = False
-        # Check interaction name first
+        # Check interaction name first (prefer interaction_metadata; fallback to deprecated interaction)
         try:
-            interaction_name = getattr(getattr(message, 'interaction', None), 'name', None)
+            im = getattr(message, 'interaction_metadata', None)
+            interaction_name = getattr(im, 'name', None)
+            if interaction_name is None:
+                # Fallback for older discord.py
+                interaction_name = getattr(getattr(message, 'interaction', None), 'name', None)
             if isinstance(interaction_name, str) and interaction_name.lower() == 'bump':
                 matched = True
                 logger.info(f"Message {message.id}: matched DISBOARD by interaction name 'bump'")
@@ -133,16 +137,17 @@ class BumpRewards(commands.Cog):
 
         # Identify the user who initiated the slash command
         bumper_id = None
-        # discord.py exposes message.interaction (MessageInteraction) with .user
         try:
-            logger.debug(
-                f"(process) message.interaction present={bool(getattr(message, 'interaction', None))} "
-                f"interaction.user={getattr(getattr(message, 'interaction', None), 'user', None)}"
-            )
-            if message.interaction and getattr(message.interaction, 'user', None):
-                bumper_id = message.interaction.user.id  # type: ignore[attr-defined]
+            im = getattr(message, 'interaction_metadata', None)
+            bumper_user = getattr(im, 'user', None)
+            if bumper_user is None:
+                # Fallback for older discord.py
+                interaction = getattr(message, 'interaction', None)
+                bumper_user = getattr(interaction, 'user', None)
+            if bumper_user is not None:
+                bumper_id = getattr(bumper_user, 'id', None)
         except Exception as ex:
-            logger.error(f"Error reading message.interaction for message {message.id} (process phase): {ex}")
+            logger.error(f"Error reading interaction metadata for message {message.id} (process phase): {ex}")
             bumper_id = None
 
         if bumper_id is None:
