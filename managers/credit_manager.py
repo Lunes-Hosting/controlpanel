@@ -278,6 +278,23 @@ def check_to_unsuspend():
             product = convert_to_product(server)
             hourly_cost = float(product['price'])/30.0/24.0
             
+            # If this is a free-tier server (price=0), and the owner hasn't logged in for 15+ days,
+            # do NOT unsuspend here. This respects the inactivity suspension policy handled in maintenance.
+            try:
+                if int(product['price']) == 0:
+                    last_seen_result = DatabaseManager.execute_query(
+                        "SELECT last_seen FROM users WHERE pterodactyl_id = %s",
+                        (user_id,)
+                    )
+                    if last_seen_result and last_seen_result[0] is not None:
+                        last_seen = last_seen_result[0]
+                        if datetime.datetime.now() - last_seen > datetime.timedelta(days=15):
+                            # Skip unsuspension due to inactivity
+                            continue
+            except Exception:
+                # Fail-open to existing behavior if any error occurs
+                pass
+
             # Check if user has enough credits for this server
             if remaining_credits >= hourly_cost:
                 # User can afford this server, unsuspend it

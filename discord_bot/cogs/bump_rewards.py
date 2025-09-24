@@ -1,5 +1,6 @@
 import discord  # type: ignore
 from discord.ext import commands  # type: ignore
+import asyncio
 
 from ..utils.database import UserDB
 from managers.credit_manager import add_credits
@@ -23,8 +24,9 @@ class BumpRewards(commands.Cog):
             logger.debug(f"DISBOARD message {message.id}: embeds={len(message.embeds) if message.embeds else 0}")
             if not message.embeds:
                 # Some bots add embeds shortly after sending. Try a few delayed re-fetches.
-                logger.debug(f"DISBOARD message {message.id}: no embeds; refetching shortly")
-                await self._refetch_and_process(message)
+                logger.debug(f"DISBOARD message {message.id}: no embeds; scheduling refetch")
+                # Run refetch in background to avoid getting cancelled or blocking other events
+                asyncio.create_task(self._refetch_and_process(message))
                 return
 
             await self._process_message(message)
@@ -68,14 +70,18 @@ class BumpRewards(commands.Cog):
     async def _refetch_and_process(self, original: discord.Message):
         """Refetch the message a few times to see if embeds were attached later."""
         try:
-            import asyncio
             delays = [1.0, 3.0, 5.0]
             logger.debug(f"refetch: start message {original.id} delays={delays}")
             for d in delays:
-                await asyncio.sleep(d)
+                logger.debug(f"refetch: sleeping {d}s for message {original.id}")
+                try:
+                    await asyncio.sleep(d)
+                except asyncio.CancelledError:
+                    logger.debug(f"refetch: task cancelled during sleep for message {original.id}")
+                    return
                 try:
                     fetched = await original.channel.fetch_message(original.id)
-                    if fetched.embeds:
+                    if getattr(fetched, 'embeds', None):
                         logger.debug(
                             f"refetch: message {original.id} got embeds={len(fetched.embeds)} after {d}s"
                         )
@@ -83,7 +89,7 @@ class BumpRewards(commands.Cog):
                         logger.debug(
                             f"refetch: message {original.id} still no embeds after {d}s"
                         )
-                    if fetched.embeds:
+                    if getattr(fetched, 'embeds', None):
                         await self._process_message(fetched)
                         return
                 except Exception as ex:

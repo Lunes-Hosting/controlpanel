@@ -16,10 +16,12 @@ import threading
 import requests
 import bcrypt
 import secrets
+from flask import current_app
 from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 from managers.database_manager import DatabaseManager
 from .logging import webhook_log
 from .user_manager import get_ptero_id, update_last_seen
+from .email_manager import send_email
 from security import safe_requests
 
 # API authentication headers
@@ -130,14 +132,15 @@ def sync_users_script():
 
 def delete_inactive_free_servers():
     """
-    Handles deletion of free tier servers whose owners haven't logged in for 15+ days.
+    Handles lifecycle of free tier servers for users who haven't logged in recently.
     
     Process:
     1. Gets all servers from Pterodactyl
     2. Identifies free tier servers based on specs
     3. Checks last login time of server owners
-    4. Deletes servers of inactive users (15+ days)
-    5. Logs deletions
+    4. If inactivity > 15 days, suspend the server (grace period)
+    5. If inactivity > 17 days, delete the server
+    6. Logs actions
     """
     db = DatabaseManager()
     
@@ -171,13 +174,49 @@ def delete_inactive_free_servers():
                 
                 if last_seen_result and last_seen_result[0]:
                     last_seen = last_seen_result[0]
-                    
-                    # Check if user hasn't logged in for 15+ days
-                    if datetime.datetime.now() - last_seen > datetime.timedelta(days=15):
-                        # Delete the server
+                    inactivity = datetime.datetime.now() - last_seen
+
+                    # Delete after 17+ days of inactivity
+                    if inactivity > datetime.timedelta(days=17):
                         from managers.server_manager import delete_server
                         delete_server(server_id)
-                        
-                        webhook_log(f"Deleted free tier server {server_name} (ID: {server_id}) due to owner inactivity (15+ days)", database_log=True)
+                        webhook_log(f"Deleted free tier server {server_name} (ID: {server_id}) due to owner inactivity (17+ days)", database_log=True)
+
+                    # Suspend after 15+ days of inactivity (grace period), only if not already suspended
+                    elif inactivity > datetime.timedelta(days=15):
+                        if not server['attributes'].get('suspended', False):
+                            from managers.server_manager import suspend_server
+                            suspend_server(server_id)
+                            webhook_log(f"Suspended free tier server {server_name} (ID: {server_id}) due to owner inactivity (15+ days)", database_log=True)
+
+                            # Send suspension email to the owner
+                            try:
+                                email_result = db.execute_query(
+                                    "SELECT email FROM users WHERE pterodactyl_id = %s",
+                                    (user_id,)
+                                )
+                                if email_result and email_result[0]:
+                                    user_email = email_result[0]
+                                    message = (
+                                        "Your free-tier server has been suspended due to inactivity (no login for over 15 days).\n\n"
+                                        "To keep your server, please log in to your account within the next 2 days. "
+                                        "Servers inactive for 17+ days are automatically deleted.\n\n"
+                                        "If you believe this was a mistake or need assistance, please contact support."
+                                    )
+                                    send_email(
+                                        user_email,
+                                        "Server Suspended Due to Inactivity",
+                                        message,
+                                        current_app._get_current_object()
+                                    )
+                                    webhook_log(
+                                        f"Suspension email sent to {user_email} for server {server_name} (ID: {server_id})",
+                                        database_log=True
+                                    )
+                            except Exception as e:
+                                webhook_log(
+                                    f"Failed to send suspension email for server {server_name} (ID: {server_id}): {str(e)}",
+                                    database_log=True
+                                )
         except Exception as e:
             webhook_log(f"Error processing server for inactive free tier check: {str(e)}", database_log=True)
