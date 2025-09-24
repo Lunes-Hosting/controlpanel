@@ -109,9 +109,6 @@ class BumpRewards(commands.Cog):
         try:
             im = getattr(message, 'interaction_metadata', None)
             interaction_name = getattr(im, 'name', None)
-            if interaction_name is None:
-                # Fallback for older discord.py
-                interaction_name = getattr(getattr(message, 'interaction', None), 'name', None)
             if isinstance(interaction_name, str) and interaction_name.lower() == 'bump':
                 matched = True
                 logger.info(f"Message {message.id}: matched DISBOARD by interaction name 'bump'")
