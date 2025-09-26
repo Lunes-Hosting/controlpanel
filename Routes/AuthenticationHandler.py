@@ -65,6 +65,7 @@ from products import products
 
 from cacheext import cache
 from managers.database_manager import DatabaseManager
+from managers.announcement_manager import AnnouncementManager
 from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY
 
 # Create a blueprint for the user routes
@@ -217,6 +218,9 @@ def index():
             fixed_list.append(product)
             #products_local.remove(product)
 
+    # Get active announcements
+    announcements = AnnouncementManager.get_active_announcements()
+
     return render_template(
         "account.html", 
         credits=int(current_credits), 
@@ -228,7 +232,8 @@ def index():
         servers=servers,
         products=fixed_list,
         verified=verified,
-        suspended=suspended
+        suspended=suspended,
+        announcements=announcements
     )
 
 

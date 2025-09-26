@@ -56,6 +56,42 @@
     </div>
     {% endif %}
 
+    <!-- Announcements -->
+    {% if announcements %}
+        {% for announcement in announcements %}
+        <div class="max-w-5xl mx-auto mb-6">
+            <div class="announcement bg-gray-900 border-2 {% if announcement.type == 'info' %}border-blue-500 shadow-blue-500/20{% elif announcement.type == 'warning' %}border-yellow-500 shadow-yellow-500/20{% elif announcement.type == 'success' %}border-green-500 shadow-green-500/20{% elif announcement.type == 'error' %}border-red-500 shadow-red-500/20{% else %}border-blue-500 shadow-blue-500/20{% endif %} shadow-xl rounded-md p-6">
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0">
+                        {% if announcement.type == 'info' %}
+                            <i class="fa-solid fa-info-circle text-blue-400 text-xl"></i>
+                        {% elif announcement.type == 'warning' %}
+                            <i class="fa-solid fa-exclamation-triangle text-yellow-400 text-xl"></i>
+                        {% elif announcement.type == 'success' %}
+                            <i class="fa-solid fa-check-circle text-green-400 text-xl"></i>
+                        {% elif announcement.type == 'error' %}
+                            <i class="fa-solid fa-times-circle text-red-400 text-xl"></i>
+                        {% else %}
+                            <i class="fa-solid fa-bullhorn text-blue-400 text-xl"></i>
+                        {% endif %}
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-white mb-2">{{ announcement.title }}</h3>
+                        <p class="text-gray-300 mb-3">{{ announcement.message }}</p>
+                        <div class="flex items-center gap-4 text-sm text-gray-400">
+                            <span><i class="fa-solid fa-user mr-1"></i> {{ announcement.created_by }}</span>
+                            <span><i class="fa-solid fa-calendar mr-1"></i> {{ announcement.created_at.strftime('%Y-%m-%d %H:%M') if announcement.created_at else 'N/A' }}</span>
+                            {% if announcement.end_date %}
+                                <span><i class="fa-solid fa-clock mr-1"></i> Ends: {{ announcement.end_date.strftime('%Y-%m-%d %H:%M') }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+
     <div class="content max-w-5xl mx-auto">
         <div class="container mx-auto p-4 sm:p-6">
 
