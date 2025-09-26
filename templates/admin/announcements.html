@@ -1,0 +1,219 @@
+{% include 'admin/admin_taskbar.html' %}
+
+<main class="p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-white mb-2">Announcements</h1>
+                    <p class="text-gray-400">Manage system-wide announcements for users</p>
+                </div>
+                <a href="{{ url_for('admin.create_announcement') }}" 
+                   class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors duration-200 flex items-center gap-2">
+                    <i class="fa fa-plus"></i>
+                    Create Announcement
+                </a>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-6 p-4 rounded-lg {% if category == 'success' %}bg-green-900 text-green-100{% elif category == 'error' %}bg-red-900 text-red-100{% else %}bg-blue-900 text-blue-100{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Announcements List -->
+        <div class="bg-gray-800 rounded-lg shadow-xl">
+            {% if announcements %}
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-700">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-sm font-medium text-gray-300">Title</th>
+                                <th class="px-6 py-4 text-left text-sm-medium text-gray-300">Type</th>
+                                <th class="px-6 py-4 text-left text-sm font-medium text-gray-300">Status</th>
+                                <th class="px-6 py-4 text-left text-sm font-medium text-gray-300">Created</th>
+                                <th class="px-6 py-4 text-left text-sm font-medium text-gray-300">Priority</th>
+                                <th class="px-6 py-4 text-left text-sm font-medium text-gray-300">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            {% for announcement in announcements %}
+                            <tr class="hover:bg-gray-700 transition-colors duration-200">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center">
+                                        <div>
+                                            <div class="text-sm font-medium text-white">{{ announcement.title }}</div>
+                                            <div class="text-sm text-gray-400 truncate max-w-xs">{{ announcement.message[:100] }}{% if announcement.message|length > 100 %}...{% endif %}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                        {% if announcement.type == 'info' %}bg-blue-900 text-blue-300
+                                        {% elif announcement.type == 'warning' %}bg-yellow-900 text-yellow-300
+                                        {% elif announcement.type == 'success' %}bg-green-900 text-green-300
+                                        {% elif announcement.type == 'error' %}bg-red-900 text-red-300
+                                        {% else %}bg-gray-900 text-gray-300{% endif %}">
+                                        {{ announcement.type.title() }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                        {% if announcement.is_active %}bg-green-900 text-green-300{% else %}bg-red-900 text-red-300{% endif %}">
+                                        {% if announcement.is_active %}Active{% else %}Inactive{% endif %}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-400">
+                                    {{ announcement.created_at.strftime('%Y-%m-%d %H:%M') if announcement.created_at else 'N/A' }}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-400">
+                                    {{ announcement.priority }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <a href="{{ url_for('admin.edit_announcement', announcement_id=announcement.id) }}" 
+                                           class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Edit">
+                                            <i class="fa fa-edit"></i>
+                                        </a>
+                                        
+                                        <button onclick="toggleAnnouncement({{ announcement.id }}, {{ announcement.is_active|lower }})" 
+                                                class="{% if announcement.is_active %}text-yellow-400 hover:text-yellow-300{% else %}text-green-400 hover:text-green-300{% endif %} transition-colors duration-200" 
+                                                title="{% if announcement.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                            <i class="fa {% if announcement.is_active %}fa-pause{% else %}fa-play{% endif %}"></i>
+                                        </button>
+                                        
+                                        <button onclick="endAnnouncement({{ announcement.id }})" 
+                                                class="text-orange-400 hover:text-orange-300 transition-colors duration-200" 
+                                                title="End Announcement">
+                                            <i class="fa fa-stop"></i>
+                                        </button>
+                                        
+                                        <button onclick="deleteAnnouncement({{ announcement.id }}, '{{ announcement.title }}')" 
+                                                class="text-red-400 hover:text-red-300 transition-colors duration-200" 
+                                                title="Delete">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <i class="fa fa-bullhorn text-6xl text-gray-600 mb-4"></i>
+                    <h3 class="text-xl font-medium text-gray-400 mb-2">No announcements yet</h3>
+                    <p class="text-gray-500 mb-6">Create your first announcement to get started</p>
+                    <a href="{{ url_for('admin.create_announcement') }}" 
+                       class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors duration-200 inline-flex items-center gap-2">
+                        <i class="fa fa-plus"></i>
+                        Create Announcement
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</main>
+
+<!-- Confirmation Modal -->
+<div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div class="p-6">
+                <h3 class="text-lg font-medium text-white mb-4" id="modalTitle">Confirm Action</h3>
+                <p class="text-gray-400 mb-6" id="modalMessage">Are you sure you want to perform this action?</p>
+                <div class="flex justify-end gap-3">
+                    <button onclick="closeModal()" class="px-4 py-2 text-gray-400 hover:text-white transition-colors duration-200">
+                        Cancel
+                    </button>
+                    <button id="confirmButton" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleAnnouncement(id, isActive) {
+    fetch(`/admin/announcements/${id}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the announcement');
+    });
+}
+
+function endAnnouncement(id) {
+    fetch(`/admin/announcements/${id}/end`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while ending the announcement');
+    });
+}
+
+function deleteAnnouncement(id, title) {
+    document.getElementById('modalTitle').textContent = 'Delete Announcement';
+    document.getElementById('modalMessage').textContent = `Are you sure you want to delete "${title}"? This action cannot be undone.`;
+    document.getElementById('confirmButton').onclick = () => {
+        fetch(`/admin/announcements/${id}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the announcement');
+        });
+        closeModal();
+    };
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+}
+</script>
