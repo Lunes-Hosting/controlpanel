@@ -1,0 +1,209 @@
+{% include 'admin/admin_taskbar.html' %}
+
+<main class="p-6">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center gap-4 mb-4">
+                <a href="{{ url_for('admin.announcements') }}" 
+                   class="text-gray-400 hover:text-white transition-colors duration-200">
+                    <i class="fa fa-arrow-left text-xl"></i>
+                </a>
+                <div>
+                    <h1 class="text-3xl font-bold text-white">Edit Announcement</h1>
+                    <p class="text-gray-400">Update announcement settings</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-6 p-4 rounded-lg {% if category == 'success' %}bg-green-900 text-green-100{% elif category == 'error' %}bg-red-900 text-red-100{% else %}bg-blue-900 text-blue-100{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Edit Form -->
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6">
+            <form method="POST" class="space-y-6">
+                <!-- Title -->
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-300 mb-2">
+                        Title <span class="text-red-400">*</span>
+                    </label>
+                    <input type="text" 
+                           id="title" 
+                           name="title" 
+                           required 
+                           value="{{ announcement.title }}"
+                           class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Enter announcement title">
+                </div>
+
+                <!-- Message -->
+                <div>
+                    <label for="message" class="block text-sm font-medium text-gray-300 mb-2">
+                        Message <span class="text-red-400">*</span>
+                    </label>
+                    <textarea id="message" 
+                              name="message" 
+                              required 
+                              rows="6"
+                              class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Enter announcement message">{{ announcement.message }}</textarea>
+                </div>
+
+                <!-- Type, Status, and Priority Row -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Type -->
+                    <div>
+                        <label for="type" class="block text-sm font-medium text-gray-300 mb-2">
+                            Type
+                        </label>
+                        <select id="type" 
+                                name="type" 
+                                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="info" {% if announcement.type == 'info' %}selected{% endif %}>Info</option>
+                            <option value="warning" {% if announcement.type == 'warning' %}selected{% endif %}>Warning</option>
+                            <option value="success" {% if announcement.type == 'success' %}selected{% endif %}>Success</option>
+                            <option value="error" {% if announcement.type == 'error' %}selected{% endif %}>Error</option>
+                        </select>
+                    </div>
+
+                    <!-- Status -->
+                    <div>
+                        <label for="is_active" class="block text-sm font-medium text-gray-300 mb-2">
+                            Status
+                        </label>
+                        <select id="is_active" 
+                                name="is_active" 
+                                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="1" {% if announcement.is_active %}selected{% endif %}>Active</option>
+                            <option value="0" {% if not announcement.is_active %}selected{% endif %}>Inactive</option>
+                        </select>
+                    </div>
+
+                    <!-- Priority -->
+                    <div>
+                        <label for="priority" class="block text-sm font-medium text-gray-300 mb-2">
+                            Priority
+                        </label>
+                        <input type="number" 
+                               id="priority" 
+                               name="priority" 
+                               min="1" 
+                               max="10" 
+                               value="{{ announcement.priority }}"
+                               class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <p class="text-xs text-gray-500 mt-1">Higher numbers = higher priority</p>
+                    </div>
+                </div>
+
+                <!-- Date Settings -->
+                <div class="border-t border-gray-700 pt-6">
+                    <h3 class="text-lg font-medium text-white mb-4">Schedule Settings</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Start Date -->
+                        <div>
+                            <label for="start_date" class="block text-sm font-medium text-gray-300 mb-2">
+                                Start Date (Optional)
+                            </label>
+                            <input type="datetime-local" 
+                                   id="start_date" 
+                                   name="start_date"
+                                   value="{% if announcement.start_date %}{{ announcement.start_date.strftime('%Y-%m-%dT%H:%M') }}{% endif %}"
+                                   class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <p class="text-xs text-gray-500 mt-1">Leave empty to start immediately</p>
+                        </div>
+
+                        <!-- End Date -->
+                        <div>
+                            <label for="end_date" class="block text-sm font-medium text-gray-300 mb-2">
+                                End Date (Optional)
+                            </label>
+                            <input type="datetime-local" 
+                                   id="end_date" 
+                                   name="end_date"
+                                   value="{% if announcement.end_date %}{{ announcement.end_date.strftime('%Y-%m-%dT%H:%M') }}{% endif %}"
+                                   class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <p class="text-xs text-gray-500 mt-1">Leave empty for manual end only</p>
+                        </div>
+                    </div>
+
+                    <!-- Auto End Checkbox -->
+                    <div class="mt-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" 
+                                   id="auto_end" 
+                                   name="auto_end" 
+                                   {% if announcement.auto_end %}checked{% endif %}
+                                   class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2">
+                            <span class="ml-2 text-sm text-gray-300">Automatically end announcement at end date</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Announcement Info -->
+                <div class="border-t border-gray-700 pt-6">
+                    <h3 class="text-lg font-medium text-white mb-4">Announcement Info</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-400">
+                        <div>
+                            <span class="font-medium">Created by:</span> {{ announcement.created_by }}
+                        </div>
+                        <div>
+                            <span class="font-medium">Created at:</span> {{ announcement.created_at.strftime('%Y-%m-%d %H:%M') if announcement.created_at else 'N/A' }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-end gap-4 pt-6 border-t border-gray-700">
+                    <a href="{{ url_for('admin.announcements') }}" 
+                       class="px-6 py-3 text-gray-400 hover:text-white transition-colors duration-200">
+                        Cancel
+                    </a>
+                    <button type="submit" 
+                            class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200">
+                        Update Announcement
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+<script>
+// Auto-end checkbox functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const autoEndCheckbox = document.getElementById('auto_end');
+    const endDateField = document.getElementById('end_date');
+    
+    autoEndCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            endDateField.required = true;
+        } else {
+            endDateField.required = false;
+        }
+    });
+    
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const startDate = new Date(document.getElementById('start_date').value);
+        const endDate = new Date(document.getElementById('end_date').value);
+        
+        if (document.getElementById('start_date').value && document.getElementById('end_date').value) {
+            if (startDate >= endDate) {
+                e.preventDefault();
+                alert('Start date must be before end date');
+                return false;
+            }
+        }
+    });
+});
+</script>
