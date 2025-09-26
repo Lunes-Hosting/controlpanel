@@ -16,10 +16,10 @@ class UserDB():
     
     def get_discord_user_info(discord_id):
         try:
-            user_info = DatabaseManager.execute_query("SELECT credits, role, pterodactyl_id, id, suspended, email FROM users WHERE discord_id = %s",(discord_id,) )
+            user_info = DatabaseManager.execute_query("SELECT credits, role, pterodactyl_id, id, suspended, email, last_seen FROM users WHERE discord_id = %s",(discord_id,) )
             if not user_info:
                 return "Error: User not found"
-            return {"credits": user_info[0], "role": user_info[1], "pterodactyl_id": user_info[2], "id": user_info[3], "suspended": user_info[4], "email": user_info[5]}
+            return {"credits": user_info[0], "role": user_info[1], "pterodactyl_id": user_info[2], "id": user_info[3], "suspended": user_info[4], "email": user_info[5], "last_seen": user_info[6]}
         except Exception as e:
             logger.error(f"Error fetching user info: {str(e)}")
             return "Error fetching user info"

@@ -111,6 +111,47 @@ class Linking(commands.Cog):
             await ctx.respond(f"Error fetching user info: {str(e)}", ephemeral=True)
             logger.error(f'Error with discord command "/getuser": {str(e)}')
 
+    @slash_command(name="lastvisit", description="Get your last visit date and time for betadash")
+    async def lastvisit_command(self, ctx):
+        await ctx.defer(ephemeral=True)
+        try:
+            # Check if user is linked
+            info = UserDB.get_discord_user_info(ctx.author.id)
+            if isinstance(info, str):
+                await ctx.respond("You must be linked to use this command. Use /getcode and /link to link your account.", ephemeral=True)
+                return
+            
+            last_seen = info.get("last_seen")
+            if last_seen is None:
+                await ctx.respond("No visit data found. You haven't visited the betadash yet.", ephemeral=True)
+                return
+            
+            # Format the datetime for display
+            if isinstance(last_seen, str):
+                # If it's already a string, try to parse it
+                try:
+                    last_seen_dt = datetime.datetime.fromisoformat(last_seen.replace('Z', '+00:00'))
+                except:
+                    last_seen_dt = datetime.datetime.strptime(last_seen, '%Y-%m-%d %H:%M:%S')
+            else:
+                # If it's a datetime object
+                last_seen_dt = last_seen
+            
+            # Format for display
+            formatted_time = last_seen_dt.strftime("%B %d, %Y at %I:%M:%S %p UTC")
+            
+            embed = discord.Embed(
+                title="Last Visit Information", 
+                color=discord.Color.blue(),
+                description=f"Your last visit to the betadash was on **{formatted_time}**"
+            )
+            
+            await ctx.respond(embed=embed, ephemeral=True)
+            logger.info(f"Fetched last visit info for {ctx.author.id}")
+        except Exception as e:
+            await ctx.respond(f"Error fetching last visit information: {str(e)}", ephemeral=True)
+            logger.error(f'Error with discord command "/lastvisit": {str(e)}')
+
     
 def setup(bot, flask_app=None):
     bot.add_cog(Linking(bot, flask_app))
