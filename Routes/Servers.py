@@ -455,7 +455,7 @@ def create_server_submit():
         "SELECT role FROM users WHERE email = %s",
         (session['email'],)
     )
-    if role_row and role_row[0] != 'client':
+    if role_row and role_row[0] != 'client' and role_row[0] != 'admin' and role_row[0] != 'support':
         # Count current servers
         ptero_id_local = get_ptero_id(session['email'])[0]
         response_local = improve_list_servers(ptero_id_local)
