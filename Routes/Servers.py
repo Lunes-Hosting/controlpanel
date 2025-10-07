@@ -351,7 +351,7 @@ def create_server():
         "SELECT role FROM users WHERE email = %s",
         (session['email'],)
     )
-    if role_row and role_row[0] != 'client' and role_row[0] != 'admin' and role_row[0] != 'support':
+    if role_row and role_row[0] != 'client' or role_row[0] != 'admin' or role_row[0] != 'support':
         user_server_count = len(servers_list)
         if user_server_count >= 2:
             flash("You have reached the maximum of 2 servers for non-client accounts.")
