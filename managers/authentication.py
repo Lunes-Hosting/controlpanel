@@ -212,7 +212,7 @@ def register(email: str, password: str, name: str, ip: str):
         banned_emails = set(blocked_emails)
             
         if "+" in email or any(banned in email for banned in banned_emails):
-            webhook_log(f"Failed to register email {email} with IP {ip} due to email blacklist", non_embed_message="<@491266830674034699>", database_log=True)
+            webhook_log(f"Failed to register email {email} with IP {ip} due to email blacklist", database_log=True)
 
             session['suspended'] = True
             return "Temporary emails are not allowed! Contact panel@lunes.host if this is a mistake"

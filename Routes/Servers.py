@@ -618,7 +618,7 @@ def create_server_submit():
     if error is not None:
         flash("Failed to create server try a different node or open a ticket")
         add_credits(session['email'], credits_used, False)
-        webhook_log(f"Server was just created: ```{res}```", non_embed_message="<@491266830674034699>", database_log=True)
+        webhook_log(f"Server was just created: ```{res}```", database_log=True)
     webhook_log(f"Server was just created: ```{res}```", database_log=True)
     return redirect(url_for('user.index'))
 
