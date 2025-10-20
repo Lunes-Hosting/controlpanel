@@ -13,7 +13,6 @@ from managers.ticket_discord_manager import (
     clear_channel,
     get_ticket_id,
 )
-from managers.ticket_manager import get_ticket_owner_id
 from managers.logging import webhook_log
 
 intents = discord.Intents.default()
@@ -81,7 +80,7 @@ async def closewebticket(ctx):
             "INSERT INTO ticket_comments (ticket_id, user_id, ticketcomment, created_at) VALUES (%s, %s, %s, NOW())",
             (
                 ticket_id,
-                get_ticket_owner_id(ticket_id),
+                _get_ticket_owner_id(ticket_id),
                 f"Ticket closed by Discord staff member {ctx.author.display_name}.",
             ),
         )
@@ -107,3 +106,13 @@ async def closewebticket(ctx):
 
 async def run_bot():
     await bot.start(TOKEN)
+
+
+def _get_ticket_owner_id(ticket_id: int) -> int:
+    row = DatabaseManager.execute_query(
+        "SELECT user_id FROM tickets WHERE id = %s",
+        (ticket_id,),
+    )
+    if row:
+        return row[0]
+    return 0
