@@ -100,7 +100,7 @@ def support_required(f):
             next_url = request.path
             return redirect(url_for('user.login_user', next=next_url))
         
-        from .user_manager import is_support
+        from .user_manager import is_support, is_admin
         if not (is_support(session['email']) or is_admin(session['email'])):
             return render_template('admin/forbidden.html')
         
