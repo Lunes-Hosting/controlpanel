@@ -76,6 +76,7 @@ async def create_discord_ticket_channel(
         if channel is not None:
             await send_ticket_open_message(
                 channel,
+                title,
                 opener_name,
                 opener_email,
                 initial_message,
@@ -91,6 +92,7 @@ async def create_discord_ticket_channel(
     set_channel(ticket_id, channel.id)
     await send_ticket_open_message(
         channel,
+        title,
         opener_name,
         opener_email,
         initial_message,
@@ -100,16 +102,18 @@ async def create_discord_ticket_channel(
 
 async def send_ticket_open_message(
     channel: discord.TextChannel,
+    title: str,
     opener_name: str,
     opener_email: str,
     message: str,
     ticket_url: str,
 ) -> None:
     embed = discord.Embed(
-        title="New Ticket Created",
+        title=title,
         description=message,
         color=discord.Color.blue(),
     )
+    embed.set_author(name="New Ticket Created")
     embed.add_field(name="Opened By", value=f"{opener_name} ({opener_email})", inline=False)
     embed.add_field(name="Ticket Link", value=ticket_url, inline=False)
     await channel.send(embed=embed)
