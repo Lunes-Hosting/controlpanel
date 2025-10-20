@@ -101,7 +101,7 @@ def support_required(f):
             return redirect(url_for('user.login_user', next=next_url))
         
         from .user_manager import is_support
-        if not is_support(session['email']):
+        if not (is_support(session['email']) or is_admin(session['email'])):
             return render_template('admin/forbidden.html')
         
         return f(*args, **kwargs)
