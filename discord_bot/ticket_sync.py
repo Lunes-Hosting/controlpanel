@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Optional
+from typing import Optional, Tuple
 
 import discord  # type: ignore
 
@@ -182,19 +182,39 @@ async def delete_discord_ticket_channel(bot: discord.Client, ticket_id: int, rea
     clear_channel(ticket_id)
 
 
-async def process_discord_message(
-    bot: discord.Client,
-    channel_id: int,
-    author: str,
-    author_email: str,
-    content: str,
-) -> None:
-    ticket_id = get_ticket_id(channel_id)
+async def process_discord_message(bot: discord.Client, message: discord.Message) -> None:
+    if not _discord_ids_configured():
+        return
+    if message.author.bot:
+        return
+    if message.guild is None or message.guild.id != int(DISCORD_GUILD_ID):
+        return
+    channel = message.channel
+    if not isinstance(channel, discord.TextChannel):
+        return
+    ticket_id = get_ticket_id(channel.id)
     if not ticket_id:
         return
+    if channel.category_id and channel.category_id != int(TICKET_DISCORD_CATEGORY_ID):
+        return
+
+    staff_user = _lookup_staff_user(message.author.id)
+    if not staff_user:
+        logger.warning("Discord ticket bridge: no staff mapping for Discord user %s", message.author.id)
+        return
+    staff_id, staff_email = staff_user
+
     owner_email = _get_ticket_owner_email(ticket_id)
-    staff_id = _get_staff_user_id(author_email)
-    if not owner_email or not staff_id:
+    if not owner_email:
+        return
+
+    content = message.content.strip()
+    attachments = [attachment.url for attachment in message.attachments]
+    if attachments:
+        attachments_text = "\n".join([f"Attachment: {url}" for url in attachments])
+        content = f"{content}\n\n{attachments_text}" if content else attachments_text
+
+    if not content:
         return
 
     comment_id = _get_next_comment_id()
@@ -220,9 +240,14 @@ async def process_discord_message(
         send_email_without_app_context(
             owner_email,
             "Support Ticket Update",
-            f"{author} replied to your ticket:\n{content}\n\nPlease visit https://betadash.lunes.host/tickets/{ticket_id}",
+            f"{message.author.display_name} replied to your ticket:\n{content}\n\nPlease visit https://betadash.lunes.host/tickets/{ticket_id}",
             smtp_config,
         )
+
+    try:
+        await message.add_reaction("📬")
+    except Exception as exc:
+        logger.warning("Discord ticket bridge: failed to add reaction: %s", exc)
 
 
 def _get_smtp_config():
@@ -252,14 +277,20 @@ def _get_ticket_owner_email(ticket_id: int) -> Optional[str]:
     return None
 
 
-def _get_staff_user_id(author_email: str) -> Optional[int]:
-    lookup_email = author_email or STAFF_REPLY_EMAIL
+def _lookup_staff_user(discord_id: int) -> Optional[Tuple[int, str]]:
     row = DatabaseManager.execute_query(
-        "SELECT id FROM users WHERE email = %s",
-        (lookup_email,),
+        "SELECT id, email FROM users WHERE discord_id = %s",
+        (discord_id,),
     )
     if row:
-        return row[0]
+        return row[0], row[1]
+    if STAFF_REPLY_EMAIL:
+        fallback = DatabaseManager.execute_query(
+            "SELECT id, email FROM users WHERE email = %s",
+            (STAFF_REPLY_EMAIL,),
+        )
+        if fallback:
+            return fallback[0], fallback[1]
     return None
 
 
