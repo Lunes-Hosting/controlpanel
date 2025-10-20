@@ -14,7 +14,7 @@ bot = discord.Bot()
 
 @bot.event
 async def on_ready():
-    set_bot_loop(asyncio.get_running_loop())
+    set_bot_loop(asyncio.get_running_loop(), bot)
     logger.info(f'Logged into Discord Bot: {bot.user}')
     
     
