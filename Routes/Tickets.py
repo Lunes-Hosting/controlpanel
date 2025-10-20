@@ -57,6 +57,22 @@ from managers.email_manager import send_email
 from managers.logging import webhook_log
 from managers.database_manager import DatabaseManager
 
+try:
+    from discord_bot.ticket_bridge import (
+        schedule_ticket_channel_creation,
+        schedule_ticket_channel_deletion,
+        schedule_ticket_message,
+    )
+except Exception:
+    def schedule_ticket_channel_creation(*args, **kwargs):
+        return None
+
+    def schedule_ticket_message(*args, **kwargs):
+        return None
+
+    def schedule_ticket_channel_deletion(*args, **kwargs):
+        return None
+
 tickets = Blueprint('tickets', __name__)
 
 @tickets.route('/')
@@ -107,8 +123,19 @@ def create_ticket_submit():
         "INSERT INTO ticket_comments (id, ticket_id, user_id, ticketcomment, created_at) VALUES (%s, %s, %s, %s, %s)",
         (comment_id, ticket_id, user_id, message, timestamp)
     )
-    
+
     webhook_log(f"Ticket created by `{session['email']}` with title `{title}` https://betadash.lunes.host/tickets/{ticket_id}", is_ticket=True)
+    ticket_url = url_for('tickets.ticket', ticket_id=ticket_id, _external=True)
+    opener_name_data = get_name(user_id)
+    opener_name = opener_name_data[0] if opener_name_data else session['email']
+    schedule_ticket_channel_creation(
+        ticket_id,
+        title,
+        opener_name,
+        session['email'],
+        message,
+        ticket_url,
+    )
     return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
 
 @tickets.route('/message/submit/<ticket_id>', methods=['POST'])
@@ -139,6 +166,8 @@ def add_message_submit(ticket_id):
         (comment_id, ticket_id, user_id, message, timestamp)
     )
 
+    author_name_data = get_name(user_id)
+    author_name = author_name_data[0] if author_name_data else session['email']
     if not is_admin(session['email']) and not is_support(session['email']):
         DatabaseManager.execute_query(
             "UPDATE tickets SET reply_status = 'waiting', last_reply = NOW() WHERE id = %s",
@@ -146,7 +175,8 @@ def add_message_submit(ticket_id):
         )
 
         webhook_log(f"Ticket comment added by `{session['email']}` with message `{message}` https://betadash.lunes.host/tickets/{ticket_id}", is_ticket=True)
-        
+        schedule_ticket_message(ticket_id, author_name, session['email'], message, "Panel User")
+
     else:
         email = DatabaseManager.execute_query(
             "SELECT email FROM users WHERE (id = %s)",
@@ -159,7 +189,8 @@ def add_message_submit(ticket_id):
         )
 
         webhook_log(f"Ticket comment added by staff member `{session['email']}` with message `{message}` https://betadash.lunes.host/tickets/{ticket_id}", is_ticket=True)
-    
+        schedule_ticket_message(ticket_id, author_name, session['email'], message, "Staff Panel")
+
     return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
 
 @tickets.route('/<ticket_id>')
@@ -240,6 +271,8 @@ def toggle_ticket_status(ticket_id):
         "UPDATE tickets SET status = %s WHERE id = %s",
         (new_status, ticket_id)
     )
+    if new_status == 'closed':
+        schedule_ticket_channel_deletion(ticket_id, "Closed via web panel")
     if is_admin(session['email']):
       return redirect(url_for('admin.admin_tickets_index'))
     return redirect(url_for('tickets.tickets_index'))
