@@ -1,7 +1,6 @@
 import asyncio
-from typing import List, Optional, Tuple, Dict, Any
+from typing import Any, List, Optional, Tuple, Dict
 
-from discord_bot.bot import bot
 from discord_bot.ticket_sync import (
     create_discord_ticket_channel,
     delete_discord_ticket_channel,
@@ -10,12 +9,14 @@ from discord_bot.ticket_sync import (
 from discord_bot.utils.logger import logger
 
 
+_bot: Optional[Any] = None
 _bot_loop: Optional[asyncio.AbstractEventLoop] = None
 _pending_tasks: List[Tuple[str, Tuple[Any, ...], Dict[str, Any]]] = []
 
 
-def set_bot_loop(loop: asyncio.AbstractEventLoop) -> None:
-    global _bot_loop
+def set_bot_loop(loop: asyncio.AbstractEventLoop, bot_instance: Any) -> None:
+    global _bot_loop, _bot
+    _bot = bot_instance
     _bot_loop = loop
     if not _pending_tasks:
         return
@@ -41,15 +42,19 @@ def _queue_task(task_type: str, args: Tuple[Any, ...], kwargs: Dict[str, Any]) -
 
 def _submit_task(task_type: str, args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> None:
     loop = _get_bot_loop()
+    if _bot is None:
+        logger.warning("Discord ticket bridge: bot instance not available; queueing %s task", task_type)
+        _queue_task(task_type, args, kwargs)
+        return
     if not loop:
         _queue_task(task_type, args, kwargs)
         return
     if task_type == "create":
-        coro = create_discord_ticket_channel(bot, *args, **kwargs)
+        coro = create_discord_ticket_channel(_bot, *args, **kwargs)
     elif task_type == "message":
-        coro = send_discord_ticket_message(bot, *args, **kwargs)
+        coro = send_discord_ticket_message(_bot, *args, **kwargs)
     elif task_type == "delete":
-        coro = delete_discord_ticket_channel(bot, *args, **kwargs)
+        coro = delete_discord_ticket_channel(_bot, *args, **kwargs)
     else:
         logger.error("Discord ticket bridge: unknown task type %s", task_type)
         return
