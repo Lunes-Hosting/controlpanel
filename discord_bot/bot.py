@@ -1,4 +1,3 @@
-from discord.ext import commands # type: ignore
 import sys
 import os
 import asyncio
@@ -10,8 +9,12 @@ from .utils.logger import logger
 from discord_bot.ticket_bridge import set_bot_loop
 from discord_bot.ticket_sync import process_discord_message
 
-bot = commands.Bot(command_prefix="!")
-bot = discord.Bot()
+intents = discord.Intents.default()
+intents.guilds = True
+intents.members = True
+intents.message_content = True
+
+bot = discord.Bot(intents=intents)
 
 @bot.event
 async def on_ready():

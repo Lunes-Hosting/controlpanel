@@ -151,6 +151,7 @@ async def send_discord_ticket_message(
 
     channel = guild.get_channel(channel_id)
     if not isinstance(channel, discord.TextChannel):
+        logger.debug("Discord ticket bridge: ignoring non-text channel message in %s", message.channel.id)
         return
 
     embed = discord.Embed(
@@ -186,6 +187,7 @@ async def process_discord_message(bot: discord.Client, message: discord.Message)
     if not _discord_ids_configured():
         return
     if message.author.bot:
+        logger.debug("Discord ticket bridge: ignoring bot message in channel %s", message.channel.id)
         return
     if message.guild is None or message.guild.id != int(DISCORD_GUILD_ID):
         return
@@ -196,6 +198,11 @@ async def process_discord_message(bot: discord.Client, message: discord.Message)
     if not ticket_id:
         return
     if channel.category_id and channel.category_id != int(TICKET_DISCORD_CATEGORY_ID):
+        logger.debug(
+            "Discord ticket bridge: channel %s not in ticket category %s",
+            channel.id,
+            TICKET_DISCORD_CATEGORY_ID,
+        )
         return
 
     staff_user = _lookup_staff_user(message.author.id)
@@ -206,6 +213,7 @@ async def process_discord_message(bot: discord.Client, message: discord.Message)
 
     owner_email = _get_ticket_owner_email(ticket_id)
     if not owner_email:
+        logger.warning("Discord ticket bridge: could not resolve owner email for ticket %s", ticket_id)
         return
 
     content = message.content.strip()
@@ -215,7 +223,16 @@ async def process_discord_message(bot: discord.Client, message: discord.Message)
         content = f"{content}\n\n{attachments_text}" if content else attachments_text
 
     if not content:
+        logger.debug("Discord ticket bridge: ignoring empty content message %s", message.id)
         return
+
+    logger.info(
+        "Discord ticket bridge: syncing message %s from %s (Discord %s) to ticket %s",
+        message.id,
+        staff_email,
+        message.author.id,
+        ticket_id,
+    )
 
     comment_id = _get_next_comment_id()
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
