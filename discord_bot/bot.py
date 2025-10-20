@@ -8,6 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from config import *  # noqa: F401,F403
 from .utils.logger import logger
 from discord_bot.ticket_bridge import set_bot_loop
+from discord_bot.ticket_sync import process_discord_message
 
 bot = commands.Bot(command_prefix="!")
 bot = discord.Bot()
@@ -20,6 +21,14 @@ async def on_ready():
     
 
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Lunes Hosting")) 
+
+@bot.event
+async def on_message(message):
+    if message.author == bot.user:
+        return
+    await process_discord_message(bot, message)
+    if hasattr(bot, "process_commands"):
+        await bot.process_commands(message)
 
 
 @bot.command(description="Sends the bot's latency.") # this decorator makes a slash command
