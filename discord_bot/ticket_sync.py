@@ -6,14 +6,23 @@ from typing import Optional
 import discord  # type: ignore
 
 from config import (
-    DISCORD_GUILD_ID,
-    TICKET_DISCORD_CATEGORY_ID,
     MAIL_SERVER,
     MAIL_PORT,
     MAIL_USERNAME,
     MAIL_PASSWORD,
     MAIL_DEFAULT_SENDER,
 )
+
+try:
+    from config import DISCORD_GUILD_ID  # type: ignore
+except ImportError:
+    DISCORD_GUILD_ID = None  # type: ignore
+
+try:
+    from config import TICKET_DISCORD_CATEGORY_ID  # type: ignore
+except ImportError:
+    TICKET_DISCORD_CATEGORY_ID = None  # type: ignore
+
 from managers.database_manager import DatabaseManager
 from managers.email_manager import send_email_without_app_context
 from managers.ticket_discord_manager import (
@@ -22,6 +31,7 @@ from managers.ticket_discord_manager import (
     get_ticket_id,
     set_channel,
 )
+from discord_bot.utils.logger import logger
 
 try:
     from config import MAIL_USE_TLS  # type: ignore
@@ -50,6 +60,9 @@ async def create_discord_ticket_channel(
     initial_message: str,
     ticket_url: str,
 ) -> None:
+    if not _discord_ids_configured():
+        logger.warning("Discord ticket bridge skipped: DISCORD_GUILD_ID or TICKET_DISCORD_CATEGORY_ID not set")
+        return
     guild = bot.get_guild(int(DISCORD_GUILD_ID))
     if guild is None:
         return
@@ -110,6 +123,9 @@ async def send_discord_ticket_message(
     message: str,
     origin: str,
 ) -> None:
+    if not _discord_ids_configured():
+        logger.warning("Discord ticket bridge skipped: DISCORD_GUILD_ID or TICKET_DISCORD_CATEGORY_ID not set")
+        return
     guild = bot.get_guild(int(DISCORD_GUILD_ID))
     if guild is None:
         return
@@ -148,6 +164,9 @@ async def send_discord_ticket_message(
 
 
 async def delete_discord_ticket_channel(bot: discord.Client, ticket_id: int, reason: str) -> None:
+    if not _discord_ids_configured():
+        logger.warning("Discord ticket channel deletion skipped: DISCORD_GUILD_ID or TICKET_DISCORD_CATEGORY_ID not set")
+        return
     guild = bot.get_guild(int(DISCORD_GUILD_ID))
     if guild is None:
         return
@@ -217,6 +236,10 @@ def _get_smtp_config():
         'MAIL_DEFAULT_SENDER': MAIL_DEFAULT_SENDER,
         'MAIL_USE_TLS': MAIL_USE_TLS,
     }
+
+
+def _discord_ids_configured() -> bool:
+    return bool(DISCORD_GUILD_ID) and bool(TICKET_DISCORD_CATEGORY_ID)
 
 
 def _get_ticket_owner_email(ticket_id: int) -> Optional[str]:
