@@ -3,14 +3,18 @@ import sys
 import os
 import asyncio
 import discord # type: ignore
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from config import *
+from config import *  # noqa: F401,F403
 from .utils.logger import logger
+from discord_bot.ticket_bridge import set_bot_loop
+
 bot = commands.Bot(command_prefix="!")
 bot = discord.Bot()
 
 @bot.event
 async def on_ready():
+    set_bot_loop(asyncio.get_running_loop())
     logger.info(f'Logged into Discord Bot: {bot.user}')
     
     
