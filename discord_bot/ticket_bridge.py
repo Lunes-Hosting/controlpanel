@@ -5,6 +5,7 @@ from discord_bot.ticket_sync import (
     create_discord_ticket_channel,
     delete_discord_ticket_channel,
     send_discord_ticket_message,
+    update_ticket_channel_status,
 )
 from discord_bot.utils.logger import logger
 
@@ -55,6 +56,8 @@ def _submit_task(task_type: str, args: Tuple[Any, ...], kwargs: Dict[str, Any]) 
         coro = send_discord_ticket_message(_bot, *args, **kwargs)
     elif task_type == "delete":
         coro = delete_discord_ticket_channel(_bot, *args, **kwargs)
+    elif task_type == "status":
+        coro = update_ticket_channel_status(_bot, *args, **kwargs)
     else:
         logger.error("Discord ticket bridge: unknown task type %s", task_type)
         return
@@ -95,3 +98,8 @@ def schedule_ticket_message(
 def schedule_ticket_channel_deletion(ticket_id: int, reason: str) -> None:
     logger.debug("Scheduling Discord ticket channel deletion for ticket %s", ticket_id)
     _submit_task("delete", (ticket_id, reason), {})
+
+
+def schedule_ticket_channel_status_update(ticket_id: int) -> None:
+    logger.debug("Scheduling Discord ticket channel status update for ticket %s", ticket_id)
+    _submit_task("status", (ticket_id,), {})

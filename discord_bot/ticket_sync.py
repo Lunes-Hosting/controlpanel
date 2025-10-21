@@ -82,10 +82,11 @@ async def create_discord_ticket_channel(
                 initial_message,
                 ticket_url,
             )
+            await _apply_ticket_channel_status(channel, ticket_id)
             return
 
     channel = await guild.create_text_channel(
-        name=f"ticket-{ticket_id}",
+        name=_resolve_ticket_channel_name(ticket_id) or f"ticket-{ticket_id}-waiting",
         category=category,
         topic=f"Ticket #{ticket_id}: {title}",
     )
@@ -98,6 +99,7 @@ async def create_discord_ticket_channel(
         initial_message,
         ticket_url,
     )
+    await _apply_ticket_channel_status(channel, ticket_id)
 
 
 async def send_ticket_open_message(
@@ -166,6 +168,7 @@ async def send_discord_ticket_message(
     embed.add_field(name="Author", value=f"{author_name} ({author_email})", inline=False)
     embed.add_field(name="Origin", value=origin, inline=False)
     await channel.send(embed=embed)
+    await _apply_ticket_channel_status(channel, ticket_id)
 
 
 async def delete_discord_ticket_channel(bot: discord.Client, ticket_id: int, reason: str) -> None:
@@ -256,6 +259,8 @@ async def process_discord_message(bot: discord.Client, message: discord.Message)
         (ticket_id,),
     )
 
+    await _apply_ticket_channel_status(channel, ticket_id)
+
     smtp_config = _get_smtp_config()
     if smtp_config:
         send_email_without_app_context(
@@ -269,6 +274,21 @@ async def process_discord_message(bot: discord.Client, message: discord.Message)
         await message.add_reaction("📬")
     except Exception as exc:
         logger.warning("Discord ticket bridge: failed to add reaction: %s", exc)
+
+
+async def update_ticket_channel_status(bot: discord.Client, ticket_id: int) -> None:
+    if not _discord_ids_configured():
+        return
+    guild = bot.get_guild(int(DISCORD_GUILD_ID))
+    if guild is None:
+        return
+    channel_id = get_channel_id(ticket_id)
+    if not channel_id:
+        return
+    channel = guild.get_channel(channel_id)
+    if not isinstance(channel, discord.TextChannel):
+        return
+    await _apply_ticket_channel_status(channel, ticket_id)
 
 
 def _get_smtp_config():
@@ -286,6 +306,37 @@ def _get_smtp_config():
 
 def _discord_ids_configured() -> bool:
     return bool(DISCORD_GUILD_ID) and bool(TICKET_DISCORD_CATEGORY_ID)
+
+
+async def _apply_ticket_channel_status(channel: discord.TextChannel, ticket_id: int) -> None:
+    target_name = _resolve_ticket_channel_name(ticket_id)
+    if not target_name:
+        return
+    if channel.name == target_name:
+        return
+    if not channel.name.endswith("-waiting") and not channel.name.endswith("-responded"):
+        logger.debug(
+            "Discord ticket bridge: legacy channel name %s detected; renaming to %s",
+            channel.name,
+            target_name,
+        )
+    try:
+        await channel.edit(name=target_name)
+        logger.debug("Discord ticket bridge: renamed channel %s to %s", channel.id, target_name)
+    except Exception as exc:
+        logger.warning("Discord ticket bridge: failed to rename channel %s: %s", channel.id, exc)
+
+
+def _resolve_ticket_channel_name(ticket_id: int) -> Optional[str]:
+    row = DatabaseManager.execute_query(
+        "SELECT reply_status FROM tickets WHERE id = %s",
+        (ticket_id,),
+    )
+    if not row:
+        return None
+    status = (row[0] or "").lower()
+    suffix = "responded" if status == "responded" else "waiting"
+    return f"ticket-{ticket_id}-{suffix}"
 
 
 def _get_ticket_owner_email(ticket_id: int) -> Optional[str]:
