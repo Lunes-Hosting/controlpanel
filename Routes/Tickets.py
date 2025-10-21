@@ -54,7 +54,6 @@ sys.path.append("..")
 from managers.authentication import login_required
 from managers.ticket_manager import (
     create_ticket,
-    close_ticket,
     get_name,
 )
 from managers.user_manager import is_admin, is_support
@@ -280,13 +279,16 @@ def toggle_ticket_status(ticket_id):
     new_status = 'closed' if current_status == 'open' else 'open'
 
     if new_status == 'closed':
-        close_ticket(ticket_id, session['email'])
+        DatabaseManager.execute_query(
+            "UPDATE tickets SET status = 'closed', reply_status = 'responded', last_reply = NOW() WHERE id = %s",
+            (ticket_id,)
+        )
         schedule_ticket_channel_deletion(ticket_id, "Closed via web panel")
         schedule_ticket_channel_status_update(ticket_id)
     else:
         DatabaseManager.execute_query(
-            "UPDATE tickets SET status = %s WHERE id = %s",
-            (new_status, ticket_id)
+            "UPDATE tickets SET status = 'open', reply_status = 'waiting', last_reply = NOW() WHERE id = %s",
+            (ticket_id,)
         )
         schedule_ticket_channel_status_update(ticket_id)
     if is_admin(session['email']):
