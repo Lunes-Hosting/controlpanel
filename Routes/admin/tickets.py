@@ -109,3 +109,51 @@ def admin_tickets_index():
         tickets_with_age.append(ticket_data)
 
     return render_template('admin/tickets.html', tickets=tickets_with_age, filter=ticket_filter)
+
+
+@admin.route('/tickets/api/updates')
+@support_required
+def tickets_api_updates():
+    def stream():
+        while True:
+            try:
+                filter_type = request.args.get('filter', 'open')
+                
+                if filter_type == 'all':
+                    query = "SELECT * FROM tickets"
+                    params = ()
+                else:
+                    query = "SELECT * FROM tickets WHERE status = %s"
+                    params = ('open',)
+                
+                tickets = DatabaseManager.execute_query(query, params, fetch_all=True)
+                current_time = datetime.now()
+                threshold = timedelta(days=4)
+                
+                data = []
+                for ticket in tickets:
+                    ticket_info = {
+                        'id': ticket[0],
+                        'user_id': ticket[1],
+                        'title': ticket[2],
+                        'status': ticket[3],
+                        'created_at': ticket[4].isoformat() if ticket[4] else None,
+                        'reply_status': ticket[5],
+                        'last_reply': ticket[6].isoformat() if ticket[6] else None,
+                        'is_old': False
+                    }
+                    
+                    if ticket[4] and isinstance(ticket[4], datetime):
+                        age = current_time - ticket[4]
+                        ticket_info['is_old'] = age > threshold
+                    
+                    data.append(ticket_info)
+                
+                yield f"data: {json.dumps({'tickets': data})}\n\n"
+                time.sleep(5)
+                
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                time.sleep(5)
+    
+    return Response(stream(), mimetype='text/event-stream')
