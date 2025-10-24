@@ -116,7 +116,7 @@ async def send_ticket_open_message(
         color=discord.Color.blue(),
     )
     embed.set_author(name="New Ticket Created")
-    embed.add_field(name="Opened By", value=f"{opener_name} ({opener_email})", inline=False)
+    embed.add_field(name="Opened By", value=f"{opener_name}\n`{opener_email}`", inline=False)
     embed.add_field(name="Ticket Link", value=ticket_url, inline=False)
     await channel.send(embed=embed)
 
