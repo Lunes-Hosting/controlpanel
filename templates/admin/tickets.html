@@ -31,120 +31,42 @@
         </a>
     </div>
 
-    <div class="tickets-container" id="tickets-container">
-        <div id="loading" style="display:none;">Updating...</div>
-        <div id="tickets-list">
-            {% if tickets %}
-                {% for ticket in tickets %}
-                    <a href="{{ url_for('tickets.ticket', ticket_id=ticket[0]) }}" class="ticket-link">
-                        <div class="ticket-card">
-                            <div class="ticket-header">
-                                <div class="ticket-id">#{{ ticket[0] }}</div>
-                                <div class="ticket-status status-{{ ticket[3]|lower }}">{{ ticket[3]|upper }}</div>
-                            </div>
-                            <div class="ticket-content">
-                                <h3 class="ticket-title">{{ ticket[2] }}</h3>
-                                <div class="ticket-reply-status">
-                                    Reply status: <span class="reply-{{ ticket[5]|lower }}">{{ ticket[5]|capitalize }}</span>
-                                </div>
-                            </div>
-                            <div class="ticket-footer">
-                                <div class="ticket-user">
-                                    <span class="user-icon">👤</span> User ID: {{ ticket[1] }}
-                                </div>
-                                <div class="ticket-date">
-                                    <span class="date-icon">🕒</span> 
-                                    <span {% if ticket[7] %}class="old-ticket"{% endif %}>{{ ticket[4] }}</span>
-                                </div>
+    <div class="tickets-container">
+        {% if tickets %}
+            {% for ticket in tickets %}
+                <a href="{{ url_for('tickets.ticket', ticket_id=ticket[0]) }}" class="ticket-link">
+                    <div class="ticket-card">
+                        <div class="ticket-header">
+                            <div class="ticket-id">#{{ ticket[0] }}</div>
+                            <div class="ticket-status status-{{ ticket[3]|lower }}">{{ ticket[3]|upper }}</div>
+                        </div>
+                        <div class="ticket-content">
+                            <h3 class="ticket-title">{{ ticket[2] }}</h3>
+                            <div class="ticket-reply-status">
+                                Reply status: <span class="reply-{{ ticket[5]|lower }}">{{ ticket[5]|capitalize }}</span>
                             </div>
                         </div>
-                    </a>
-                {% endfor %}
-            {% else %}
-                <div class="no-tickets">
-                    <p>No tickets found.</p>
-                </div>
-            {% endif %}
-        </div>
+                        <div class="ticket-footer">
+                            <div class="ticket-user">
+                                <span class="user-icon">👤</span> User ID: {{ ticket[1] }}
+                            </div>
+                            <div class="ticket-date">
+                                <span class="date-icon">🕒</span> 
+                                <span {% if ticket[7] %}class="old-ticket"{% endif %}>{{ ticket[4] }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        {% else %}
+            <div class="no-tickets">
+                <p>No tickets found.</p>
+            </div>
+        {% endif %}
     </div>
 
     <script>
-        let eventSource = null;
-        let currentFilter = '{{ filter }}';
-
-        function startUpdates() {
-            if (eventSource) eventSource.close();
-            
-            eventSource = new EventSource(`/admin/tickets/api/updates?filter=${currentFilter}`);
-            
-            eventSource.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                if (data.tickets) {
-                    updateTickets(data.tickets);
-                }
-            };
-            
-            eventSource.onerror = function() {
-                setTimeout(startUpdates, 5000);
-            };
-        }
-
-        function updateTickets(tickets) {
-            const container = document.getElementById('tickets-list');
-            if (!container) return;
-
-            if (tickets.length === 0) {
-                container.innerHTML = '<div class="no-tickets"><p>No tickets found.</p></div>';
-                return;
-            }
-
-            let html = '';
-            tickets.forEach(ticket => {
-                const date = ticket.created_at ? new Date(ticket.created_at).toLocaleString() : 'Unknown';
-                const oldClass = ticket.is_old ? 'old-ticket' : '';
-                
-                html += `
-                    <a href="/tickets/${ticket.id}" class="ticket-link">
-                        <div class="ticket-card">
-                            <div class="ticket-header">
-                                <div class="ticket-id">#${ticket.id}</div>
-                                <div class="ticket-status status-${ticket.status.toLowerCase()}">${ticket.status.toUpperCase()}</div>
-                            </div>
-                            <div class="ticket-content">
-                                <h3 class="ticket-title">${ticket.title}</h3>
-                                <div class="ticket-reply-status">
-                                    Reply status: <span class="reply-${ticket.reply_status.toLowerCase()}">${ticket.reply_status.charAt(0).toUpperCase() + ticket.reply_status.slice(1)}</span>
-                                </div>
-                            </div>
-                            <div class="ticket-footer">
-                                <div class="ticket-user">
-                                    <span class="user-icon">👤</span> User ID: ${ticket.user_id}
-                                </div>
-                                <div class="ticket-date">
-                                    <span class="date-icon">🕒</span> 
-                                    <span class="${oldClass}">${date}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        document.querySelectorAll('.filter-button').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                currentFilter = this.textContent.includes('All') ? 'all' : 'open';
-                startUpdates();
-            });
-        });
-
-        document.addEventListener('DOMContentLoaded', startUpdates);
-        window.addEventListener('beforeunload', () => {
-            if (eventSource) eventSource.close();
-        });
+        // Add any JavaScript functionality here if needed
     </script>
 </body>
 </html>
