@@ -104,6 +104,14 @@ def create_ticket_submit():
     ts = time.time()
     timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     
+    existing_open_ticket = DatabaseManager.execute_query(
+        "SELECT id FROM tickets WHERE user_id = %s AND status = 'open' LIMIT 1",
+        (user_id,)
+    )
+    if existing_open_ticket:
+        flash("You already have an open ticket. Please close it before creating a new one.")
+        return redirect(url_for('tickets.tickets_index'))
+
     # Get next ticket ID
     ticket_id = DatabaseManager.execute_query(
         "SELECT * FROM tickets ORDER BY id DESC LIMIT 0, 1"

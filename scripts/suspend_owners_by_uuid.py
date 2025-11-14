@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# how to use: python scripts/suspend_owners_by_uuid.py servers.txt --apply
 import sys
 import argparse
 from pathlib import Path

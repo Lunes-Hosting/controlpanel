@@ -108,5 +108,29 @@
             {% endfor %}
         </div>
     </div>
+
+    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+        <div class="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent"></div>
+    </div>
+
+    <script>
+        (function() {
+            var form = document.querySelector('form');
+            if (!form) return;
+
+            var overlay = document.getElementById('loading-overlay');
+            var submitBtn = form.querySelector('button[type="submit"]');
+
+            form.addEventListener('submit', function() {
+                if (overlay) {
+                    overlay.classList.remove('hidden');
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            });
+        })();
+    </script>
 </body>
 </html>
