@@ -61,70 +61,65 @@
 
             <!-- Account Information -->
 
-            <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
+            <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-700">
                 <i class="fa-solid fa-house fa-2xl text-blue-400 m-0 p-0"></i>
                 <h1 class="font-semibold text-2xl m-0 p-0">Manage Account</h1>
             </div>
 
-            <div class="account-info my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md">
-                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 space-x-4">
-                    <div class="space-y-3">
-                        <div class="flex flex-row justify-start items-center gap-2">
-                            <img class="w-16 rounded-md" src="https://gravatar.com/avatar/{{ hash }}">
-                            <h2 class="text-2xl font-bold text-gray-300 mb-4">Hello <span>{{ username }}</span></h2>
+            <div class="account-info my-4 p-8 bg-gray-950/50 border border-blue-500/30 shadow-2xl shadow-blue-500/10 rounded-lg backdrop-blur-sm">
+                <div class="flex flex-col lg:flex-row gap-8">
+                    
+                    <!-- Left Side -->
+                    <div class="flex-grow space-y-6">
+                        <div class="flex items-center gap-4">
+                            <img class="w-20 h-20 rounded-full border-2 border-blue-400" src="https://gravatar.com/avatar/{{ hash }}">
+                            <div>
+                                <h2 class="text-3xl font-bold text-white">Hello, <span>{{ username }}</span>!</h2>
+                                <p class="text-gray-400">{{ email }}</p>
+                            </div>
                         </div>
-                        <div class="space-y-3">
-                            <p><strong class="text-gray-400">Email:</strong> <span class="text-white">{{ email }}</span></p>
-                            <p>
-                                <strong class="text-gray-400">Credits:</strong> 
-                                <span class="text-white">{{ credits }}</span>
-                                <span class="tooltip-container relative inline-block ml-2">
-                                    <i class="fa-solid fa-circle-question text-blue-400 text-sm"></i>
-                                    <span class="tooltip absolute z-10 w-72 bg-gray-800 text-white text-sm p-3 rounded-md shadow-lg -left-72 top-0 border border-blue-500 hidden">
-                                        The control panel uses a credit-based system. Credits are charged hourly based on the monthly price (price / 30 / 24). This means that the price of your servers won't be charged right away when you create a server, but instead, the credits are reduced hourly—giving you the option to cancel and create servers freely anytime. When you run out of credits, your server will automatically be suspended.
-                                    </span>
-                                </span>
-                            </p>
-                            <p><strong class="text-gray-400">Server Count:</strong> <span class="text-white">{{ server_count }}</span></p>
-                            <p><strong class="text-gray-400">Monthly Usage:</strong> <span class="text-white">{{ monthly_usage }}</span></p>
-                        </div>                        
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                            <div class="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                                <p class="text-gray-400 text-sm font-medium">Credits</p> 
+                                <p class="text-white text-2xl font-semibold">{{ credits }}</p>
+                            </div>
+                            <div class="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                                <p class="text-gray-400 text-sm font-medium">Servers</p>
+                                <p class="text-white text-2xl font-semibold">{{ server_count }}</p>
+                            </div>
+                            <div class="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                                <p class="text-gray-400 text-sm font-medium">Monthly Usage</p>
+                                <p class="text-white text-2xl font-semibold">{{ monthly_usage }}</p>
+                            </div>
+                        </div>
+                        <div class="pt-4 text-sm text-gray-400 flex items-start gap-2">
+                            <i class="fa-solid fa-info-circle text-blue-400 mt-1"></i>
+                            <span>The control panel uses a credit-based system. Credits are charged hourly based on the monthly price (price / 30 / 24). When you run out of credits, your server will automatically be suspended.</span>
+                        </div>
                     </div>
 
-                    <div class="hidden sm:inline relative">
-                        <div class="absolute border border-1 border-blue-500 inset-y-0 left-0 w-px"></div> <!-- Divider -->
-                    </div>
+                    <!-- Divider -->
+                    <div class="hidden lg:block w-px bg-blue-500/30"></div>
+                    <hr class="block lg:hidden border-blue-500/30" />
 
-                    <hr class="inline sm:hidden border border-2 border-blue-500" />
-
-                    <div class="flex flex-col gap-4">
-                        <div>
-                            <h3 class="text-xl font-bold text-gray-500">Ticket</h3>
-                            <p class="text-gray-400">Issues?</p>
-                            <a href="{{ url_for('tickets.tickets_index') }}" class="flex flex-row items-center justify-center inline-block mt-2 px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition duration-200">
-                                <i class="fa-solid fa-ticket"></i>
-                                Open a Ticket</a>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold text-green-500">Store</h3>
-                            <p class="text-gray-400">Purchase Credits for Servers</p>
-                            <a href="#StoreArea" class="flex flex-row items-center justify-center inline-block mt-2 px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-200">
-                                <i class="fa-solid fa-store"></i>
-                                Take me there!</a>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold text-blue-500">Log Out</h3>
-                            <p class="text-gray-400">You are always welcome back!</p>
-                            <a href="{{ url_for('user.logout') }}" class="flex flex-row items-center justify-center inline-block mt-2 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-200">
-                                <i class="fa-solid fa-door-open"></i>
-                                Log out</a>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold text-red-700">Danger Zone</h3>
-                            <p class="text-gray-400">Once you delete your account, there is no going back. Please be certain.</p>
-                            <button onclick="openDeleteModal()" style="cursor: pointer;" class="flex flex-row items-center inline-block mt-2 px-6 py-2 bg-red-700 text-white rounded-md hover:bg-red-800 transition duration-200">
-                                <i class="fa-solid fa-trash"></i>
-                                Delete Account</button>
-                        </div>
+                    <!-- Right Side -->
+                    <div class="flex-shrink-0 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-4">
+                        <a href="{{ url_for('tickets.tickets_index') }}" class="group flex flex-col items-center justify-center p-4 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-blue-500 hover:bg-gray-800 transition-all duration-300">
+                            <i class="fa-solid fa-ticket fa-2x text-gray-400 group-hover:text-blue-400 transition-colors"></i>
+                            <span class="mt-2 text-sm font-medium text-gray-300 group-hover:text-white">Open Ticket</span>
+                        </a>
+                        <a href="#StoreArea" class="group flex flex-col items-center justify-center p-4 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-green-500 hover:bg-gray-800 transition-all duration-300">
+                            <i class="fa-solid fa-store fa-2x text-gray-400 group-hover:text-green-400 transition-colors"></i>
+                            <span class="mt-2 text-sm font-medium text-gray-300 group-hover:text-white">Store</span>
+                        </a>
+                        <a href="{{ url_for('user.logout') }}" class="group flex flex-col items-center justify-center p-4 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-gray-500 hover:bg-gray-800 transition-all duration-300">
+                            <i class="fa-solid fa-door-open fa-2x text-gray-400 group-hover:text-gray-300 transition-colors"></i>
+                            <span class="mt-2 text-sm font-medium text-gray-300 group-hover:text-white">Log Out</span>
+                        </a>
+                        <button onclick="openDeleteModal()" class="group flex flex-col items-center justify-center p-4 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-red-500 hover:bg-red-900/50 transition-all duration-300">
+                            <i class="fa-solid fa-trash fa-2x text-gray-400 group-hover:text-red-500 transition-colors"></i>
+                            <span class="mt-2 text-sm font-medium text-gray-300 group-hover:text-white">Delete</span>
+                        </button>
                     </div>
                 </div>
             </div>
