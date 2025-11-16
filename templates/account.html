@@ -70,108 +70,158 @@
                 <h1 class="font-semibold text-2xl m-0 p-0">Manage Account</h1>
             </div>
 
-            <div class="account-info my-4 p-8 bg-gray-950/50 border border-blue-500/30 shadow-2xl shadow-blue-500/10 rounded-lg backdrop-blur-sm">
-                <div class="flex flex-col lg:flex-row gap-8">
-                    
-                    <!-- Left Side -->
-                    <div class="flex-grow space-y-6">
-                        <div class="flex items-center gap-4">
-                            <img class="w-20 h-20 rounded-full border-2 border-blue-400" src="https://gravatar.com/avatar/{{ hash }}">
+            <section class="hero-panel">
+                <div class="hero-grid">
+                    <div class="hero-left">
+                        <div class="profile-header">
+                            <img class="profile-avatar" src="https://gravatar.com/avatar/{{ hash }}" alt="User avatar">
                             <div>
-                                <h2 class="text-3xl font-bold text-white">Hello, <span>{{ username }}</span>!</h2>
-                                <p class="text-gray-400">{{ email }}</p>
+                                <p class="eyebrow">Account Control Center</p>
+                                <h1 class="hero-title">Welcome back, {{ username }}.</h1>
+                                <p class="hero-subtitle">{{ email }}</p>
                             </div>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                            <div class="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
-                                <p class="text-gray-400 text-sm font-medium">Credits</p> 
-                                <p class="text-white text-2xl font-semibold">{{ credits }}</p>
-                            </div>
-                            <div class="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
-                                <p class="text-gray-400 text-sm font-medium">Servers</p>
-                                <p class="text-white text-2xl font-semibold">{{ server_count }}</p>
-                            </div>
-                            <div class="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
-                                <p class="text-gray-400 text-sm font-medium">Monthly Usage</p>
-                                <p class="text-white text-2xl font-semibold">{{ monthly_usage }}</p>
-                            </div>
+
+                        <div class="hero-badges">
+                            <span class="badge-chip">
+                                <i class="fa-solid fa-server"></i>
+                                {{ server_count }} servers online
+                            </span>
+                            <span class="badge-chip">
+                                <i class="fa-solid fa-sack-dollar"></i>
+                                {{ credits }} credits available
+                            </span>
+                            <span class="badge-chip status">
+                                <i class="fa-solid fa-shield-check"></i>
+                                {% if suspended %}
+                                    Suspended
+                                {% elif not verified %}
+                                    Pending verification
+                                {% else %}
+                                    Account verified
+                                {% endif %}
+                            </span>
                         </div>
-                        <div class="pt-4 text-sm text-gray-400 flex items-start gap-2">
-                            <i class="fa-solid fa-info-circle text-blue-400 mt-1"></i>
-                            <span>The control panel uses a credit-based system. Credits are charged hourly based on the monthly price (price / 30 / 24). When you run out of credits, your server will automatically be suspended.</span>
+
+                        <div class="hero-metrics">
+                            <article>
+                                <p>Monthly Usage</p>
+                                <h3>{{ monthly_usage }}</h3>
+                                <small>Across all running services</small>
+                            </article>
+                            <article>
+                                <p>Server Credits</p>
+                                <h3>{{ credits }}</h3>
+                                <small>Charged hourly per plan</small>
+                            </article>
+                            <article>
+                                <p>Support Priority</p>
+                                <h3>{% if suspended %}Alert{% else %}Standard{% endif %}</h3>
+                                <small>{% if suspended %}Reach support to restore service{% else %}Within SLA window{% endif %}</small>
+                            </article>
+                        </div>
+
+                        <div class="hero-actions">
+                            <a href="{{ url_for('tickets.tickets_index') }}" class="action-btn primary">
+                                <i class="fa-solid fa-ticket"></i>
+                                Open Ticket
+                            </a>
+                            <a href="#StoreArea" class="action-btn secondary">
+                                <i class="fa-solid fa-store"></i>
+                                Buy Credits
+                            </a>
+                            <a href="{{ url_for('user.logout') }}" class="action-btn ghost">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                                Log Out
+                            </a>
+                            <button onclick="openDeleteModal()" class="action-btn danger" type="button">
+                                <i class="fa-solid fa-trash"></i>
+                                Delete Account
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Divider -->
-                    <div class="hidden lg:block w-px bg-blue-500/30"></div>
-                    <hr class="block lg:hidden border-blue-500/30" />
+                    <div class="hero-right">
+                        <div class="credit-card">
+                            <div class="credit-header">
+                                <p>Current Balance</p>
+                                <span>Updated hourly</span>
+                            </div>
+                            <h2>{{ credits }} <small>credits</small></h2>
+                            {% set credit_percent = server_count * 12 %}
+                            {% set credit_width = 100 if credit_percent > 100 else credit_percent %}
+                            <div class="credit-meter">
+                                <div class="credit-progress" style="--progress-width: {{ credit_width }};"></div>
+                            </div>
+                            <div class="credit-footer">
+                                <span><i class="fa-solid fa-clock"></i>Hourly billing enabled</span>
+                                <span><i class="fa-solid fa-bolt"></i>Auto-suspend when empty</span>
+                            </div>
+                        </div>
 
-                    <!-- Right Side -->
-                    <div class="flex-shrink-0 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-4">
-                        <a href="{{ url_for('tickets.tickets_index') }}" class="group flex flex-col items-center justify-center p-4 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-blue-500 hover:bg-gray-800 transition-all duration-300">
-                            <i class="fa-solid fa-ticket fa-2x text-gray-400 group-hover:text-blue-400 transition-colors"></i>
-                            <span class="mt-2 text-sm font-medium text-gray-300 group-hover:text-white">Open Ticket</span>
-                        </a>
-                        <a href="#StoreArea" class="group flex flex-col items-center justify-center p-4 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-green-500 hover:bg-gray-800 transition-all duration-300">
-                            <i class="fa-solid fa-store fa-2x text-gray-400 group-hover:text-green-400 transition-colors"></i>
-                            <span class="mt-2 text-sm font-medium text-gray-300 group-hover:text-white">Store</span>
-                        </a>
-                        <a href="{{ url_for('user.logout') }}" class="group flex flex-col items-center justify-center p-4 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-gray-500 hover:bg-gray-800 transition-all duration-300">
-                            <i class="fa-solid fa-door-open fa-2x text-gray-400 group-hover:text-gray-300 transition-colors"></i>
-                            <span class="mt-2 text-sm font-medium text-gray-300 group-hover:text-white">Log Out</span>
-                        </a>
-                        <button onclick="openDeleteModal()" class="group flex flex-col items-center justify-center p-4 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-red-500 hover:bg-red-900/50 transition-all duration-300">
-                            <i class="fa-solid fa-trash fa-2x text-gray-400 group-hover:text-red-500 transition-colors"></i>
-                            <span class="mt-2 text-sm font-medium text-gray-300 group-hover:text-white">Delete</span>
-                        </button>
+                        <div class="status-card">
+                            <div class="status-row">
+                                <div>
+                                    <p class="status-label">Servers Active</p>
+                                    <h4>{{ server_count }}</h4>
+                                </div>
+                                <i class="fa-solid fa-signal"></i>
+                            </div>
+                            <div class="status-row">
+                                <div>
+                                    <p class="status-label">Monthly Usage</p>
+                                    <h4>{{ monthly_usage }}</h4>
+                                </div>
+                                <i class="fa-solid fa-chart-line"></i>
+                            </div>
+                            <div class="status-info">
+                                <p>Need to pause a service? Suspend any server from its detail page. Usage will stop immediately.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <section class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <article class="stat-card">
-                    <div class="stat-icon bg-cyan-500/20 text-cyan-300">
-                        <i class="fa-solid fa-coins"></i>
-                    </div>
-                    <div>
-                        <p class="stat-label">Available Credits</p>
-                        <p class="stat-value">{{ credits }}</p>
-                    </div>
+            <section class="insights-grid">
+                <article class="insight-card">
+                    <header>
+                        <span class="indicator success"></span>
+                        <p>Verification</p>
+                    </header>
+                    <h3>
+                        {% if suspended %}
+                            Action Required
+                        {% elif not verified %}
+                            Verify Email
+                        {% else %}
+                            All Good
+                        {% endif %}
+                    </h3>
+                    <p>Keep your contact details up-to-date to receive outage notifications instantly.</p>
                 </article>
-                <article class="stat-card">
-                    <div class="stat-icon bg-rose-500/20 text-rose-300">
-                        <i class="fa-solid fa-gauge-high"></i>
-                    </div>
-                    <div>
-                        <p class="stat-label">Monthly Usage</p>
-                        <p class="stat-value">{{ monthly_usage }}</p>
-                    </div>
+                <article class="insight-card">
+                    <header>
+                        <span class="indicator info"></span>
+                        <p>Support</p>
+                    </header>
+                    <h3>24/7 Discord + Tickets</h3>
+                    <p>Fastest response via Discord. Tickets remain best for billing and audit trails.</p>
                 </article>
-                <article class="stat-card">
-                    <div class="stat-icon bg-indigo-500/20 text-indigo-300">
-                        <i class="fa-solid fa-server"></i>
-                    </div>
-                    <div>
-                        <p class="stat-label">Server Count</p>
-                        <p class="stat-value">{{ server_count }}</p>
-                    </div>
+                <article class="insight-card">
+                    <header>
+                        <span class="indicator warning"></span>
+                        <p>Billing Mode</p>
+                    </header>
+                    <h3>Credits · Pay-as-you-Go</h3>
+                    <p>Charges update every hour based on live resource consumption.</p>
                 </article>
-                <article class="stat-card">
-                    <div class="stat-icon bg-emerald-500/20 text-emerald-300">
-                        <i class="fa-solid fa-shield-check"></i>
-                    </div>
-                    <div>
-                        <p class="stat-label">Status</p>
-                        <p class="stat-value">
-                            {% if suspended %}
-                                Suspended
-                            {% elif not verified %}
-                                Pending Verification
-                            {% else %}
-                                Active
-                            {% endif %}
-                        </p>
-                    </div>
+                <article class="insight-card">
+                    <header>
+                        <span class="indicator neutral"></span>
+                        <p>Automation</p>
+                    </header>
+                    <h3>Auto-suspend Safety</h3>
+                    <p>We pause nodes gracefully once credits hit zero so data stays intact.</p>
                 </article>
             </section>
 
@@ -196,13 +246,28 @@
                     {% if servers %}
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {% for server in servers %}
+                        {% set limits = server['attributes'].get('limits', {}) %}
+                        {% set feature = server['attributes'].get('feature_limits', {}) %}
                         <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}" class="server-card">
-                            <div>
-                                <p class="server-meta">ID · {{ server['attributes'].get('identifier', server['attributes']['id']) }}</p>
-                                <h3 class="text-xl font-semibold mb-2 truncate">{{ server['attributes']['name'] }}</h3>
-                                <p class="text-sm text-gray-400">Tap to view console, usage, and actions.</p>
+                            <div class="server-card__header">
+                                <div>
+                                    <p class="server-meta">ID · {{ server['attributes'].get('identifier', server['attributes']['id']) }}</p>
+                                    <h3 class="server-title">{{ server['attributes']['name'] }}</h3>
+                                </div>
+                                <span class="server-status">
+                                    {{ (server['attributes'].get('status') or 'running')|capitalize }}
+                                </span>
                             </div>
-                            <i class="fa-solid fa-arrow-up-right-from-square text-blue-300"></i>
+                            <div class="server-card__body">
+                                <span class="server-pill"><i class="fa-solid fa-microchip"></i>{{ limits.get('cpu', '—') }}% CPU</span>
+                                <span class="server-pill"><i class="fa-solid fa-memory"></i>{{ limits.get('memory', '—') }} MB RAM</span>
+                                <span class="server-pill"><i class="fa-solid fa-hard-drive"></i>{{ limits.get('disk', '—') }} MB Disk</span>
+                                <span class="server-pill"><i class="fa-solid fa-users"></i>{{ feature.get('databases', 'Unlimited') }} DB Slots</span>
+                            </div>
+                            <div class="server-card__footer">
+                                <p>Tap to open console & lifecycle controls.</p>
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </div>
                         </a>
                         {% endfor %}
                     </div>
@@ -302,6 +367,28 @@
                         </a>
                     </div>
                 </div>
+
+                {% if products %}
+                <div class="recommended-section">
+                    <div class="recommended-heading">
+                        <p class="text-sm uppercase tracking-[0.3em] text-gray-500">Popular bundles</p>
+                        <h3 class="text-xl font-semibold">Pick a preset or use the slider above.</h3>
+                    </div>
+                    <div class="recommended-grid">
+                        {% for product in products[:3] %}
+                        {% set bundle_url = url_for('store.create_checkout_session', price_link=product['price_link']) if product.get('price_link') else '#' %}
+                        <a class="bundle-card {% if not product.get('price_link') %}disabled{% endif %}" href="{{ bundle_url }}">
+                            <div>
+                                <p class="bundle-label">{{ loop.index }}. {{ product.get('nickname', 'Credit Pack') }}</p>
+                                <h4 class="bundle-value">{{ "%.0f"|format(product['price'] | float) }} Credits</h4>
+                                <p class="bundle-price">${{ "%.2f"|format((product['price'] | float) / 100) }}</p>
+                            </div>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
             </section>
 
             <div id="store-data" class="sr-only" data-products='{{ products | tojson | safe }}' data-checkout-template="{{ url_for('store.create_checkout_session', price_link='__PRICE_LINK__') }}"></div>
@@ -475,6 +562,241 @@
             backdrop-filter: blur(18px);
         }
 
+        .hero-panel {
+            margin-top: 1.5rem;
+            border-radius: 1.75rem;
+            padding: 2rem;
+            background: radial-gradient(circle at top right, rgba(96, 165, 250, 0.35), rgba(15, 23, 42, 0.9));
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            box-shadow: 0 30px 80px rgba(15, 23, 42, 0.7);
+        }
+        .hero-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+        .profile-header {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+        .profile-avatar {
+            width: 96px;
+            height: 96px;
+            border-radius: 999px;
+            border: 3px solid rgba(96, 165, 250, 0.8);
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+        }
+        .hero-title {
+            font-size: clamp(1.8rem, 3vw, 2.4rem);
+            font-weight: 700;
+        }
+        .hero-subtitle {
+            color: rgba(148, 163, 184, 0.85);
+        }
+        .eyebrow {
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            font-size: 0.7rem;
+            color: rgba(148, 163, 184, 0.85);
+        }
+        .hero-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+        }
+        .badge-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 1rem;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            font-size: 0.85rem;
+            color: rgba(226, 232, 240, 0.9);
+        }
+        .badge-chip.status {
+            border-color: rgba(16, 185, 129, 0.4);
+            color: #6ee7b7;
+        }
+        .hero-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1rem;
+        }
+        .hero-metrics article {
+            padding: 1.25rem;
+            border-radius: 1rem;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        .hero-metrics article p {
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            color: rgba(148, 163, 184, 0.7);
+        }
+        .hero-metrics article h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+        }
+        .hero-metrics article small {
+            color: rgba(148, 163, 184, 0.8);
+        }
+        .hero-actions {
+            margin-top: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+        }
+        .action-btn {
+            border-radius: 999px;
+            padding: 0.65rem 1.35rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 1px solid transparent;
+        }
+        .action-btn.primary {
+            background: linear-gradient(135deg, #2563eb, #60a5fa);
+            box-shadow: 0 12px 30px rgba(37, 99, 235, 0.35);
+        }
+        .action-btn.secondary {
+            background: linear-gradient(135deg, #059669, #34d399);
+            box-shadow: 0 12px 30px rgba(16, 185, 129, 0.35);
+        }
+        .action-btn.ghost {
+            border-color: rgba(148, 163, 184, 0.4);
+            background: transparent;
+        }
+        .action-btn.danger {
+            border-color: rgba(248, 113, 113, 0.5);
+            background: rgba(127, 29, 29, 0.5);
+        }
+        .action-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .hero-right {
+            display: grid;
+            gap: 1.5rem;
+        }
+        .credit-card {
+            border-radius: 1.5rem;
+            padding: 1.75rem;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.65), rgba(15, 23, 42, 0.9));
+            border: 1px solid rgba(147, 197, 253, 0.4);
+            box-shadow: 0 20px 40px rgba(30, 64, 175, 0.5);
+        }
+        .credit-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: rgba(226, 232, 240, 0.8);
+        }
+        .credit-card h2 {
+            font-size: clamp(2.5rem, 4vw, 3.5rem);
+            font-weight: 800;
+            margin: 0.5rem 0 1rem;
+        }
+        .credit-card h2 small {
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4em;
+        }
+        .credit-meter {
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.4);
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+        .credit-progress {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #22d3ee, #a855f7);
+            width: calc(var(--progress-width, 65) * 1%);
+            transition: width 0.3s ease;
+        }
+        .credit-footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: rgba(226, 232, 240, 0.85);
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .status-card {
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .status-label {
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            font-size: 0.7rem;
+            color: rgba(148, 163, 184, 0.7);
+        }
+        .status-info {
+            font-size: 0.9rem;
+            color: rgba(148, 163, 184, 0.9);
+        }
+
+        .insights-grid {
+            margin-top: 2.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
+        }
+        .insight-card {
+            padding: 1.5rem;
+            border-radius: 1.25rem;
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.6);
+        }
+        .insight-card header {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            font-size: 0.65rem;
+            color: rgba(148, 163, 184, 0.7);
+            margin-bottom: 0.75rem;
+        }
+        .insight-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .insight-card p {
+            color: rgba(148, 163, 184, 0.85);
+        }
+        .indicator {
+            width: 0.6rem;
+            height: 0.6rem;
+            border-radius: 999px;
+        }
+        .indicator.success { background: #22c55e; }
+        .indicator.info { background: #3b82f6; }
+        .indicator.warning { background: #f59e0b; }
+        .indicator.neutral { background: #94a3b8; }
+
         .stat-card {
             display: flex;
             gap: 1rem;
@@ -529,23 +851,63 @@
         .server-card {
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
             gap: 1rem;
             padding: 1.5rem;
-            border-radius: 1rem;
-            background: rgba(15, 23, 42, 0.9);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            transition: transform 0.2s ease, border-color 0.2s ease;
+            border-radius: 1.25rem;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         }
         .server-card:hover {
-            transform: translateY(-3px) scale(1.01);
-            border-color: rgba(59, 130, 246, 0.6);
+            transform: translateY(-4px);
+            border-color: rgba(96, 165, 250, 0.6);
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.7);
+        }
+        .server-card__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .server-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-top: 0.35rem;
         }
         .server-meta {
-            font-size: 0.75rem;
-            letter-spacing: 0.08em;
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
             text-transform: uppercase;
-            color: rgba(148, 163, 184, 0.7);
+            color: rgba(148, 163, 184, 0.65);
+        }
+        .server-status {
+            padding: 0.35rem 0.85rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #a7f3d0;
+        }
+        .server-card__body {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .server-pill {
+            font-size: 0.75rem;
+            padding: 0.45rem 0.75rem;
+            border-radius: 0.75rem;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .server-card__footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: rgba(148, 163, 184, 0.8);
         }
         .empty-state {
             padding: 2rem;
@@ -637,6 +999,53 @@
             padding: 1rem;
             background: rgba(15, 23, 42, 0.8);
             border: 1px dashed rgba(96, 165, 250, 0.5);
+        }
+
+        .recommended-section {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        .recommended-grid {
+            margin-top: 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+        }
+        .bundle-card {
+            padding: 1.25rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            background: rgba(15, 23, 42, 0.8);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+        .bundle-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(34, 197, 94, 0.6);
+        }
+        .bundle-card.disabled {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+        .bundle-label {
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            font-size: 0.7rem;
+            color: rgba(148, 163, 184, 0.7);
+        }
+        .bundle-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        .bundle-price {
+            color: rgba(148, 163, 184, 0.9);
+        }
+        .bundle-card i {
+            color: #34d399;
         }
 
         .link-card {
