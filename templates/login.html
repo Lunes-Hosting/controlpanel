@@ -20,7 +20,7 @@
             color: #f8fbff;
             font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
             position: relative;
-            overflow: hidden;
+            overflow-x: hidden;
         }
 
         body::before,
@@ -198,6 +198,19 @@
         }
 
         @media (max-width: 640px) {
+            body {
+                padding: 1.25rem 0.75rem;
+            }
+            .auth-shell {
+                padding: 1.25rem 0.25rem 2.25rem;
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .brand-panel {
+                order: 2;
+            }
+            .form-panel {
+                order: 1;
+            }
             .form-actions {
                 flex-direction: column;
                 gap: 0.35rem;
