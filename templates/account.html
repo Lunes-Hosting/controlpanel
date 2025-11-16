@@ -331,7 +331,7 @@
                             <input id="labels-range-input" step="1" type="range" value="0" min="0" max="{{ products|length - 1 if products else 0 }}" class="range-input">
                             <div class="range-markers">
                                 {% for product in products %}
-                                <span>{{ "%.0f"|format(product['price'] | float) }}</span>
+                                <span>{{ "{:,.0f}".format(product['price'] | float) }}</span>
                                 {% endfor %}
                             </div>
                         </div>
@@ -354,7 +354,7 @@
                         <div class="credit-badge">
                             <p class="text-xl font-bold" id="selectedCredits">
                                 {% if products %}
-                                    {{ "%.2f"|format(products[0]['price'] | float) }} Lunes Credits
+                                    {{ "{:,.0f}".format(products[0]['price'] | float) }} Lunes Credits
                                 {% else %}
                                     No packages available
                                 {% endif %}
@@ -396,11 +396,16 @@
                 const storeDataEl = document.getElementById('store-data');
                 const parsedProducts = storeDataEl?.dataset.products ? JSON.parse(storeDataEl.dataset.products) : [];
                 const checkoutTemplate = storeDataEl?.dataset.checkoutTemplate || '';
-                const priceLinkDict = parsedProducts.map((product) => ({
-                    link: product.price_link ? checkoutTemplate.replace('__PRICE_LINK__', encodeURIComponent(product.price_link)) : '#',
-                    credits: Number(product.price || 0).toFixed(2),
-                    disabled: !product.price_link
-                }));
+                const creditFormatter = new Intl.NumberFormat('en-US');
+                const priceLinkDict = parsedProducts.map((product) => {
+                    const creditValue = Number(product.price || 0);
+                    return {
+                        link: product.price_link ? checkoutTemplate.replace('__PRICE_LINK__', encodeURIComponent(product.price_link)) : '#',
+                        credits: creditValue,
+                        creditsLabel: creditFormatter.format(Math.round(creditValue)),
+                        disabled: !product.price_link
+                    };
+                });
 
                 const rangeInput = document.getElementById('labels-range-input');
                 const sliderValue = document.getElementById('slider-value');
@@ -417,7 +422,7 @@
                 const updatePackageDisplay = (index) => {
                     if (!priceLinkDict.length) return;
                     const pkg = priceLinkDict[index];
-                    const creditLabel = `${pkg.credits} Lunes Credits`;
+                    const creditLabel = `${pkg.creditsLabel} Lunes Credits`;
                     if (sliderValue) sliderValue.textContent = creditLabel;
                     if (selectedCredits) selectedCredits.textContent = creditLabel;
                     if (costValue) costValue.textContent = `$${calculateCost(pkg.credits)}`;
