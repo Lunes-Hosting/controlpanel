@@ -11,13 +11,161 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"/>
     <style>
-        .warning-banner {
-            background-color: #f59e0b; /* bg-yellow-500 */
-            color: #1e293b; /* text-gray-900 */
-            padding: 12px;
-            text-align: center;
-            font-weight: 500;
+        :root {
+            color-scheme: dark;
         }
+
+        body {
+            background: radial-gradient(circle at top, #1f2a44 0%, #0b1220 55%, #05070c 100%);
+            color: #f8fbff;
+            font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
+            min-height: 100vh;
+        }
+
+        .warning-banner {
+            background: linear-gradient(120deg, #facc15, #f97316);
+            color: #0b1220;
+            padding: 0.85rem 1rem;
+            text-align: center;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .page-shell {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 1rem clamp(1rem, 3vw, 2.5rem) 3rem;
+        }
+
+        .hero-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(147, 51, 234, 0.1));
+            border: 1px solid rgba(129, 140, 248, 0.3);
+            border-radius: 1.25rem;
+            box-shadow: 0 30px 70px rgba(15, 23, 42, 0.45);
+            padding: clamp(1.5rem, 4vw, 2.5rem);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-card::after {
+            content: "";
+            position: absolute;
+            top: -30%;
+            right: -10%;
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.35), transparent 65%);
+            filter: blur(5px);
+            z-index: 0;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .metric-card {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 1rem;
+            padding: 1rem 1.15rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .metric-card span {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .metric-card strong {
+            font-size: 1.2rem;
+        }
+
+        .badge {
+            background: rgba(226, 232, 240, 0.1);
+            border: 1px solid rgba(226, 232, 240, 0.3);
+            border-radius: 999px;
+            padding: 0.35rem 0.9rem;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .action-tray {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 0.85rem;
+            margin-top: 1.5rem;
+        }
+
+        .action-button {
+            border-radius: 0.85rem;
+            padding: 0.85rem 1rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid transparent;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 30px rgba(15, 23, 42, 0.35);
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .panel-card {
+            background: rgba(15, 18, 30, 0.88);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 1.15rem;
+            padding: 1.5rem;
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.25);
+        }
+
+        .panel-card h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        .panel-card form select,
+        .panel-card form button {
+            border-radius: 0.85rem;
+        }
+
+        .info-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 0.95rem;
+            color: #cbd5f5;
+        }
+
+        .info-row span:last-child {
+            font-weight: 600;
+            color: #f8fbff;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -27,17 +175,19 @@
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0, 0, 0, 0.4);
+            background-color: rgba(2, 6, 23, 0.85);
+            backdrop-filter: blur(6px);
         }
+
         .modal-content {
-            background-color: #1f2937; /* bg-gray-800 */
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #374151; /* border-gray-700 */
-            width: 90%;
-            max-width: 500px;
-            border-radius: 8px;
+            background-color: #0f172a;
+            margin: 8% auto;
+            padding: 1.75rem;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            width: min(480px, 92%);
+            border-radius: 1rem;
             color: white;
+            box-shadow: 0 25px 60px rgba(2, 6, 23, 0.8);
         }
     </style>
 </head>
@@ -79,7 +229,7 @@
     {% endwith %}
 
     <!-- Main Content -->
-    <div class="max-w-5xl mx-auto p-4 sm:p-6">
+    <div class="page-shell">
         
         {% if not verified %}
             <!-- Email Verification Warning -->
@@ -91,55 +241,138 @@
             </div>
         {% else %}
             
-            <div class="flex flex-row items-center justify-center text-nowrap gap-4 py-3">
-                <div class="flex flex-row items-center gap-2">
-                    <i class="fa-solid fa-server fa-2xl text-blue-400 m-0 p-0"></i>
-                    <h1 class="font-semibold text-2xl m-0 p-0">Manage Server</h1>
+            <div class="hero-card">
+                <div class="relative z-10 flex flex-col gap-4">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="badge text-blue-200">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            Server Control
+                        </div>
+                        <div class="badge text-emerald-200">
+                            <i class="fa-solid fa-code-branch"></i>
+                            UUID {{ info['attributes']['uuid'].split('-')[0] }}
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap justify-between gap-6">
+                        <div>
+                            <p class="text-sm uppercase tracking-[0.3em] text-slate-300">Now managing</p>
+                            <h1 class="text-3xl sm:text-4xl font-black leading-tight">{{ info['attributes']['name'] }}</h1>
+                            <p class="text-slate-300 mt-1 text-sm">Node #{{ info['attributes']['node'] }} · Created {{ info['attributes']['created_at'][:10] }}</p>
+                        </div>
+                        <a href="/" class="action-button bg-white/10 hover:bg-white/20 border-white/30 text-white">
+                            <i class="fa-solid fa-arrow-left"></i>
+                            Head Home
+                        </a>
+                    </div>
+
+                    <div class="hero-grid">
+                        <div class="metric-card">
+                            <span>Plan</span>
+                            <strong>{{ current_product['name'] if current_product else 'Custom Allocation' }}</strong>
+                            <small class="text-gray-400">{{ current_product['price'] if current_product else '0' }} credits / mo</small>
+                        </div>
+                        <div class="metric-card">
+                            <span>Memory</span>
+                            <strong>{{ info['attributes']['limits']['memory'] }} MB</strong>
+                            <small class="text-gray-400">Burst ready</small>
+                        </div>
+                        <div class="metric-card">
+                            <span>Storage</span>
+                            <strong>{{ info['attributes']['limits']['disk'] }} MB</strong>
+                            <small class="text-gray-400">SSD backed</small>
+                        </div>
+                        <div class="metric-card">
+                            <span>CPU</span>
+                            <strong>{% if info['attributes']['limits']['cpu'] %}{{ info['attributes']['limits']['cpu'] }}%{% else %}Unmetered{% endif %}</strong>
+                            <small class="text-gray-400">vCores shared</small>
+                        </div>
+                    </div>
+
+                    <div class="action-tray">
+                        <a href="https://ctrl.lunes.host/server/{{ info['attributes']['uuid'].split('-')[0] }}" class="action-button bg-blue-600 hover:bg-blue-500 text-white">
+                            <i class="fa-solid fa-gauge-simple-high"></i>
+                            Open Panel
+                        </a>
+                        <button onclick="openTransferModal()" class="action-button bg-indigo-500/80 hover:bg-indigo-400 text-white">
+                            <i class="fa-solid fa-right-left"></i>
+                            Transfer Node
+                        </button>
+                        <button onclick="openDeleteModal()" class="action-button bg-red-600/80 hover:bg-red-500 text-white">
+                            <i class="fa-solid fa-trash"></i>
+                            Delete Server
+                        </button>
+                    </div>
                 </div>
-                <hr class="border-gray-200 border-1 w-full">
-
-                <a href="/" class="max-w-xs bg-blue-600 hover:bg-blue-700 py-2 px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
-                    <i class="fa-solid fa-arrow-left"></i>
-                    <span class="hidden md:inline">Head Home</span>
-                </a>
-
             </div>
 
+            <div class="content-grid">
+                <section class="panel-card">
+                    <h2 class="font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-sliders"></i>
+                        Update Plan
+                    </h2>
+                    <p class="text-sm text-slate-400 mb-4">Swap plans without losing data. Changes take effect immediately after provisioning.</p>
+                    <form action="{{ url_for('servers.update_server_submit', server_id=info['attributes']['id']) }}" method="post" class="space-y-4">
+                        <div>
+                            <label for="plan" class="block text-sm font-medium text-gray-300 mb-2">Select a Plan</label>
+                            <select id="plan" name="plan" class="w-full px-4 py-2 bg-slate-900 text-white border border-slate-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                {% for product in products %}
+                                    <option value="{{ product['id'] }}" {% if current_product and product['id'] == current_product['id'] %}selected{% endif %}>
+                                        {{ product['name'] }} · {{ product['limits']['memory'] }}MB RAM · {{ product['limits']['disk'] }}MB SSD · {% if product['limits']['cpu'] != 0 %}{{ product['limits']['cpu'] }}% CPU{% else %}Unmetered CPU{% endif %} · {{ product['price'] }} credits/mo
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-center text-white px-4 py-2 font-semibold">Submit Change</button>
+                    </form>
+                    {% if credits == 0 %}
+                        <div class="mt-3 flex items-start gap-2 text-gray-300 text-sm">
+                            <i class="fa-solid fa-circle-info text-blue-300 mt-0.5"></i>
+                            <p>You can downgrade to a free plan or purchase credits to upgrade your server.</p>
+                        </div>
+                    {% endif %}
+                </section>
 
-            
-            <!-- Server Details -->
-            <div class="my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md my-3">
-                <h1 class="text-3xl sm:text-4xl font-bold mb-4">{{ info['attributes']['name'] }}</h1>
-                <div class="flex flex-wrap gap-4 mb-6">
-                    <button onclick="openDeleteModal()" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors duration-200">Delete</button>
-                    <a href="https://ctrl.lunes.host/server/{{ info['attributes']['uuid'].split('-')[0] }}" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors duration-200">Manage</a>
-                    <button onclick="openTransferModal()" class="bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 transition-colors duration-200">Transfer</button>
-                </div>
-
-                <!-- Update Plan Section -->
-                <div>
-                <h2 class="text-2xl font-bold mb-4">Update Plan</h2>
-                <form action="{{ url_for('servers.update_server_submit', server_id=info['attributes']['id']) }}" method="post">
-                    <div class="mb-4">
-                        <label for="plan" class="block text-sm font-medium text-gray-300 mb-2">Select a Plan:</label>
-                        <select id="plan" name="plan" class="w-full px-4 py-2 bg-gray-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                            {% for product in products %}
-                                <option value="{{ product['id'] }}" {% if current_product and product['id'] == current_product['id'] %}selected{% endif %}>
-                                    <p>{{ product['name'] }}: Memory {{ product['limits']['memory'] }}MB, Storage {{ product['limits']['disk'] }}MB, {% if product['limits']['cpu'] != 0 %} 15% CPU {%else%} Unmetered CPU {% endif %}</p>
-                                    <p>({{product["price"]}} Credit/Mo)</p>
-                                </option>
-                            {% endfor %}
-                        </select>
+                <section class="panel-card">
+                    <h2 class="font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-microchip"></i>
+                        Server Insights
+                    </h2>
+                    <div class="info-list mt-4">
+                        <div class="info-row">
+                            <span>Identifier</span>
+                            <span>{{ info['attributes']['identifier'] }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span>Node</span>
+                            <span>#{{ info['attributes']['node'] }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span>Memory</span>
+                            <span>{{ info['attributes']['limits']['memory'] }} MB</span>
+                        </div>
+                        <div class="info-row">
+                            <span>Disk</span>
+                            <span>{{ info['attributes']['limits']['disk'] }} MB</span>
+                        </div>
+                        <div class="info-row">
+                            <span>CPU</span>
+                            <span>{% if info['attributes']['limits']['cpu'] %}{{ info['attributes']['limits']['cpu'] }}%{% else %}Unmetered{% endif %}</span>
+                        </div>
+                        <div class="info-row">
+                            <span>Backups</span>
+                            <span>{{ info['attributes']['limits']['backups'] }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span>Databases</span>
+                            <span>{{ info['attributes']['limits']['databases'] }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span>Allocations</span>
+                            <span>{{ info['attributes']['limits']['allocations'] }}</span>
+                        </div>
                     </div>
-                    <button type="submit" class="w-full bg-blue-500 text-center text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors duration-200">Submit</button>
-                </form>
-                </div>
-                {% if credits == 0 %}
-                <div class="mt-2 flex flex-row text-gray-300 gap-2 items-center">
-                    <i class="fa-solid fa-circle-info"></i>
-                    <p>You can downgrade to a free plan or purchase credits to upgrade your server.</p>
-                </div>
-                {% endif %}
+                </section>
             </div>
         {% endif %}
     </div>
