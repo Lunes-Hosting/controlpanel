@@ -7,19 +7,49 @@
     <title>Lunes Host | Server {{ info['attributes']['name'] }}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"/>
     <style>
         :root {
             color-scheme: dark;
         }
 
         body {
-            background: radial-gradient(circle at top, #1f2a44 0%, #0b1220 55%, #05070c 100%);
+            background: radial-gradient(circle at top, #020617 0%, #020617 40%, #020617 100%);
             color: #f8fbff;
             font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
             min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .background-blob {
+            position: fixed;
+            width: 420px;
+            height: 420px;
+            border-radius: 9999px;
+            filter: blur(180px);
+            opacity: 0.35;
+            z-index: 0;
+        }
+        .blob-one {
+            top: -120px;
+            left: -80px;
+            background: #3b82f6;
+        }
+        .blob-two {
+            bottom: -160px;
+            right: -120px;
+            background: #14b8a6;
+        }
+        .noise-overlay {
+            position: fixed;
+            inset: 0;
+            background-image: url('https://www.transparenttextures.com/patterns/asfalt-light.png');
+            opacity: 0.06;
+            pointer-events: none;
+            z-index: 0;
         }
 
         .warning-banner {
@@ -38,25 +68,13 @@
         }
 
         .hero-card {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(147, 51, 234, 0.1));
-            border: 1px solid rgba(129, 140, 248, 0.3);
-            border-radius: 1.25rem;
-            box-shadow: 0 30px 70px rgba(15, 23, 42, 0.45);
+            background: radial-gradient(circle at top right, rgba(96, 165, 250, 0.35), rgba(15, 23, 42, 0.95));
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            border-radius: 1.5rem;
+            box-shadow: 0 35px 80px rgba(15, 23, 42, 0.8);
             padding: clamp(1.5rem, 4vw, 2.5rem);
             position: relative;
             overflow: hidden;
-        }
-
-        .hero-card::after {
-            content: "";
-            position: absolute;
-            top: -30%;
-            right: -10%;
-            width: 320px;
-            height: 320px;
-            background: radial-gradient(circle, rgba(59, 130, 246, 0.35), transparent 65%);
-            filter: blur(5px);
-            z-index: 0;
         }
 
         .hero-grid {

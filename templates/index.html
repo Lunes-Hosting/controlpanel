@@ -5,10 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Control Panel</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-ppugYAF7sUY9LqKqXxGnbmN9rB8Ow1+k1wNRF8G+TOaX8qrZ8enZ5iV8V8u84xPqHF6Asuh3vmw7DCf4u1Y5kw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
     <style>
         :root {
@@ -18,36 +17,58 @@
         body {
             margin: 0;
             min-height: 100vh;
-            background: radial-gradient(circle at top, #1f2a44 0%, #0b1220 55%, #05070c 100%);
+            background: radial-gradient(circle at top, #020617 0%, #020617 40%, #020617 100%);
             color: #f8fbff;
             font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .background-blob {
+            position: fixed;
+            width: 420px;
+            height: 420px;
+            border-radius: 9999px;
+            filter: blur(180px);
+            opacity: 0.35;
+            z-index: 0;
+        }
+        .blob-one {
+            top: -120px;
+            left: -80px;
+            background: #3b82f6;
+        }
+        .blob-two {
+            bottom: -160px;
+            right: -120px;
+            background: #14b8a6;
+        }
+        .noise-overlay {
+            position: fixed;
+            inset: 0;
+            background-image: url('https://www.transparenttextures.com/patterns/asfalt-light.png');
+            opacity: 0.06;
+            pointer-events: none;
+            z-index: 0;
         }
 
         .page-shell {
+            position: relative;
+            z-index: 1;
             max-width: 1100px;
             margin: 0 auto;
-            padding: clamp(1rem, 4vw, 3rem);
+            padding: clamp(1.5rem, 4vw, 3rem);
         }
 
         .hero-panel {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(147, 51, 234, 0.15));
-            border: 1px solid rgba(129, 140, 248, 0.35);
-            border-radius: 1.5rem;
+            margin-top: 1.5rem;
+            border-radius: 1.75rem;
             padding: clamp(1.75rem, 5vw, 3rem);
-            box-shadow: 0 35px 70px rgba(15, 23, 42, 0.5);
+            background: radial-gradient(circle at top right, rgba(96, 165, 250, 0.35), rgba(15, 23, 42, 0.95));
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            box-shadow: 0 35px 80px rgba(15, 23, 42, 0.8);
             position: relative;
             overflow: hidden;
-        }
-
-        .hero-panel::after {
-            content: "";
-            position: absolute;
-            right: -8%;
-            top: -25%;
-            width: 320px;
-            height: 320px;
-            background: radial-gradient(circle, rgba(59, 130, 246, 0.35), transparent 70%);
-            filter: blur(6px);
         }
 
         .hero-content {
@@ -136,13 +157,14 @@
         }
 
         .feature-card {
-            background: rgba(12, 17, 30, 0.9);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            border-radius: 1.2rem;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 1.25rem;
             padding: 1.25rem;
             display: flex;
             flex-direction: column;
             gap: 0.65rem;
+            box-shadow: 0 18px 35px rgba(15, 23, 42, 0.7);
         }
 
         .feature-card i {

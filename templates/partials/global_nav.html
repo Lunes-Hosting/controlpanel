@@ -1,0 +1,29 @@
+{% set _endpoint = request.endpoint or '' %}
+<nav class="panel-nav">
+    <div class="panel-nav__shell">
+        <a href="{{ url_for('index') if 'index' in current_app.view_functions else url_for('user.index') }}" class="panel-nav__brand">
+            <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Lunes Host" width="40" height="40" style="border-radius:12px;">
+            <div>
+                <p style="margin:0;font-size:0.75rem;color:rgba(226,232,240,0.7);letter-spacing:0.2em;text-transform:uppercase;">Control</p>
+                <strong style="font-size:1.1rem;">Lunes Host</strong>
+            </div>
+        </a>
+        <div class="panel-nav__links">
+            {% set nav_links = [
+                {'label': 'Home', 'href': url_for('index'), 'match': 'index'},
+                {'label': 'Account', 'href': url_for('user.index'), 'match': 'user.'},
+                {'label': 'Servers', 'href': url_for('servers.create_server'), 'match': 'servers.'},
+                {'label': 'Store', 'href': url_for('store.storepage'), 'match': 'store.'},
+                {'label': 'Tickets', 'href': url_for('tickets.tickets_index'), 'match': 'tickets.'}
+            ] %}
+            {% for item in nav_links %}
+                <a class="panel-nav__link {% if _endpoint.startswith(item.match) %}is-active{% endif %}" href="{{ item.href }}">{{ item.label }}</a>
+            {% endfor %}
+            <a class="panel-nav__link" href="{{ DISCORD_INVITE }}" target="_blank" rel="noopener">Discord</a>
+            <a class="panel-nav__cta" href="{{ url_for('user.logout') }}">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                Logout
+            </a>
+        </div>
+    </div>
+</nav>

@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Tickets</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}">
+    <link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
     <style>
         :root {
@@ -16,32 +17,38 @@
             margin: 0;
             min-height: 100vh;
             font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
-            background: radial-gradient(circle at top, #1d2540 0%, #0a0f1d 60%, #05070d 100%);
+            background: radial-gradient(circle at top, #020617 0%, #020617 40%, #020617 100%);
             color: #ecf2ff;
+            position: relative;
+            overflow-x: hidden;
         }
 
-        body::before,
-        body::after {
-            content: "";
+        .background-blob {
             position: fixed;
             width: 420px;
             height: 420px;
-            border-radius: 50%;
-            pointer-events: none;
-            filter: blur(7px);
+            border-radius: 9999px;
+            filter: blur(180px);
+            opacity: 0.35;
             z-index: 0;
         }
-
-        body::before {
-            top: -140px;
-            left: -60px;
-            background: radial-gradient(circle, rgba(59, 130, 246, 0.25), transparent 70%);
+        .blob-one {
+            top: -120px;
+            left: -80px;
+            background: #3b82f6;
         }
-
-        body::after {
+        .blob-two {
             bottom: -160px;
-            right: -100px;
-            background: radial-gradient(circle, rgba(14, 165, 233, 0.25), transparent 70%);
+            right: -120px;
+            background: #14b8a6;
+        }
+        .noise-overlay {
+            position: fixed;
+            inset: 0;
+            background-image: url('https://www.transparenttextures.com/patterns/asfalt-light.png');
+            opacity: 0.06;
+            pointer-events: none;
+            z-index: 0;
         }
 
         .page-shell {

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Lunes Host{% endblock %}</title>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/panel.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="panel-body">
+    <div class="background-blob blob-one"></div>
+    <div class="background-blob blob-two"></div>
+    <div class="noise-overlay"></div>
+    {% block body_start %}{% endblock %}
+    <main class="panel-main">
+        {% block navigation %}
+            {% include 'partials/global_nav.html' %}
+        {% endblock %}
+        <div class="page-shell {% block page_shell_class %}{% endblock %}">
+            {% block flash_messages %}
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div class="flash-stack">
+                            {% for message in messages %}
+                                <div class="flash-card">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                    <span>{{ message }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+            {% endblock %}
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
