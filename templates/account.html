@@ -10,8 +10,12 @@
     <link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"/>
     </head>
-    <body class="bg-gray-900 text-white" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
-    <nav class="sticky w-full bg-gradient-to-t from-gray-900/0 to-blue-900/100 top-0 z-50 backdrop-blur-xs">
+    <body class="bg-slate-950 text-white min-h-screen relative overflow-x-hidden" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
+    <div class="background-blob blob-one"></div>
+    <div class="background-blob blob-two"></div>
+    <div class="noise-overlay"></div>
+    <main class="relative z-10">
+    <nav class="sticky w-full bg-gradient-to-t from-slate-950/40 via-slate-950/70 to-blue-900/70 top-0 z-50 backdrop-blur-md border-b border-white/5">
         <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-row items-center justify-between h-16">
                 <a href="/" class="group flex items-center space-x-3">
@@ -129,174 +133,535 @@
                 </div>
             </div>
 
+            <section class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <article class="stat-card">
+                    <div class="stat-icon bg-cyan-500/20 text-cyan-300">
+                        <i class="fa-solid fa-coins"></i>
+                    </div>
+                    <div>
+                        <p class="stat-label">Available Credits</p>
+                        <p class="stat-value">{{ credits }}</p>
+                    </div>
+                </article>
+                <article class="stat-card">
+                    <div class="stat-icon bg-rose-500/20 text-rose-300">
+                        <i class="fa-solid fa-gauge-high"></i>
+                    </div>
+                    <div>
+                        <p class="stat-label">Monthly Usage</p>
+                        <p class="stat-value">{{ monthly_usage }}</p>
+                    </div>
+                </article>
+                <article class="stat-card">
+                    <div class="stat-icon bg-indigo-500/20 text-indigo-300">
+                        <i class="fa-solid fa-server"></i>
+                    </div>
+                    <div>
+                        <p class="stat-label">Server Count</p>
+                        <p class="stat-value">{{ server_count }}</p>
+                    </div>
+                </article>
+                <article class="stat-card">
+                    <div class="stat-icon bg-emerald-500/20 text-emerald-300">
+                        <i class="fa-solid fa-shield-check"></i>
+                    </div>
+                    <div>
+                        <p class="stat-label">Status</p>
+                        <p class="stat-value">
+                            {% if suspended %}
+                                Suspended
+                            {% elif not verified %}
+                                Pending Verification
+                            {% else %}
+                                Active
+                            {% endif %}
+                        </p>
+                    </div>
+                </article>
+            </section>
+
             <!-- Servers Section -->
             {% if verified and not suspended %}
-            <div class="flex flex-row items-center justify-center text-nowrap gap-8 py-3">
-                <div class="flex flex-row items-center justify-center gap-2">
-                    <i class="fa-solid fa-server fa-lg fa-2xl text-blue-400 m-0 p-0"></i>
-                    <h1 class="text-2xl m-0 p-0 font-semibold">Manage Servers</h1>
-                </div>
-                <hr class="border-neutral-600 border-t w-full inline">
-
-                <a href="/servers/create" class="max-w-xs bg-blue-500 hover:bg-blue-600 py-2 px-2 sm:px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
-                    <i class="fa-solid fa-plus"></i>
-                    <span class="hidden sm:inline" >Create Server</span>
-                </a>
-            </div>
-
-            <div class="my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md">
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {% for server in servers %}
-                    <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}" class="block bg-gray-800 hover:scale-105 transition transition-transform rounded-lg shadow-xl hover:shadow-2xl transition-shadow duration-300">
-                        <div class="p-6 text-center">
-                            <h3 class="text-xl font-semibold mb-2">{{ server['attributes']['name'] }}</h3>
-                            <p class="text-sm text-gray-400">Click to view details</p>
+            <section class="panel-section" aria-labelledby="servers-heading">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 section-heading">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
+                        <div>
+                            <p class="text-sm uppercase tracking-wider text-blue-300/80">Infrastructure</p>
+                            <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
                         </div>
+                    </div>
+                    <a href="/servers/create" class="btn-primary">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Create Server</span>
                     </a>
-                    {% endfor %}
                 </div>
-            </div>
+
+                <div class="panel-card">
+                    {% if servers %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        {% for server in servers %}
+                        <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}" class="server-card">
+                            <div>
+                                <p class="server-meta">ID · {{ server['attributes'].get('identifier', server['attributes']['id']) }}</p>
+                                <h3 class="text-xl font-semibold mb-2 truncate">{{ server['attributes']['name'] }}</h3>
+                                <p class="text-sm text-gray-400">Tap to view console, usage, and actions.</p>
+                            </div>
+                            <i class="fa-solid fa-arrow-up-right-from-square text-blue-300"></i>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fa-solid fa-box-open"></i>
+                        <p class="text-lg font-semibold">No servers yet</p>
+                        <p class="text-sm text-gray-400">Use the button above to deploy your first instance in seconds.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
             {% elif not verified %}
-            <div class="flex flex-row items-center justify-center text-nowrap gap-8 py-3">
-                <div class="flex flex-row items-center justify-center gap-2">
-                    <i class="fa-solid fa-server fa-lg fa-2xl text-blue-400 m-0 p-0"></i>
-                    <h1 class="text-2xl m-0 p-0 font-semibold">Manage Servers</h1>
+            <section class="panel-section" aria-labelledby="servers-heading">
+                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading">
+                    <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
+                    <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
                 </div>
-                <hr class="border-neutral-600 border-t w-full inline">
-            </div>
-
-            <div class="my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md">
-                <div class="text-center">
+                <div class="panel-card text-center">
                     <h3 class="text-xl font-semibold mb-2">Please verify your email to access the servers section.</h3>
+                    <p class="text-gray-400 text-sm">Once verified, you can provision servers and monitor usage from here.</p>
                 </div>
-            </div>
+            </section>
             {% elif suspended %}
-            <div class="flex flex-row items-center justify-center text-nowrap gap-8 py-3">
-                <div class="flex flex-row items-center justify-center gap-2">
-                    <i class="fa-solid fa-server fa-lg fa-2xl text-blue-400 m-0 p-0"></i>
-                    <h1 class="text-2xl m-0 p-0 font-semibold">Manage Servers</h1>
+            <section class="panel-section" aria-labelledby="servers-heading">
+                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading">
+                    <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
+                    <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
                 </div>
-                <hr class="border-neutral-600 border-t w-full inline">
-            </div>
-
-            <div class="my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md">
-                <div class="text-center">
+                <div class="panel-card text-center">
                     <h3 class="text-xl font-semibold mb-2">Your account is suspended. Please contact support to unsuspend your account.</h3>
+                    <p class="text-gray-400 text-sm">Open a ticket or reach the Discord team and we'll help you get back online.</p>
                 </div>
-            </div>
+            </section>
             {% endif %}
 
             <!-- Store Section -->
-            <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
-                <i class="fa-solid fa-store fa-2xl text-green-400 m-0 p-0"></i>
-                <h1 class="font-semibold text-2xl m-0 p-0">Store</h1>
-            </div>
-
-            <div id="StoreArea" class="flex-1 items-center justify-center my-4 p-8 bg-gray-900 border-2 border-green-500 shadow-xl shadow-green-500/20 rounded-md">
-                <div class="grid grid-cols-4 gap-8">
-                  <div class="col-span-2">
-                    <div class="flex flex-col gap-2 sm:gap-4 sm:w-[100%]">
-                      <div>
-                        <p class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-left">Lunes Credits</p>
-                        <p class="italic text-left sm:text-xs md:text-sm lg:text-xs">*Lunes Credits is the currency we use to meter premium products we offer</p>
-                      </div>
-                      <div>
-                        <label id="slider-value" for="labels-range-input" class="text-left block mb-2 text-sm font-medium">100 Lunes Credits</label>
-                        <input id="labels-range-input" step="1" type="range" value="0" min="0" max="{{ products|length - 1 }}" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
-                      </div>
+            <section class="panel-section" id="StoreArea" aria-labelledby="store-heading">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 section-heading">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-store fa-2xl text-green-400"></i>
+                        <div>
+                            <p class="text-sm uppercase tracking-wider text-emerald-300/80">Billing</p>
+                            <h1 id="store-heading" class="text-2xl font-semibold">Store</h1>
+                        </div>
                     </div>
-                  </div>
-                  <div class="col-span-2">
-                    <div class="flex justify-center items-center text-center">
-                      <p id="costValue" class="text-3xl md:text-3xl lg:text-6xl font-bold">$1.00+</p>
-                    </div>
-                  </div>
+                    <span class="badge-live">Instant Delivery</span>
                 </div>
-                <a id="purchaseLink" href="{{ url_for('user.logout') }}" class="flex flex-row items-center justify-center inline-block mt-2 px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-200">
-                    <i class="fa-solid fa-door-open"></i>
-                    <span class="">Purchase</span></a>
-              </div>
+
+                <div class="panel-card grid gap-10 lg:grid-cols-2">
+                    <div class="space-y-6">
+                        <div>
+                            <p class="text-3xl font-bold">Lunes Credits</p>
+                            <p class="text-sm text-gray-400">*Our lightweight currency that powers hourly billing with complete flexibility.</p>
+                        </div>
+                        <div class="slider-shell">
+                            <div class="flex items-center justify-between">
+                                <label id="slider-value" for="labels-range-input" class="text-sm uppercase tracking-wide text-gray-400">Select a package</label>
+                                <span class="text-xs text-gray-500">drag to preview</span>
+                            </div>
+                            <input id="labels-range-input" step="1" type="range" value="0" min="0" max="{{ products|length - 1 if products else 0 }}" class="range-input">
+                            <div class="range-markers">
+                                {% for product in products %}
+                                <span>{{ "%.0f"|format(product['price'] | float) }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <ul class="feature-list">
+                            <li><i class="fa-solid fa-lightning"></i>Instant Stripe checkout & provisioning</li>
+                            <li><i class="fa-solid fa-clock"></i>Credits charge hourly, cancel anytime</li>
+                            <li><i class="fa-solid fa-shield-heart"></i>Protected by our Trust & Safety team</li>
+                        </ul>
+                    </div>
+
+                    <div class="store-preview">
+                        <p class="text-sm text-gray-400">Estimated total</p>
+                        <p id="costValue" class="cost-value">
+                            {% if products %}
+                                ${{ "%.2f"|format((products[0]['price'] | float) / 100) }}
+                            {% else %}
+                                $0.00
+                            {% endif %}
+                        </p>
+                        <div class="credit-badge">
+                            <p class="text-xl font-bold" id="selectedCredits">
+                                {% if products %}
+                                    {{ "%.2f"|format(products[0]['price'] | float) }} Lunes Credits
+                                {% else %}
+                                    No packages available
+                                {% endif %}
+                            </p>
+                            <p class="text-sm text-gray-400">Delivered instantly once payment clears.</p>
+                        </div>
+                        <a id="purchaseLink" href="{{ url_for('user.logout') }}" class="btn-primary w-full justify-center gap-2">
+                            <i class="fa-solid fa-cash-register"></i>
+                            <span>Purchase Credits</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <div id="store-data" class="sr-only" data-products='{{ products | tojson | safe }}' data-checkout-template="{{ url_for('store.create_checkout_session', price_link='__PRICE_LINK__') }}"></div>
               <script>
-                const priceLinkDict = [
-                    {% for product in products %}
-                    {% if product['price_link'] %}
-                    {"link":"{{ url_for('store.create_checkout_session', price_link=product['price_link'] or 0) }}", "credits":"{{ "%.2f"|format(product['price']) }}"},
-                    {% endif %}
-                    {% endfor %}
-                ]
+                const storeDataEl = document.getElementById('store-data');
+                const parsedProducts = storeDataEl?.dataset.products ? JSON.parse(storeDataEl.dataset.products) : [];
+                const checkoutTemplate = storeDataEl?.dataset.checkoutTemplate || '';
+                const priceLinkDict = parsedProducts.map((product) => ({
+                    link: product.price_link ? checkoutTemplate.replace('__PRICE_LINK__', encodeURIComponent(product.price_link)) : '#',
+                    credits: Number(product.price || 0).toFixed(2),
+                    disabled: !product.price_link
+                }));
+
                 const rangeInput = document.getElementById('labels-range-input');
                 const sliderValue = document.getElementById('slider-value');
                 const costValue = document.getElementById('costValue');
                 const purchaseBtn = document.getElementById('purchaseLink');
-              
-                rangeInput.addEventListener('input', () => {
-                  sliderValue.textContent = priceLinkDict[rangeInput.value]["credits"] + " Lunes Credits";
-                  costValue.textContent = "$"+calculateCost(priceLinkDict[rangeInput.value]["credits"]);
-                  purchaseBtn.setAttribute("href", priceLinkDict[rangeInput.value]["link"]);
-                });
-              
-                // Initialize the display value
-                sliderValue.textContent = priceLinkDict[rangeInput.value]["credits"] + " Lunes Credits";
-                costValue.textContent = "$"+calculateCost(priceLinkDict[rangeInput.value]["credits"]);
-                purchaseBtn.setAttribute("href", priceLinkDict[rangeInput.value]["link"]);
-        
-        
-                function calculateCost(miles) {
-                  const cost = miles / 100;
-                  return cost.toFixed(2);
-                }
+                const purchaseText = purchaseBtn ? purchaseBtn.querySelector('span') : null;
+                const selectedCredits = document.getElementById('selectedCredits');
+
+                const calculateCost = (credits) => {
+                    const cost = parseFloat(credits || 0) / 100;
+                    return cost.toFixed(2);
+                };
+
+                const updatePackageDisplay = (index) => {
+                    if (!priceLinkDict.length) return;
+                    const pkg = priceLinkDict[index];
+                    const creditLabel = `${pkg.credits} Lunes Credits`;
+                    if (sliderValue) sliderValue.textContent = creditLabel;
+                    if (selectedCredits) selectedCredits.textContent = creditLabel;
+                    if (costValue) costValue.textContent = `$${calculateCost(pkg.credits)}`;
+                    if (purchaseBtn) {
+                        if (pkg.disabled || pkg.link === '#') {
+                            purchaseBtn.classList.add('pointer-events-none', 'opacity-60');
+                            purchaseBtn.setAttribute('href', '#');
+                            if (purchaseText) purchaseText.textContent = 'Unavailable';
+                        } else {
+                            purchaseBtn.classList.remove('pointer-events-none', 'opacity-60');
+                            purchaseBtn.setAttribute('href', pkg.link);
+                            if (purchaseText) purchaseText.textContent = 'Purchase Credits';
+                        }
+                    }
+                };
+
+                const initializeStore = () => {
+                    if (!rangeInput || !priceLinkDict.length) {
+                        if (sliderValue) sliderValue.textContent = 'No packages available';
+                        if (selectedCredits) selectedCredits.textContent = 'No packages available';
+                        if (costValue) costValue.textContent = '$0.00';
+                        if (purchaseBtn) {
+                            purchaseBtn.classList.add('pointer-events-none', 'opacity-60');
+                            purchaseBtn.setAttribute('href', '#');
+                        }
+                        return;
+                    }
+                    rangeInput.max = Math.max(priceLinkDict.length - 1, 0);
+                    rangeInput.value = 0;
+                    updatePackageDisplay(0);
+                    rangeInput.addEventListener('input', () => updatePackageDisplay(rangeInput.value));
+                };
+
+                initializeStore();
               </script>
 
             <!-- Other Section -->
-            <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
-                <i class="fa-solid fa-barcode fa-2xl text-blue-400 m-0 p-0"></i>
-                <h1 class="font-semibold text-2xl m-0 p-0">Other</h1>
-            </div>
+            <section class="panel-section" aria-labelledby="other-heading">
+                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading">
+                    <i class="fa-solid fa-barcode fa-2xl text-blue-400"></i>
+                    <h1 id="other-heading" class="text-2xl font-semibold">Community & Policies</h1>
+                </div>
 
-            <div class="my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md">
-                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 space-x-4">
-                    <div>
-                        <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" rel="preload" class="h-auto w-40 rounded-lg" width="32" height="32">         
+                <div class="panel-card flex flex-col lg:flex-row gap-8 items-center lg:items-stretch">
+                    <div class="flex flex-col items-center text-center gap-4">
+                        <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" rel="preload" class="h-auto w-32 rounded-lg" width="128" height="128">
                         <p class="text-2xl font-bold">Lunes Hosting</p>
+                        <p class="text-sm text-gray-400">Reliable cloud infrastructure backed by real people.</p>
                     </div>
-
-                    <div class="hidden sm:inline relative">
-                        <div class="absolute border border-1 border-blue-500 inset-y-0 left-0 w-px"></div> <!-- Divider -->
-                    </div>
-
-                    <hr class="inline sm:hidden border border-2 border-blue-500" />
-
-                    <div class="flex flex-col gap-4">
-                        <a href="{{ DISCORD_INVITE }}" class="max-w-xs bg-indigo-600 hover:bg-indigo-700 py-2 px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
+                    <div class="grid gap-4 sm:grid-cols-2 w-full">
+                        <a href="{{ DISCORD_INVITE }}" class="link-card">
                             <i class="fa-brands fa-discord"></i>
-                            <span>Join Discord</span>
+                            <div>
+                                <p class="text-lg font-semibold">Join Discord</p>
+                                <p class="text-sm text-gray-400">Chat with staff, get status updates, and hang out with the community.</p>
+                            </div>
                         </a>
-                        <a href="https://lunes.host/tos/" class="max-w-xs bg-gray-600 hover:bg-gray-700 py-2 px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
+                        <a href="https://lunes.host/tos/" class="link-card">
                             <i class="fa-solid fa-file-contract"></i>
-                            <span>Terms of Service</span>
+                            <div>
+                                <p class="text-lg font-semibold">Terms of Service</p>
+                                <p class="text-sm text-gray-400">Understand the rules that keep our network fair for everyone.</p>
+                            </div>
                         </a>
-                        <a href="https://lunes.host/privacy/" class="max-w-xs bg-gray-600 hover:bg-gray-700 py-2 px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
+                        <a href="https://lunes.host/privacy/" class="link-card">
                             <i class="fa-solid fa-shield-halved"></i>
-                            <span>Privacy Polcy</span>
+                            <div>
+                                <p class="text-lg font-semibold">Privacy Policy</p>
+                                <p class="text-sm text-gray-400">See how we treat your data with security-first principles.</p>
+                            </div>
                         </a>
-                        <a href="mailto:panel@lunes.host" class="max-w-xs bg-gray-600 hover:bg-gray-700 py-2 px-6 rounded-md shadow-lg transform transition-transform duration-300 ease-in-out hover:scale-105 flex items-center gap-2">
+                        <a href="mailto:panel@lunes.host" class="link-card">
                             <i class="fa-solid fa-envelope"></i>
-                            <span>Email Us</span>
+                            <div>
+                                <p class="text-lg font-semibold">Email Us</p>
+                                <p class="text-sm text-gray-400">Need something specific? Our inbox is monitored daily.</p>
+                            </div>
                         </a>
                     </div>
                 </div>
-            </div>
+            </section>
         </div>
     </div>
+    </main>
 
     <style>
-        .warning-banner {
-            background-color: #f59e0b; /* bg-yellow-500 */
-            color: #1e293b; /* text-gray-900 */
-            padding: 12px;
-            text-align: center;
-            font-weight: 500;
+        :root {
+            --panel-border: rgba(59, 130, 246, 0.35);
+            --panel-bg: rgba(15, 23, 42, 0.8);
+            --panel-shadow: 0 25px 50px -12px rgba(30, 64, 175, 0.35);
         }
+
+        .background-blob {
+            position: fixed;
+            width: 420px;
+            height: 420px;
+            border-radius: 9999px;
+            filter: blur(180px);
+            opacity: 0.35;
+            z-index: 0;
+        }
+        .blob-one {
+            top: -120px;
+            left: -80px;
+            background: #3b82f6;
+        }
+        .blob-two {
+            bottom: -160px;
+            right: -120px;
+            background: #14b8a6;
+        }
+        .noise-overlay {
+            position: fixed;
+            inset: 0;
+            background-image: url('https://www.transparenttextures.com/patterns/asfalt-light.png');
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        .account-info,
+        .panel-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            box-shadow: var(--panel-shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .stat-card {
+            display: flex;
+            gap: 1rem;
+            padding: 1.25rem;
+            border-radius: 1rem;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 15px 35px -12px rgba(0, 0, 0, 0.6);
+        }
+        .stat-icon {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            font-size: 1.25rem;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: rgba(248, 250, 252, 0.65);
+        }
+        .stat-value {
+            font-size: 1.35rem;
+            font-weight: 700;
+        }
+
+        .panel-section {
+            margin-top: 3rem;
+        }
+        .section-heading {
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35);
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px) scale(1.01);
+            box-shadow: 0 18px 35px rgba(37, 99, 235, 0.45);
+        }
+
+        .server-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+        .server-card:hover {
+            transform: translateY(-3px) scale(1.01);
+            border-color: rgba(59, 130, 246, 0.6);
+        }
+        .server-meta {
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(148, 163, 184, 0.7);
+        }
+        .empty-state {
+            padding: 2rem;
+            border-radius: 1rem;
+            border: 1px dashed rgba(148, 163, 184, 0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        .empty-state i {
+            font-size: 2rem;
+            color: rgba(59, 130, 246, 0.7);
+        }
+
+        .badge-live {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            color: #6ee7b7;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .slider-shell {
+            background: rgba(15, 23, 42, 0.7);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .range-input {
+            width: 100%;
+            appearance: none;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #22c55e, #3b82f6);
+            outline: none;
+            margin: 1rem 0;
+        }
+        .range-input::-webkit-slider-thumb {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            background: #fff;
+            border: 3px solid #3b82f6;
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+        }
+        .range-markers {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            color: rgba(148, 163, 184, 0.7);
+        }
+        .feature-list {
+            display: grid;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            color: rgba(226, 232, 240, 0.9);
+        }
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .feature-list i {
+            color: #22d3ee;
+        }
+
+        .store-preview {
+            border-radius: 1.5rem;
+            background: radial-gradient(circle at top, rgba(96, 165, 250, 0.35), rgba(15, 23, 42, 0.95));
+            border: 1px solid rgba(96, 165, 250, 0.4);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .cost-value {
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            font-weight: 800;
+        }
+        .credit-badge {
+            border-radius: 1rem;
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px dashed rgba(96, 165, 250, 0.5);
+        }
+
+        .link-card {
+            display: flex;
+            gap: 1rem;
+            padding: 1.25rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(71, 85, 105, 0.7);
+            background: rgba(15, 23, 42, 0.7);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+        .link-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(96, 165, 250, 0.7);
+        }
+        .link-card i {
+            font-size: 1.5rem;
+            color: rgba(129, 140, 248, 0.9);
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -306,20 +671,34 @@
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0, 0, 0, 0.4);
+            background-color: rgba(0, 0, 0, 0.6);
         }
         .modal-content {
-            background-color: #1f2937; /* bg-gray-800 */
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #374151; /* border-gray-700 */
+            background-color: #0f172a;
+            margin: 10% auto;
+            padding: 24px;
+            border: 1px solid rgba(59, 130, 246, 0.4);
             width: 90%;
-            max-width: 500px;
-            border-radius: 8px;
-            color: white;
+            max-width: 520px;
+            border-radius: 16px;
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.9);
         }
-        .tooltip-container:hover .tooltip {
+
+        .tooltip {
+            display: none;
+        }
+        .tooltip-container:hover .tooltip,
+        .tooltip-container:focus-within .tooltip {
             display: block;
+        }
+
+        @media (max-width: 640px) {
+            .stat-card {
+                flex-direction: column;
+            }
+            .panel-section {
+                margin-top: 2rem;
+            }
         }
     </style>
 
