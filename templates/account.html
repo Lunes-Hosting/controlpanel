@@ -156,8 +156,8 @@
                                 <div class="credit-progress" style="--progress-width: {{ credit_width }};"></div>
                             </div>
                             <div class="credit-footer">
-                                <span><i class="fa-solid fa-clock"></i>Hourly billing enabled</span>
-                                <span><i class="fa-solid fa-bolt"></i>Auto-suspend when empty</span>
+                                <span><i class="fa-solid fa-clock"></i> Hourly billing enabled</span>
+                                <span><i class="fa-solid fa-bolt"></i> Auto-suspend when empty</span>
                             </div>
                         </div>
 
@@ -230,7 +230,7 @@
             <!-- Servers Section -->
             {% if verified and not suspended %}
             <section class="panel-section" aria-labelledby="servers-heading">
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 section-heading">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 section-heading rounded-2xl border border-white/5 bg-gradient-to-r from-slate-900/60 to-slate-900/20 px-4 sm:px-6 py-4">
                     <div class="flex items-center gap-3">
                         <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
                         <div>
@@ -244,7 +244,7 @@
                     </a>
                 </div>
 
-                <div class="panel-card">
+                <div class="panel-card rounded-2xl overflow-hidden border border-white/5">
                     {% if servers %}
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {% for server in servers %}
@@ -284,22 +284,22 @@
             </section>
             {% elif not verified %}
             <section class="panel-section" aria-labelledby="servers-heading">
-                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading">
+                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading rounded-2xl border border-white/5 bg-gradient-to-r from-slate-900/60 to-slate-900/20 px-4 sm:px-6 py-4">
                     <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
                     <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
                 </div>
-                <div class="panel-card text-center">
+                <div class="panel-card text-center rounded-2xl border border-white/5">
                     <h3 class="text-xl font-semibold mb-2">Please verify your email to access the servers section.</h3>
                     <p class="text-gray-400 text-sm">Once verified, you can provision servers and monitor usage from here.</p>
                 </div>
             </section>
             {% elif suspended %}
             <section class="panel-section" aria-labelledby="servers-heading">
-                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading">
+                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading rounded-2xl border border-white/5 bg-gradient-to-r from-slate-900/60 to-slate-900/20 px-4 sm:px-6 py-4">
                     <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
                     <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
                 </div>
-                <div class="panel-card text-center">
+                <div class="panel-card text-center rounded-2xl border border-white/5">
                     <h3 class="text-xl font-semibold mb-2">Your account is suspended. Please contact support to unsuspend your account.</h3>
                     <p class="text-gray-400 text-sm">Open a ticket or reach the Discord team and we'll help you get back online.</p>
                 </div>
@@ -319,13 +319,14 @@
                     <span class="badge-live">Instant Delivery</span>
                 </div>
 
-                <div class="panel-card grid gap-10 lg:grid-cols-2">
-                    <div class="space-y-6">
-                        <div>
+                <div class="panel-card grid gap-10 lg:grid-cols-2 rounded-3xl border border-white/10 overflow-hidden bg-gradient-to-r from-slate-950/80 to-slate-900/40">
+                    <div class="space-y-6 px-4 sm:px-6 py-6">
+                        <div class="space-y-1">
+                            <p class="text-sm uppercase tracking-[0.3em] text-slate-400">Billing credits</p>
                             <p class="text-3xl font-bold">Lunes Credits</p>
-                            <p class="text-sm text-gray-400">*Our lightweight currency that powers hourly billing with complete flexibility.</p>
+                            <p class="text-sm text-gray-400">Our lightweight currency that powers hourly billing with complete flexibility.</p>
                         </div>
-                        <div class="slider-shell">
+                        <div class="slider-shell mt-4">
                             <div class="flex items-center justify-between">
                                 <label id="slider-value" for="labels-range-input" class="text-sm uppercase tracking-wide text-gray-400">Select a package</label>
                                 <span class="text-xs text-gray-500">drag to preview</span>
@@ -337,36 +338,40 @@
                                 {% endfor %}
                             </div>
                         </div>
-                        <ul class="feature-list">
+                        <ul class="feature-list pt-2">
                             <li><i class="fa-solid fa-lightning"></i>Instant Stripe checkout & provisioning</li>
                             <li><i class="fa-solid fa-clock"></i>Credits charge hourly, cancel anytime</li>
                             <li><i class="fa-solid fa-shield-heart"></i>Protected by our Trust & Safety team</li>
                         </ul>
                     </div>
 
-                    <div class="store-preview">
-                        <p class="text-sm text-gray-400">Estimated total</p>
-                        <p id="costValue" class="cost-value">
+                    <div class="store-preview flex flex-col justify-between">
+                        <div class="space-y-2">
+                            <p class="text-sm text-gray-300">Estimated total</p>
+                            <p id="costValue" class="cost-value">
                             {% if products %}
                                 ${{ "%.2f"|format((products[0]['price'] | float) / 100) }}
                             {% else %}
                                 $0.00
                             {% endif %}
-                        </p>
-                        <div class="credit-badge">
-                            <p class="text-xl font-bold" id="selectedCredits">
+                            </p>
+                            <div class="credit-badge mt-3">
+                                <p class="text-xl font-bold" id="selectedCredits">
                                 {% if products %}
                                     {{ "{:,.0f}".format(products[0]['price'] | float) }} Lunes Credits
                                 {% else %}
                                     No packages available
                                 {% endif %}
-                            </p>
-                            <p class="text-sm text-gray-400">Delivered instantly once payment clears.</p>
+                                </p>
+                                <p class="text-sm text-gray-400">Delivered instantly once payment clears.</p>
+                            </div>
                         </div>
-                        <a id="purchaseLink" href="{{ url_for('user.logout') }}" class="btn-primary w-full justify-center gap-2">
-                            <i class="fa-solid fa-cash-register"></i>
-                            <span>Purchase Credits</span>
-                        </a>
+                        <div class="mt-4">
+                            <a id="purchaseLink" href="{{ url_for('user.logout') }}" class="btn-primary w-full justify-center gap-2 text-center">
+                                <i class="fa-solid fa-cash-register"></i>
+                                <span>Purchase Credits</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
 
@@ -463,12 +468,12 @@
 
             <!-- Other Section -->
             <section class="panel-section" aria-labelledby="other-heading">
-                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading">
+                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading rounded-2xl border border-white/5 bg-gradient-to-r from-slate-900/60 to-slate-900/20 px-4 sm:px-6 py-4">
                     <i class="fa-solid fa-barcode fa-2xl text-blue-400"></i>
                     <h1 id="other-heading" class="text-2xl font-semibold">Community & Policies</h1>
                 </div>
 
-                <div class="panel-card flex flex-col lg:flex-row gap-8 items-center lg:items-stretch">
+                <div class="panel-card flex flex-col lg:flex-row gap-8 items-center lg:items-stretch rounded-2xl border border-white/5">
                     <div class="flex flex-col items-center text-center gap-4">
                         <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" rel="preload" class="h-auto w-32 rounded-lg" width="128" height="128">
                         <p class="text-2xl font-bold">Lunes Hosting</p>
