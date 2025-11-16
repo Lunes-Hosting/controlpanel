@@ -147,6 +147,73 @@
             border-radius: 0.85rem;
         }
 
+        .plan-select-wrapper {
+            background: rgba(10, 15, 30, 0.9);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 1rem;
+            padding: 0.75rem 1rem;
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.25);
+            position: relative;
+        }
+
+        .plan-select-wrapper::after {
+            content: '\f107';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            pointer-events: none;
+        }
+
+        .plan-select {
+            width: 100%;
+            background: transparent;
+            color: #f8fbff;
+            border: none;
+            font-size: 0.95rem;
+            padding-right: 2rem;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+
+        .plan-select:focus {
+            outline: none;
+        }
+
+        .plan-select option {
+            background: #05070c;
+            color: #f8fbff;
+            padding: 0.5rem;
+        }
+
+        .plan-detail {
+            margin-top: 1rem;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(51, 65, 85, 0.7);
+            border-radius: 1rem;
+            padding: 1rem 1.2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .plan-detail-item span {
+            display: block;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #94a3b8;
+            margin-bottom: 0.25rem;
+        }
+
+        .plan-detail-item strong {
+            font-size: 1rem;
+        }
+
         .info-list {
             display: flex;
             flex-direction: column;
@@ -314,14 +381,53 @@
                     <p class="text-sm text-slate-400 mb-4">Swap plans without losing data. Changes take effect immediately after provisioning.</p>
                     <form action="{{ url_for('servers.update_server_submit', server_id=info['attributes']['id']) }}" method="post" class="space-y-4">
                         <div>
-                            <label for="plan" class="block text-sm font-medium text-gray-300 mb-2">Select a Plan</label>
-                            <select id="plan" name="plan" class="w-full px-4 py-2 bg-slate-900 text-white border border-slate-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                                {% for product in products %}
-                                    <option value="{{ product['id'] }}" {% if current_product and product['id'] == current_product['id'] %}selected{% endif %}>
-                                        {{ product['name'] }} · {{ product['limits']['memory'] }}MB RAM · {{ product['limits']['disk'] }}MB SSD · {% if product['limits']['cpu'] != 0 %}{{ product['limits']['cpu'] }}% CPU{% else %}Unmetered CPU{% endif %} · {{ product['price'] }} credits/mo
-                                    </option>
-                                {% endfor %}
-                            </select>
+                            <p class="block text-sm font-medium text-gray-300 mb-3">Select a Plan</p>
+                            {% if products %}
+                                {% set selected_plan = current_product or products[0] %}
+                                <div class="plan-select-wrapper">
+                                    <select id="plan" name="plan" class="plan-select" required>
+                                        {% for product in products %}
+                                            <option value="{{ product['id'] }}" data-name="{{ product['name'] }}" data-memory="{{ product['limits']['memory'] }}" data-disk="{{ product['limits']['disk'] }}" data-cpu="{{ product['limits']['cpu'] if product['limits']['cpu'] else 'Unmetered' }}" data-db="{{ product['limits']['databases'] }}" data-backups="{{ product['limits']['backups'] }}" data-price="{{ product['price'] }}" {% if current_product and product['id'] == current_product['id'] %}selected{% endif %}>
+                                                {{ product['name'] }} · {{ product['limits']['memory'] }}MB RAM · {{ product['limits']['disk'] }}MB SSD · {% if product['limits']['cpu'] != 0 %}{{ product['limits']['cpu'] }}% CPU{% else %}Unmetered CPU{% endif %} · {{ product['price'] }} credits/mo
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="plan-detail" id="planDetail">
+                                    <div class="plan-detail-item">
+                                        <span>Plan</span>
+                                        <strong id="planDetailName">{{ selected_plan['name'] }}</strong>
+                                    </div>
+                                    <div class="plan-detail-item">
+                                        <span>Price</span>
+                                        <strong id="planDetailPrice">{{ selected_plan['price'] }} credits/mo</strong>
+                                    </div>
+                                    <div class="plan-detail-item">
+                                        <span>Memory</span>
+                                        <strong id="planDetailMemory">{{ selected_plan['limits']['memory'] }} MB</strong>
+                                    </div>
+                                    <div class="plan-detail-item">
+                                        <span>Storage</span>
+                                        <strong id="planDetailDisk">{{ selected_plan['limits']['disk'] }} MB</strong>
+                                    </div>
+                                    <div class="plan-detail-item">
+                                        <span>CPU</span>
+                                        <strong id="planDetailCpu">{% if selected_plan['limits']['cpu'] %}{{ selected_plan['limits']['cpu'] }}%{% else %}Unmetered{% endif %}</strong>
+                                    </div>
+                                    <div class="plan-detail-item">
+                                        <span>Databases</span>
+                                        <strong id="planDetailDb">{{ selected_plan['limits']['databases'] }}</strong>
+                                    </div>
+                                    <div class="plan-detail-item">
+                                        <span>Backups</span>
+                                        <strong id="planDetailBackups">{{ selected_plan['limits']['backups'] }}</strong>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="plan-select-wrapper text-sm text-slate-400">
+                                    No upgrade plans are available right now.
+                                </div>
+                            {% endif %}
                         </div>
                         <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-center text-white px-4 py-2 font-semibold">Submit Change</button>
                     </form>
@@ -457,6 +563,44 @@
                 closeTransferModal();
             });
         }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const planSelect = document.getElementById('plan');
+            if (!planSelect) return;
+
+            const detailMap = {
+                name: document.getElementById('planDetailName'),
+                price: document.getElementById('planDetailPrice'),
+                memory: document.getElementById('planDetailMemory'),
+                disk: document.getElementById('planDetailDisk'),
+                cpu: document.getElementById('planDetailCpu'),
+                db: document.getElementById('planDetailDb'),
+                backups: document.getElementById('planDetailBackups')
+            };
+
+            const formatCpu = (value) => {
+                if (!value || value === '0' || value === 'Unmetered') {
+                    return 'Unmetered';
+                }
+                return `${value}%`;
+            };
+
+            const updatePlanDetail = (option) => {
+                if (!option) return;
+                detailMap.name.textContent = option.dataset.name;
+                detailMap.price.textContent = `${option.dataset.price} credits/mo`;
+                detailMap.memory.textContent = `${option.dataset.memory} MB`;
+                detailMap.disk.textContent = `${option.dataset.disk} MB`;
+                detailMap.cpu.textContent = formatCpu(option.dataset.cpu);
+                detailMap.db.textContent = option.dataset.db;
+                detailMap.backups.textContent = option.dataset.backups;
+            };
+
+            updatePlanDetail(planSelect.selectedOptions[0]);
+            planSelect.addEventListener('change', function () {
+                updatePlanDetail(planSelect.selectedOptions[0]);
+            });
+        });
     </script>
 </body>
 </html>
