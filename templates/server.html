@@ -274,6 +274,24 @@
             color: white;
             box-shadow: 0 25px 60px rgba(2, 6, 23, 0.8);
         }
+
+        @media (max-width: 640px) {
+            .page-shell {
+                padding: 1.25rem 1rem 2.5rem;
+            }
+            .info-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.25rem;
+            }
+            .action-tray {
+                grid-template-columns: 1fr;
+            }
+            .modal-content {
+                margin: 20% 1rem;
+                width: auto;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white font-sans" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
