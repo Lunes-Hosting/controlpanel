@@ -1,20 +1,376 @@
-{% include 'taskbar.html' %}
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/index.css') }}">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230"
-    crossorigin="anonymous"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lunes Host | Control Panel</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-ppugYAF7sUY9LqKqXxGnbmN9rB8Ow1+k1wNRF8G+TOaX8qrZ8enZ5iV8V8u84xPqHF6Asuh3vmw7DCf4u1Y5kw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: radial-gradient(circle at top, #1f2a44 0%, #0b1220 55%, #05070c 100%);
+            color: #f8fbff;
+            font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
+        }
+
+        .page-shell {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: clamp(1rem, 4vw, 3rem);
+        }
+
+        .hero-panel {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(147, 51, 234, 0.15));
+            border: 1px solid rgba(129, 140, 248, 0.35);
+            border-radius: 1.5rem;
+            padding: clamp(1.75rem, 5vw, 3rem);
+            box-shadow: 0 35px 70px rgba(15, 23, 42, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-panel::after {
+            content: "";
+            position: absolute;
+            right: -8%;
+            top: -25%;
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.35), transparent 70%);
+            filter: blur(6px);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .beta-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(226, 232, 240, 0.35);
+            border-radius: 999px;
+            padding: 0.45rem 1rem;
+            font-size: 0.85rem;
+            color: #fef3c7;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 6vw, 3.5rem);
+            margin: 0;
+            line-height: 1.1;
+        }
+
+        .hero-text {
+            font-size: 1.05rem;
+            color: #e2e8f0;
+        }
+
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.85rem;
+        }
+
+        .cta-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            border-radius: 0.95rem;
+            padding: 0.85rem 1.3rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .cta-primary {
+            background: #2563eb;
+            color: #fff;
+        }
+
+        .cta-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 35px rgba(37, 99, 235, 0.35);
+        }
+
+        .cta-secondary {
+            background: rgba(15, 23, 42, 0.65);
+            color: #cbd5f5;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+        }
+
+        .flash-container {
+            margin-top: 1.25rem;
+        }
+
+        .flash-message {
+            border-radius: 0.9rem;
+            border: 1px solid rgba(248, 113, 113, 0.35);
+            background: rgba(248, 113, 113, 0.1);
+            padding: 0.85rem 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            color: #fecaca;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-top: 2.5rem;
+        }
+
+        .feature-card {
+            background: rgba(12, 17, 30, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 1.2rem;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+
+        .feature-card i {
+            font-size: 1.5rem;
+            color: #82aaff;
+        }
+
+        .feature-card h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .feature-card p {
+            color: #cbd5f5;
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        .split-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+            margin-top: 3rem;
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 1.2rem;
+            padding: 1.4rem;
+        }
+
+        .card h4 {
+            margin-bottom: 0.5rem;
+        }
+
+        .roadmap {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: 1rem;
+        }
+
+        .roadmap li {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .roadmap-step {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .cta-banner {
+            margin-top: 3rem;
+            background: linear-gradient(120deg, rgba(59, 130, 246, 0.3), rgba(16, 185, 129, 0.25));
+            border: 1px solid rgba(94, 234, 212, 0.4);
+            border-radius: 1.4rem;
+            padding: 1.75rem;
+            text-align: center;
+        }
+
+        .beta-alert {
+            margin-top: 1.75rem;
+            background: rgba(234, 179, 8, 0.18);
+            border: 1px solid rgba(250, 204, 21, 0.45);
+            border-radius: 1rem;
+            padding: 1rem 1.25rem;
+            color: #fef3c7;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        @media (max-width: 640px) {
+            .hero-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
 <body>
+    {% include 'taskbar.html' %}
 
-    <div class="centered-content">
-        <!-- Add your desired text here -->
-        <p>This dashboard is in early beta if you find any issues with it join the <a href='{{ DISCORD_INVITE }}'>discord</a> or email panel@lunes.host.</p>
-    </div>
-{% with messages = get_flashed_messages() %}
-{% if messages %}
-{% for message in messages %}
-    {{ message }}
-{% endfor %}
-{% endif %}
-{% endwith %}
+    <main class="page-shell">
+        <section class="hero-panel">
+            <div class="hero-content">
+                <span class="beta-tag">
+                    <i class="fa-solid fa-flask"></i>
+                    Early Beta
+                </span>
+                <div>
+                    <h1>Manage your hosting fleet without friction.</h1>
+                    <p class="hero-text">
+                        Lunes Control is the command center for every server you deploy. Track resources, top up credits, and stay notified when limits approach, all while we continue polishing the beta experience.
+                    </p>
+                </div>
+                <div class="hero-actions">
+                    <a href="{{ url_for('user.login_user') }}" class="cta-btn cta-primary">
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                        Sign in
+                    </a>
+                    <a href="{{ url_for('user.register') }}" class="cta-btn cta-secondary">
+                        <i class="fa-solid fa-user-plus"></i>
+                        Create account
+                    </a>
+                    <a href="{{ DISCORD_INVITE }}" class="cta-btn cta-secondary" target="_blank" rel="noopener">
+                        <i class="fa-brands fa-discord"></i>
+                        Join Discord
+                    </a>
+                </div>
+                <div class="beta-alert">
+                    <span>
+                        This dashboard is in early beta—spot something odd? Ping us on Discord or email <strong>panel@lunes.host</strong> so we can fix it fast.
+                    </span>
+                    <a href="{{ DISCORD_INVITE }}" target="_blank" rel="noopener" class="cta-btn cta-primary" style="padding:0.65rem 1.1rem;">
+                        Report feedback
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-container">
+                    {% for message in messages %}
+                        <div class="flash-message">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <section class="feature-grid">
+            <article class="feature-card">
+                <i class="fa-solid fa-gauge-high"></i>
+                <h3>Live resource snapshots</h3>
+                <p>See memory, disk, and CPU allocations the moment you land, with quick links to individual panels.</p>
+            </article>
+            <article class="feature-card">
+                <i class="fa-solid fa-credit-card"></i>
+                <h3>Credit-first billing</h3>
+                <p>Transparent bundles highlight how many credits you need before scaling up or down.</p>
+            </article>
+            <article class="feature-card">
+                <i class="fa-solid fa-comments"></i>
+                <h3>Ticket sync</h3>
+                <p>Discord-based support routes directly into your control panel so conversations never get lost.</p>
+            </article>
+            <article class="feature-card">
+                <i class="fa-solid fa-shield-halved"></i>
+                <h3>Verified access</h3>
+                <p>Email verification, login protection, and node-level locking keep your servers safe while you experiment.</p>
+            </article>
+        </section>
+
+        <section class="split-section">
+            <div class="card">
+                <h4>Getting started</h4>
+                <ul class="roadmap">
+                    <li>
+                        <span class="roadmap-step">1</span>
+                        <div>
+                            <strong>Create an account</strong>
+                            <p>Sign up, verify your email, and you’re dropped straight into the account dashboard.</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="roadmap-step">2</span>
+                        <div>
+                            <strong>Deploy servers</strong>
+                            <p>Pick a plan, confirm credits, and provision within seconds through our Pterodactyl integration.</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="roadmap-step">3</span>
+                        <div>
+                            <strong>Scale confidently</strong>
+                            <p>Monitor usage, transfer nodes, or adjust plans anytime without leaving the dashboard.</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Why teams switch</h4>
+                <p>We obsess over developer experience: minimal wait times, proactive suspension warnings, and Discord-native alerts.</p>
+                <p style="margin-top:1rem;">
+                    Already running workloads elsewhere? Our transfer tooling helps you rebuild limits exactly as they were before.
+                </p>
+                <div style="margin-top:1.5rem;display:flex;gap:0.75rem;flex-wrap:wrap;">
+                    <a href="{{ url_for('servers.create_server') }}" class="cta-btn cta-primary">
+                        <i class="fa-solid fa-plus"></i>
+                        Launch server
+                    </a>
+                    <a href="{{ url_for('user.login_user') }}" class="cta-btn cta-secondary">
+                        <i class="fa-solid fa-circle-play"></i>
+                        View demo
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta-banner">
+            <h2 style="margin:0 0 0.5rem 0;">Ready to explore the new dashboard?</h2>
+            <p style="margin:0 0 1.25rem 0;color:#e2e8f0;">Log in to see your fleet, or join the beta conversation if you have questions.</p>
+            <div style="display:flex;justify-content:center;gap:0.75rem;flex-wrap:wrap;">
+                <a href="{{ url_for('user.login_user') }}" class="cta-btn cta-primary">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    Go to dashboard
+                </a>
+                <a href="{{ DISCORD_INVITE }}" class="cta-btn cta-secondary" target="_blank" rel="noopener">
+                    <i class="fa-brands fa-discord"></i>
+                    Chat with the team
+                </a>
+            </div>
+        </section>
+    </main>
 </body>
+</html>

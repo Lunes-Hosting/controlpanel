@@ -60,6 +60,8 @@
     </div>
     {% endif %}
 
+    {% set formatted_credits = "{:,.0f}".format(credits | float) %}
+
     <div class="content max-w-5xl mx-auto">
         <div class="container mx-auto p-4 sm:p-6">
 
@@ -89,7 +91,7 @@
                             </span>
                             <span class="badge-chip">
                                 <i class="fa-solid fa-sack-dollar"></i>
-                                {{ credits }} credits available
+                                {{ formatted_credits }} credits available
                             </span>
                             <span class="badge-chip status">
                                 <i class="fa-solid fa-shield-check"></i>
@@ -111,7 +113,7 @@
                             </article>
                             <article>
                                 <p>Server Credits</p>
-                                <h3>{{ credits }}</h3>
+                                <h3>{{ formatted_credits }}</h3>
                                 <small>Charged hourly per plan</small>
                             </article>
                             <article>
@@ -147,7 +149,7 @@
                                 <p>Current Balance</p>
                                 <span>Updated hourly</span>
                             </div>
-                            <h2>{{ credits }} <small>credits</small></h2>
+                            <h2>{{ formatted_credits }} <small>credits</small></h2>
                             {% set credit_percent = server_count * 12 %}
                             {% set credit_width = 100 if credit_percent > 100 else credit_percent %}
                             <div class="credit-meter">

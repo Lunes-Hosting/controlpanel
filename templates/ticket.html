@@ -3,129 +3,374 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lunes | Tickets</title>
+    <title>Lunes Host | Ticket</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}"/>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
     <style>
-        .message-bubble {
-            padding: 12px 16px;
-            border-radius: 12px;
+        :root {
+            color-scheme: dark;
         }
-        .message-bubble.user {
-            background-color: #374151; /* bg-gray-700 */
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
+            background: radial-gradient(circle at top, #172037 0%, #060a14 55%, #020409 100%);
+            color: #f5f8ff;
+        }
+
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            width: 420px;
+            height: 420px;
+            border-radius: 50%;
+            pointer-events: none;
+            filter: blur(7px);
+            z-index: 0;
+        }
+
+        body::before {
+            top: -140px;
+            right: -60px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.25), transparent 70%);
+        }
+
+        body::after {
+            bottom: -160px;
+            left: -100px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.25), transparent 70%);
+        }
+
+        .page-shell {
+            position: relative;
+            z-index: 1;
+            max-width: 1050px;
+            margin: 0 auto;
+            padding: clamp(1.5rem, 5vw, 3rem);
+            display: flex;
+            flex-direction: column;
+            gap: 1.75rem;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+
+        .ticket-head {
+            border-radius: 1.5rem;
+            padding: clamp(1.5rem, 4vw, 2.4rem);
+            background: rgba(3, 6, 23, 0.9);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            box-shadow: 0 35px 70px rgba(2, 6, 23, 0.65);
+            display: grid;
+            gap: 1rem;
+        }
+
+        .ticket-head .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .ticket-head img {
+            width: 58px;
+            height: 58px;
+            border-radius: 16px;
+        }
+
+        .ticket-head h1 {
+            margin: 0;
+            font-size: clamp(1.4rem, 4vw, 1.85rem);
+        }
+
+        .ticket-head p {
+            margin: 0;
+            color: #cbd5f5;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+        }
+
+        .status-open {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #bbf7d0;
+        }
+
+        .status-closed {
+            background: rgba(248, 113, 113, 0.15);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            color: #fecaca;
+        }
+
+        .conversation {
+            border-radius: 1.5rem;
+            padding: clamp(1.5rem, 3vw, 2.25rem);
+            background: rgba(4, 8, 21, 0.92);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 1.15rem;
+        }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            padding: 1rem 1.2rem;
+            border-radius: 1rem;
+            max-width: 520px;
+        }
+
+        .message.user {
             margin-left: auto;
+            background: linear-gradient(120deg, rgba(59, 130, 246, 0.25), rgba(99, 102, 241, 0.25));
+            border: 1px solid rgba(99, 102, 241, 0.35);
         }
-        .message-bubble.other {
-            background-color: #1f2937; /* bg-gray-800 */
+
+        .message.other {
             margin-right: auto;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+        .message h3 {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #cbd5f5;
+        }
+
+        .message p {
+            margin: 0;
+            color: #edf2ff;
+            font-size: 0.95rem;
+        }
+
+        .timestamp {
+            font-size: 0.75rem;
+            color: #9db4d6;
+        }
+
+        .timestamp.user {
+            text-align: right;
+        }
+
+        .composer {
+            border-radius: 1.5rem;
+            padding: clamp(1.4rem, 3vw, 2rem);
+            background: rgba(3, 6, 23, 0.9);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .composer form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        .composer label {
+            font-size: 0.9rem;
+            color: #cbd5f5;
+        }
+
+        .composer input {
+            border-radius: 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            background: rgba(10, 16, 32, 0.95);
+            color: #fff;
+            padding: 0.85rem 1rem;
+            font-size: 0.95rem;
+        }
+
+        .composer input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5);
+        }
+
+        .composer button {
+            align-self: center;
+            border: none;
+            border-radius: 999px;
+            padding: 0.85rem 1.6rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            background: linear-gradient(120deg, #3b82f6, #6366f1);
+            color: #fff;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .composer button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 15px 25px rgba(59, 130, 246, 0.4);
+        }
+
+        .status-form button {
+            width: 100%;
+            border: none;
+            border-radius: 1rem;
+            padding: 0.9rem;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .status-form .close-btn {
+            background: linear-gradient(120deg, #ef4444, #f97316);
+        }
+
+        .status-form .open-btn {
+            background: linear-gradient(120deg, #22c55e, #16a34a);
+        }
+
+        #loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        #loading-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .spinner {
+            width: 70px;
+            height: 70px;
+            border: 4px solid rgba(59,130,246,0.2);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
-<body class="bg-gray-900 text-white font-sans" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
-    <nav class="sticky w-full bg-gradient-to-t from-gray-900/0 to-blue-900/100 top-0 z-50 backdrop-blur-xs">
-        <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-row items-center justify-between h-16">
-                <a href="/" class="group flex items-center space-x-3">
-                    <div class="relative"><img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" rel="preload" class="h-auto w-10 rounded-lg" width="32" height="32"></div>
-                    <div>
-                        <h2 class="text-xl font-bold text-white">Lunes</h2>
-                    </div>
-                </a>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <div class="max-w-5xl mx-auto p-4 sm:p-6">
-        <!-- Ticket Info -->
-        <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600 mb-6">
-            <img class="w-12 rounded-md" src="https://gravatar.com/avatar/{{ hash }}">
-            <h3 class="text-xl font-bold">{{ info['author'] }}</h3>
-            <h4 class="text-lg font-bold text-gray-400 mt-2">{{ info['title'] }}</h4>
-            <p class="text-lg font-bold text-gray-500 mt-2">{{ info['created_at'] }}</p>
-        </div>
-        
-
-
-        <!-- Messages Container -->
-        <div class="flex flex-col gap-2 messages-container my-4 p-4 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md">
-            {% for message in messages %}
-            <div>
-                <div class="message-bubble max-w-md {% if message['author'] == info['author'] %}user{% else %}other{% endif %}">
-                    <h3 class="text-sm font-semibold">{{ message['author'] }}</h3>
-                    <p class="text-sm text-gray-300 mt-1">{{ message['message'] }}</p>
+<body>
+    <div class="page-shell">
+        <nav>
+            <a href="/">
+                <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Lunes" width="40" height="40" style="border-radius:12px;">
+                <div>
+                    <p style="margin:0;font-size:0.85rem;color:#94a3b8;">Support Center</p>
+                    <strong style="font-size:1.2rem;">Ticket #{{ '%04d' | format(info['id']) }}</strong>
                 </div>
-                <p class="text-xs text-gray-500 mt-0 p-0 {% if message['author'] == info['author'] %}text-end{% else %}text-start{% endif %}">{{ message['created_at'] }}</p>                
-            </div>    
+            </a>
+            <a href="{{ url_for('tickets.tickets') }}" style="font-size:0.9rem;color:#9db4d6;display:flex;align-items:center;gap:0.4rem;">
+                <i class="fa-solid fa-arrow-left"></i>
+                Back to tickets
+            </a>
+        </nav>
 
-            {% endfor %}
-        </div>
-
-    
-        <!-- Add Message Form -->
-        <form id="add-message-form" action="{{ url_for('tickets.add_message_submit', ticket_id=info['id']) }}" method="post" class="mb-6">
-            <label for="message" class="block text-sm font-medium text-gray-300 mb-2">Your Message</label>
-            <div class="flex gap-2">
-                <input 
-                    type="text" 
-                    id="message" 
-                    name="message" 
-                    required 
-                    class="w-full px-4 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                <button 
-                    type="submit" 
-                    class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition-colors duration-200"
-                >
-                    Submit
-                </button>
+        <section class="ticket-head">
+            <div class="meta">
+                <img src="https://gravatar.com/avatar/{{ hash }}" alt="Avatar">
+                <div>
+                    <p style="font-size:0.9rem;color:#9db4d6;margin-bottom:0.2rem;">Opened by</p>
+                    <h1>{{ info['author'] }}</h1>
+                    <p>{{ info['title'] }}</p>
+                </div>
             </div>
-        </form>
+            <div style="display:flex;gap:0.8rem;flex-wrap:wrap;">
+                <div class="status-chip {% if info['status'] == 'closed' %}status-closed{% else %}status-open{% endif %}">
+                    <i class="fa-solid {% if info['status'] == 'closed' %}fa-lock{% else %}fa-circle{% endif %}"></i>
+                    <span>{{ info['status']|capitalize }}</span>
+                </div>
+                <div class="status-chip" style="background:rgba(148,163,184,0.12);border:1px solid rgba(148,163,184,0.3);color:#e2e8f0;">
+                    <i class="fa-regular fa-clock"></i>
+                    <span>Created {{ info['created_at'] }}</span>
+                </div>
+            </div>
+        </section>
 
-        <!-- Close Ticket Form -->
-        <form action="{{ url_for('tickets.toggle_ticket_status', ticket_id=info['id']) }}" method="post">
+        <section class="conversation">
+            {% for message in messages %}
+                <div>
+                    <div class="message {% if message['author'] == info['author'] %}user{% else %}other{% endif %}">
+                        <h3>{{ message['author'] }}</h3>
+                        <p>{{ message['message'] }}</p>
+                    </div>
+                    <p class="timestamp {% if message['author'] == info['author'] %}user{% endif %}">{{ message['created_at'] }}</p>
+                </div>
+            {% endfor %}
+        </section>
+
+        <section class="composer">
+            <form id="add-message-form" action="{{ url_for('tickets.add_message_submit', ticket_id=info['id']) }}" method="post">
+                <label for="message">Add reply</label>
+                <input type="text" id="message" name="message" placeholder="Draft your message" required>
+                <button type="submit">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span style="margin-left:0.4rem;">Send reply</span>
+                </button>
+            </form>
+        </section>
+
+        <form class="status-form" action="{{ url_for('tickets.toggle_ticket_status', ticket_id=info['id']) }}" method="post">
             {% if info['status'] == 'closed' %}
-            <button 
-                type="submit" 
-                class="w-full bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600 transition-colors duration-200"
-            >
-                Open Ticket
-            </button>
+            <button type="submit" class="open-btn">Reopen ticket</button>
             {% else %}
-            <button 
-                type="submit" 
-                class="w-full bg-red-500 text-white px-6 py-2 rounded-md hover:bg-red-600 transition-colors duration-200"
-            >
-                Close Ticket
-            </button>
+            <button type="submit" class="close-btn">Close ticket</button>
             {% endif %}
         </form>
     </div>
 
-    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
-        <div class="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent"></div>
+    <div id="loading-overlay">
+        <div class="spinner"></div>
     </div>
 
     <script>
-        (function() {
-            var form = document.getElementById('add-message-form');
-            if (!form) return;
+        const messageForm = document.getElementById('add-message-form');
+        const overlay = document.getElementById('loading-overlay');
+        const submitBtn = messageForm ? messageForm.querySelector('button[type="submit"]') : null;
 
-            var overlay = document.getElementById('loading-overlay');
-            var submitBtn = form.querySelector('button[type="submit"]');
-
-            form.addEventListener('submit', function() {
-                if (overlay) {
-                    overlay.classList.remove('hidden');
-                }
-                if (submitBtn) {
-                    submitBtn.disabled = true;
-                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                }
+        if (messageForm && overlay && submitBtn) {
+            messageForm.addEventListener('submit', () => {
+                overlay.classList.add('active');
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.7';
+                submitBtn.style.cursor = 'not-allowed';
             });
-        })();
+        }
     </script>
 </body>
 </html>

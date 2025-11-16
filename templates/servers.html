@@ -6,20 +6,246 @@
     <title>Lunes Host | Your Servers</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
-    <!--<link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>-->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}"/>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
 
+        body {
+            background: radial-gradient(circle at top, #1f2a44 0%, #0b1220 55%, #05070c 100%);
+            color: #f8fbff;
+            font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
+            min-height: 100vh;
+        }
+
+        .page-shell {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem clamp(1rem, 3vw, 2.5rem) 3rem;
+        }
+
+        .flash-container {
+            max-width: 1100px;
+            margin: 1.5rem auto 0;
+            padding: 0 1.5rem;
+        }
+
+        .flash-message {
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.35);
+            color: #fecaca;
+            border-radius: 0.85rem;
+            padding: 0.85rem 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+
+        .hero-panel {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.15));
+            border: 1px solid rgba(129, 140, 248, 0.35);
+            border-radius: 1.4rem;
+            padding: clamp(1.5rem, 4vw, 2.75rem);
+            box-shadow: 0 35px 70px rgba(15, 23, 42, 0.45);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-panel::after {
+            content: "";
+            position: absolute;
+            top: -25%;
+            right: -10%;
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.35), transparent 70%);
+            filter: blur(5px);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .hero-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+
+        .hero-header h1 {
+            font-size: clamp(2rem, 4vw, 2.75rem);
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+        .hero-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+
+        .hero-badge {
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            padding: 0.4rem 0.9rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .hero-actions .primary-btn,
+        .hero-actions .secondary-btn {
+            border-radius: 0.9rem;
+            padding: 0.85rem 1.25rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+
+        .primary-btn {
+            background: #2563eb;
+            color: #fff;
+            border: 1px solid transparent;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 30px rgba(37, 99, 235, 0.35);
+        }
+
+        .secondary-btn {
+            background: rgba(15, 23, 42, 0.6);
+            color: #cbd5f5;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .summary-card {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 1rem;
+            padding: 1rem 1.2rem;
+        }
+
+        .summary-card span {
+            display: block;
+            font-size: 0.8rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: #94a3b8;
+            margin-bottom: 0.35rem;
+        }
+
+        .summary-card strong {
+            font-size: 1.5rem;
+        }
+
+        .server-section {
+            margin-top: 2.5rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 1rem;
+        }
+
+        .section-header h2 {
+            font-size: 1.35rem;
+            font-weight: 600;
+        }
+
+        .server-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .server-card {
+            background: rgba(12, 17, 30, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 1.2rem;
+            padding: 1.3rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+            transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .server-card:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+            transform: translateY(-3px);
+            box-shadow: 0 20px 35px rgba(15, 23, 42, 0.35);
+        }
+
+        .server-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .server-specs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .spec-item span {
+            display: block;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.2rem;
+        }
+
+        .spec-item strong {
+            font-size: 1rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            border: 1px dashed rgba(148, 163, 184, 0.4);
+            border-radius: 1.2rem;
+            background: rgba(15, 23, 42, 0.5);
+            margin-top: 1.5rem;
+        }
+    </style>
 </head>
-<body class="bg-gray-900 text-white font-sans" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
+<body class="text-white font-sans" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
     {% include 'taskbar.html' %}
 
     <!-- Flash Messages -->
-    <div id="flash-messages" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+    <div id="flash-messages" class="flash-container">
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 {% for message in messages %}
-                    <div class="bg-red-500 text-white px-4 py-2 rounded-md mb-4 flex items-center gap-2">
+                    <div class="flash-message mb-4">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
@@ -31,51 +257,117 @@
     </div>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 class="text-3xl font-bold text-center text-blue-400">Your Servers</h1>
-        <div class="bg-gray-800 shadow-3xl sm:p-8 mt-6">
-            <!-- Page Heading -->
-            
-
-            <!-- Create Server Button or Messages -->
-            <div class="text-center mb-8">
-                {% if verified %}
-                    {% if suspended %}
-                        <div class="bg-red-500 text-white px-4 py-2 mb-4 flex items-center justify-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                            </svg>
-                            <span>Your account is suspended. You cannot create new servers.</span>
+    <div class="page-shell">
+        <section class="hero-panel">
+            <div class="hero-content">
+                <div class="hero-header">
+                    <div>
+                        <p class="text-sm tracking-[0.35em] text-slate-200">Server Fleet</p>
+                        <h1>Your infrastructure, organized.</h1>
+                        <p class="text-slate-200 mt-2 text-sm">Review nodes, jump into panels, and spin up new capacity from one place.</p>
+                        <div class="hero-badges">
+                            <span class="hero-badge"><i class="fa-solid fa-database"></i> {{ servers|length }} servers</span>
+                            <span class="hero-badge"><i class="fa-solid fa-user-shield"></i> {{ 'Verified' if verified else 'Unverified' }}</span>
                         </div>
-                    {% else %}
-                        <a href="{{ url_for('servers.create_server') }}">
-                            <button class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md transition duration-200">
-                                Create Server
-                            </button>
+                    </div>
+                    <div class="hero-actions">
+                        {% if verified %}
+                            {% if suspended %}
+                                <button class="secondary-btn text-red-300 border-red-400/40">
+                                    <i class="fa-solid fa-ban"></i>
+                                    Account suspended
+                                </button>
+                            {% else %}
+                                <a href="{{ url_for('servers.create_server') }}" class="primary-btn">
+                                    <i class="fa-solid fa-plus"></i>
+                                    Create server
+                                </a>
+                            {% endif %}
+                        {% else %}
+                            <a href="{{ url_for('user.resend_confirmation_email') }}" class="secondary-btn">
+                                <i class="fa-solid fa-envelope-circle-check"></i>
+                                Verify email
+                            </a>
+                        {% endif %}
+                        <a href="{{ url_for('store.storepage') }}" class="secondary-btn">
+                            <i class="fa-solid fa-store"></i>
+                            Browse store
+                        </a>
+                    </div>
+                </div>
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <span>Total servers</span>
+                        <strong>{{ servers|length }}</strong>
+                    </div>
+                    <div class="summary-card">
+                        <span>Status</span>
+                        <strong>{{ 'Active' if verified and not suspended else 'Action needed' }}</strong>
+                    </div>
+                    <div class="summary-card">
+                        <span>Account email</span>
+                        <strong class="text-base">{{ email if email is defined and email else 'Hidden' }}</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="server-section">
+            <div class="section-header">
+                <h2>Instances</h2>
+                <p class="text-slate-400 text-sm">Click any card to open detailed controls.</p>
+            </div>
+
+            {% if servers %}
+                <div class="server-grid">
+                    {% for server in servers %}
+                        {% set attrs = server['attributes'] %}
+                        {% set limits = attrs.get('limits') or {} %}
+                        {% set memory = limits.get('memory') if limits else None %}
+                        {% set disk = limits.get('disk') if limits else None %}
+                        {% set cpu = limits.get('cpu') if limits else None %}
+                        <a href="{{ url_for('servers.server', server_id=attrs['id']) }}" class="server-card">
+                            <div>
+                                <div class="server-meta">
+                                    <span>{{ attrs['identifier'] }}</span>
+                                    <span>{{ attrs['created_at'][:10] if attrs.get('created_at') else '' }}</span>
+                                </div>
+                                <h3 class="text-xl font-semibold">{{ attrs['name'] }}</h3>
+                                {% if attrs.get('description') %}
+                                    <p class="text-sm text-slate-300">{{ attrs['description'] }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="server-specs">
+                                <div class="spec-item">
+                                    <span>Memory</span>
+                                    <strong>{{ memory ~ ' MB' if memory else '—' }}</strong>
+                                </div>
+                                <div class="spec-item">
+                                    <span>Storage</span>
+                                    <strong>{{ disk ~ ' MB' if disk else '—' }}</strong>
+                                </div>
+                                <div class="spec-item">
+                                    <span>CPU</span>
+                                    <strong>{% if cpu %}{{ cpu }}%{% else %}Unmetered{% endif %}</strong>
+                                </div>
+                            </div>
+                            <div class="text-right text-sm text-blue-300">Manage &rarr;</div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <h3 class="text-xl font-semibold mb-2">No servers yet</h3>
+                    <p class="text-slate-300 mb-4">Deploy your first instance to see it listed here.</p>
+                    {% if verified and not suspended %}
+                        <a href="{{ url_for('servers.create_server') }}" class="primary-btn inline-flex justify-center">
+                            <i class="fa-solid fa-plus"></i>
+                            Launch a server
                         </a>
                     {% endif %}
-                {% else %}
-                    <div class="bg-yellow-500 text-white px-4 py-2 rounded-md mb-4 flex items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                        </svg>
-                        <span>Your email is not verified yet. <a href="{{ url_for('user.resend_confirmation_email') }}" class="text-blue-300 hover:underline">Click here to resend verification email</a></span>
-                    </div>
-                {% endif %}
-            </div>
-
-            <!-- Server Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {% for server in servers %}
-                    <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}" class="block bg-gray-700 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <div class="p-6 text-center">
-                            <h3 class="text-xl font-semibold mb-2">{{ server['attributes']['name'] }}</h3>
-                            <p class="text-sm text-gray-400">Click to view details</p>
-                        </div>
-                    </a>
-                {% endfor %}
-            </div>
-        </div>
+                </div>
+            {% endif %}
+        </section>
     </div>
 
     <script>

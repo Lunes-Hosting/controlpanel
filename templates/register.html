@@ -1,80 +1,284 @@
 <!DOCTYPE html>
 <html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Register</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer></script>
-</head>
-<body class="bg-gray-900 text-white" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
-    <div id="flash-messages">
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-               {% for message in messages %}
-               <div class="bg-red-500 text-white px-4 py-2 rounded-md flex items-center mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>{{ message }}</span>
-                </div>
-               {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
-    
-    <div class="min-h-screen flex items-center justify-center bg-gray-900">
-        
-        <div class="max-w-md w-full border-2 border-blue-500 p-8 shadow-2xl shadow-blue-500/20 rounded-md p-4 shadow-2xl relative">
-            <img class="w-12 h-12 absolute top-[-20px] sm:top-[-24px] left-1/2 transform -translate-x-1/2" src="{{ url_for('static', filename='images/Luneslogo.png') }}"/>
-            
-            <div class="text-center">
-                <h1 class="text-4xl font-bold mb-4">Welcome, Let's Get Started</h1>
-                <p class="text-gray-400 mb-6">Create your new fresh account!</p>
-            </div>
-            <form action="{{ url_for('user.register_user') }}" method="POST">
-                <div class="mb-4">
-                    <label class="block text-gray-400 text-sm font-bold mb-2" for="username">Username</label>
-                    <input type="text" id="username" name="username" placeholder="John Doe" class="w-full px-3 py-2 bg-gray-900 border-2 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-400 text-sm font-bold mb-2" for="email">Email</label>
-                    <input type="email" id="email" name="email" placeholder="myemail@gmail.com" class="w-full px-3 py-2 bg-gray-900 border-2 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-400 text-sm font-bold mb-2" for="password">Password</label>
-                    <input type="password" id="password" name="password" class="w-full px-3 py-2 bg-gray-900 border-2 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-                </div>
-                <div class="mb-6">
-                    <label class="block text-gray-400 text-sm font-bold mb-2" for="confirm_password">Confirm Password</label>
-                    <input type="password" id="confirm_password" name="confirm_password" class="w-full px-3 py-2 bg-gray-900 border-2 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-                    <div class="text-end mt-2">
-                        <a href="{{ url_for('user.login_user') }}" class="text-sm text-blue-500 hover:underline">Already have an account?</a>
-                    </div>
-                </div>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
 
-                <div class="g-recaptcha mb-6" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
-                <p class="text-gray-400 text-sm mb-6">
-                    By creating an account, you agree to our
-                    <a href="https://lunes.host/tos/" class="text-blue-500 hover:underline">TOS</a>
-                    and our
-                    <a href="https://lunes.host/privacy/" class="text-blue-500 hover:underline">Privacy Policy</a>.
-                </p>
-                <div class="mb-4">
-                    <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-200">Create An Account</button>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: radial-gradient(circle at top, #1b2138 0%, #080b13 60%, #03050a 100%);
+            color: #f8fbff;
+            font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before,
+        body::after {
+            content: "";
+            position: absolute;
+            width: 420px;
+            height: 420px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.25), transparent 70%);
+            filter: blur(10px);
+            z-index: 0;
+        }
+
+        body::before {
+            top: -140px;
+            right: -80px;
+        }
+
+        body::after {
+            bottom: -140px;
+            left: -80px;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.25), transparent 70%);
+        }
+
+        .auth-shell {
+            position: relative;
+            z-index: 1;
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: clamp(1.5rem, 5vw, 3rem);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            align-items: stretch;
+        }
+
+        .brand-panel {
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 1.5rem;
+            padding: clamp(1.5rem, 4vw, 2.5rem);
+            background: rgba(15, 23, 42, 0.75);
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.35);
+        }
+
+        .brand-panel h1 {
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            margin-bottom: 0.5rem;
+        }
+
+        .tagline {
+            color: #cbd5f5;
+            margin-bottom: 1.25rem;
+            font-size: 1rem;
+        }
+
+        .highlight-grid {
+            display: grid;
+            gap: 0.85rem;
+            margin-top: 2rem;
+        }
+
+        .highlight-item {
+            display: flex;
+            gap: 0.65rem;
+            align-items: center;
+            color: #cbd5f5;
+        }
+
+        .highlight-item i {
+            color: #818cf8;
+        }
+
+        .form-panel {
+            border-radius: 1.5rem;
+            padding: clamp(1.5rem, 4vw, 2.5rem);
+            border: 1px solid rgba(99, 102, 241, 0.35);
+            background: rgba(4, 7, 21, 0.95);
+            box-shadow: 0 35px 70px rgba(2, 6, 23, 0.7);
+        }
+
+        .panel-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 1.75rem;
+        }
+
+        .panel-header p {
+            color: #cbd5f5;
+            margin: 0.5rem 0 0;
+            font-size: 0.95rem;
+        }
+
+        .form-hint {
+            margin-top: 0.35rem;
+            font-size: 0.85rem;
+            color: #a5b4fc;
+        }
+
+        .flash-message {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            color: #fecaca;
+            border-radius: 0.85rem;
+            padding: 0.7rem 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.35rem;
+            font-size: 0.9rem;
+            color: #cbd5f5;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border-radius: 0.9rem;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(15, 23, 42, 0.9);
+            color: #f8fbff;
+            font-size: 0.95rem;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #818cf8;
+            box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.5);
+        }
+
+        .submit-btn {
+            width: 100%;
+            border: none;
+            border-radius: 0.9rem;
+            padding: 0.9rem 1rem;
+            background: linear-gradient(120deg, #8b5cf6, #6366f1);
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 30px rgba(129, 140, 248, 0.45);
+        }
+
+        .policy-banner {
+            margin-top: 1.5rem;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            border-radius: 1rem;
+            padding: 0.85rem 1rem;
+            font-size: 0.85rem;
+            color: #e0e7ff;
+            display: flex;
+            gap: 0.6rem;
+        }
+
+        .legal-copy {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: #a5b4fc;
+            text-align: center;
+        }
+
+        .legal-copy a {
+            color: #c7d2fe;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-shell">
+        <section class="brand-panel">
+            <img src="{{ url_for('static', filename='images/Luneslogo.png') }}" alt="Lunes" style="width:48px;height:48px;border-radius:12px;margin-bottom:1.25rem;">
+            <p style="display:inline-flex;gap:0.35rem;align-items:center;background:rgba(129,140,248,0.15);border:1px solid rgba(129,140,248,0.4);padding:0.35rem 0.9rem;border-radius:999px;font-size:0.85rem;color:#c7d2fe;">New to Lunes Cloud</p>
+            <h1>Create your Lunes Host account.</h1>
+            <p class="tagline">Provision servers, manage credits, and track activity from one sleek dashboard.</p>
+            <div class="highlight-grid">
+                <div class="highlight-item">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span>Identity locked with Cloudflare Turnstile</span>
                 </div>
+                <div class="highlight-item">
+                    <i class="fa-solid fa-wallet"></i>
+                    <span>Credits dashboard and automated reminders</span>
+                </div>
+                <div class="highlight-item">
+                    <i class="fa-solid fa-plug"></i>
+                    <span>Connect to Pterodactyl in seconds</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="form-panel">
+            <header class="panel-header">
+                <h2>Sign up</h2>
+                <p>Already verified? <a href="{{ url_for('user.login_user') }}" style="color:#c7d2fe;text-decoration:none;">Sign in to your panel.</a></p>
+                <p class="form-hint">We auto-generate the backend identifiers—just pick a username, email, and password.</p>
+            </header>
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="flash-message">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form action="{{ url_for('user.register_user') }}" method="POST">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Lunes" value="{{ default_username }}" class="input-field" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email address</label>
+                    <input type="email" id="email" name="email" placeholder="you@example.com" class="input-field" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Create a secure password" class="input-field" required>
+                </div>
+                <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}" style="margin:1rem 0;"></div>
+                <button type="submit" class="submit-btn">Create account</button>
             </form>
-        </div>
+
+            <div class="policy-banner">
+                <i class="fa-solid fa-user-lock"></i>
+                <span>We only allow one account per customer. Duplicate accounts may be removed.</span>
+            </div>
+            <p class="legal-copy">By continuing you agree to our <a href="#">Terms</a> & <a href="#">Privacy</a>.</p>
+        </section>
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            var flashMessages = document.getElementById("flash-messages");
-            if (flashMessages) {
-                setTimeout(function() {
-                    flashMessages.style.display = "none";
-                }, 5000);
+        document.addEventListener('DOMContentLoaded', () => {
+            const flashes = document.querySelectorAll('.flash-message');
+            if (flashes.length) {
+                setTimeout(() => {
+                    flashes.forEach(msg => msg.style.display = 'none');
+                }, 6000);
             }
         });
     </script>

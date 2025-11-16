@@ -3,134 +3,383 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lunes Host | Create Ticket</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}"/>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Lunes Host | Tickets</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"/>
-    <link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
+            background: radial-gradient(circle at top, #1d2540 0%, #0a0f1d 60%, #05070d 100%);
+            color: #ecf2ff;
+        }
+
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            width: 420px;
+            height: 420px;
+            border-radius: 50%;
+            pointer-events: none;
+            filter: blur(7px);
+            z-index: 0;
+        }
+
+        body::before {
+            top: -140px;
+            left: -60px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.25), transparent 70%);
+        }
+
+        body::after {
+            bottom: -160px;
+            right: -100px;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.25), transparent 70%);
+        }
+
+        .page-shell {
+            position: relative;
+            z-index: 1;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: clamp(1.5rem, 5vw, 3rem);
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 0;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+
+        .hero {
+            display: grid;
+            gap: 1.5rem;
+            padding: clamp(1.5rem, 4vw, 2.5rem);
+            border-radius: 1.5rem;
+            background: rgba(4, 7, 21, 0.85);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            box-shadow: 0 35px 70px rgba(2, 6, 23, 0.65);
+        }
+
+        .hero h1 {
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            margin: 0;
+        }
+
+        .hero p {
+            margin: 0.5rem 0 0;
+            color: #cbd5f5;
+        }
+
+        .hero-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .metric-card {
+            border-radius: 1rem;
+            padding: 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            background: rgba(15, 23, 42, 0.85);
+        }
+
+        .metric-card strong {
+            display: block;
+            font-size: 1.75rem;
+        }
+
+        .content-grid {
+            margin-top: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .panel {
+            border-radius: 1.5rem;
+            padding: clamp(1.5rem, 3vw, 2.25rem);
+            background: rgba(3, 6, 23, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .panel h2 {
+            margin: 0 0 0.35rem;
+            font-size: 1.35rem;
+        }
+
+        .panel p {
+            margin: 0;
+            color: #9db4d6;
+        }
+
+        .form-group {
+            margin-top: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.35rem;
+            color: #cbd5f5;
+            font-size: 0.9rem;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            border-radius: 0.9rem;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(15, 23, 42, 0.9);
+            color: #fff;
+            font-size: 0.95rem;
+            padding: 0.85rem 1rem;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5);
+        }
+
+        .submit-btn {
+            width: 100%;
+            margin-top: 1.25rem;
+            border: none;
+            border-radius: 0.9rem;
+            padding: 0.95rem 1rem;
+            background: linear-gradient(120deg, #3b82f6, #6366f1);
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 30px rgba(59, 130, 246, 0.45);
+        }
+
+        .tickets-list {
+            margin-top: 1.25rem;
+            display: grid;
+            gap: 1rem;
+        }
+
+        .ticket-card {
+            text-decoration: none;
+            padding: 1.25rem;
+            border-radius: 1.1rem;
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            background: rgba(8, 12, 30, 0.95);
+            display: grid;
+            gap: 0.4rem;
+            color: inherit;
+            transition: border 0.2s ease, transform 0.2s ease;
+        }
+
+        .ticket-card:hover {
+            border-color: rgba(96, 165, 250, 0.7);
+            transform: translateY(-2px);
+        }
+
+        .ticket-card h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .ticket-card p {
+            margin: 0;
+            color: #a5b4fc;
+            font-size: 0.9rem;
+        }
+
+        .ticket-meta {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            font-size: 0.85rem;
+            color: #cbd5f5;
+        }
+
+        .flash-wrapper {
+            margin-top: 1rem;
+        }
+
+        .flash-message {
+            display: flex;
+            gap: 0.6rem;
+            align-items: center;
+            padding: 0.9rem 1.1rem;
+            border-radius: 1rem;
+            background: rgba(56, 189, 248, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            color: #e0f2fe;
+        }
+
+        @media (max-width: 640px) {
+            nav {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+        }
+    </style>
 </head>
-<body class="bg-gray-900 text-white font-sans" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
-    <nav class="sticky w-full bg-gradient-to-t from-gray-900/0 to-blue-900/100 top-0 z-50 backdrop-blur-xs">
-        <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-row items-center justify-between h-16">
-                <a href="/" class="group flex items-center space-x-3">
-                    <div class="relative"><img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" rel="preload" class="h-auto w-10 rounded-lg" width="32" height="32"></div>
-                    <div>
-                        <h2 class="text-xl font-bold text-white">Lunes</h2>
-                    </div>
-                </a>
+<body>
+    <div class="page-shell">
+        <nav>
+            <a href="/">
+                <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Lunes" width="40" height="40" style="border-radius:12px;">
+                <div>
+                    <p style="margin:0;font-size:0.85rem;color:#94a3b8;">Support Center</p>
+                    <strong style="font-size:1.2rem;">Lunes Host</strong>
+                </div>
+            </a>
+            <div style="display:flex;gap:0.6rem;font-size:0.9rem;color:#94a3b8;">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>Average response &lt; 4h</span>
             </div>
-        </div>
-    </nav>
+        </nav>
 
-            <!-- Flash Messages -->
+        <section class="hero">
+            <div>
+                <h1>Raise a ticket, get help quickly.</h1>
+                <p>Our support team keeps your infrastructure humming. Open a new ticket or review past ones below.</p>
+            </div>
+            <div class="hero-metrics">
+                <div class="metric-card">
+                    <span style="font-size:0.8rem;color:#9db4d6;">Tickets logged</span>
+                    <strong>{{ tickets|length }}</strong>
+                </div>
+                <div class="metric-card">
+                    <span style="font-size:0.8rem;color:#9db4d6;">Status</span>
+                    <strong>24/7 queue</strong>
+                </div>
+                <div class="metric-card">
+                    <span style="font-size:0.8rem;color:#9db4d6;">Latest update</span>
+                    <strong>Live</strong>
+                </div>
+            </div>
+
             {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <div class="mb-8">
-                    {% for message in messages %}
-                        <div class="bg-blue-500 text-white px-4 py-2 rounded-md flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <span>{{ message }}</span>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-    
-
-    <!-- Main Content -->
-    <div class="max-w-5xl mx-auto p-4 sm:p-6">
-        <!-- Page Heading -->
-        <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
-            <i class="fa-solid fa-ticket fa-2xl text-blue-400 m-0 p-0"></i>
-            <h1 class="font-semibold text-2xl m-0 p-0">Create Ticket</h1>
-        </div>
-
-        <!-- Create Ticket Form -->
-        <div class="my-4 p-8 bg-gray-900 border-2 border-blue-500 shadow-xl shadow-blue-500/20 rounded-md mb-8">
-            <form action="{{ url_for('tickets.create_ticket_submit') }}" method="post">
-                <!-- Title Input -->
-                <div class="mb-6">
-                    <label for="title" class="block text-sm font-medium text-gray-300 mb-2">Title</label>
-                    <input 
-                        type="text" 
-                        id="title" 
-                        name="title" 
-                        required 
-                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                </div>
-
-                <!-- Message Input -->
-                <div class="mb-6">
-                    <label for="message" class="block text-sm font-medium text-gray-300 mb-2">Your Message</label>
-                    <textarea 
-                        id="message" 
-                        name="message" 
-                        rows="4" 
-                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    ></textarea>
-                </div>
-
-                <!-- reCAPTCHA -->
-                <div class="mb-6">
-                    <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
-                </div>
-
-                <!-- Submit Button -->
-                <button 
-                    type="submit" 
-                    class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors duration-200"
-                >
-                    Submit
-                </button>
-            </form>
-        </div>
-
-
-        <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-600">
-            <i class="fa-solid fa-ticket fa-2xl text-blue-400 m-0 p-0"></i>
-            <h1 class="font-semibold text-2xl m-0 p-0">Manage Tickets</h1>
-        </div>
-
-        <!-- Ticket List -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {% for ticket in tickets %}
-                <a href="{{ url_for('tickets.ticket', ticket_id=ticket[0]) }}" class="block">
-                    <div class="bg-gray-800 border-2 border border-blue-600 p-6 rounded-lg shadow-md shadow-blue-800/70 hover:shadow-xl transition-shadow duration-300">
-                        <h3 class="text-xl font-semibold mb-2 text-white">{{ ticket[2] }}</h3>
-                        <p class="text-gray-400">{{ ticket[3] }}</p>
+                {% if messages %}
+                    <div class="flash-wrapper">
+                        {% for message in messages %}
+                            <div class="flash-message">
+                                <i class="fa-solid fa-circle-info"></i>
+                                <span>{{ message }}</span>
+                            </div>
+                        {% endfor %}
                     </div>
-                </a>
-            {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </section>
+
+        <div class="content-grid">
+            <section class="panel">
+                <h2>Create a ticket</h2>
+                <p>Explain the issue and we’ll route it to the right engineer.</p>
+
+                <form action="{{ url_for('tickets.create_ticket_submit') }}" method="post" style="margin-top:1rem;">
+                    <div class="form-group">
+                        <label for="title">Title</label>
+                        <input type="text" id="title" name="title" placeholder="Node 03 keeps restarting" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="message">Your message</label>
+                        <textarea id="message" name="message" placeholder="Share as much detail as possible"></textarea>
+                    </div>
+                    <div class="form-group" style="margin-top:1.25rem;">
+                        <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
+                    </div>
+                    <button type="submit" class="submit-btn">Send to support</button>
+                </form>
+            </section>
+
+            <section class="panel">
+                <h2>Manage tickets</h2>
+                <p>Track every conversation in one place.</p>
+
+                <div class="tickets-list">
+                    {% if tickets %}
+                        {% for ticket in tickets %}
+                            <a class="ticket-card" href="{{ url_for('tickets.ticket', ticket_id=ticket[0]) }}">
+                                <div class="ticket-meta">
+                                    <i class="fa-solid fa-ticket"></i>
+                                    <span>#{{ '%04d' | format(ticket[0]) }}</span>
+                                </div>
+                                <h3>{{ ticket[2] }}</h3>
+                                <p>{{ ticket[3] }}</p>
+                            </a>
+                        {% endfor %}
+                    {% else %}
+                        <div class="ticket-card" style="border-style:dashed;">
+                            <h3>No tickets yet</h3>
+                            <p>Once you create a ticket it will appear here for quick follow-up.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
         </div>
     </div>
 
-    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
-        <div class="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent"></div>
+    <div id="loading-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:999;visibility:hidden;opacity:0;transition:opacity 0.2s ease;">
+        <div style="width:70px;height:70px;border:4px solid rgba(59,130,246,0.2);border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;"></div>
     </div>
 
     <script>
-        (function() {
-            var form = document.querySelector('form');
-            if (!form) return;
+        const form = document.querySelector('form');
+        const overlay = document.getElementById('loading-overlay');
+        const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
 
-            var overlay = document.getElementById('loading-overlay');
-            var submitBtn = form.querySelector('button[type="submit"]');
-
-            form.addEventListener('submit', function() {
-                if (overlay) {
-                    overlay.classList.remove('hidden');
-                }
-                if (submitBtn) {
-                    submitBtn.disabled = true;
-                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                }
+        if (form && overlay && submitBtn) {
+            form.addEventListener('submit', () => {
+                overlay.style.visibility = 'visible';
+                overlay.style.opacity = '1';
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.7';
+                submitBtn.style.cursor = 'not-allowed';
             });
-        })();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const flashes = document.querySelectorAll('.flash-message');
+            if (flashes.length) {
+                setTimeout(() => flashes.forEach(msg => msg.style.display = 'none'), 6000);
+            }
+        });
     </script>
+    <script>
+        function spin() {}
+    </script>
+    <style>
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </body>
 </html>

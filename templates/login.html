@@ -5,70 +5,278 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Login</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}"/>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: radial-gradient(circle at top, #1f2a44 0%, #0b1220 55%, #05070c 100%);
+            color: #f8fbff;
+            font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before,
+        body::after {
+            content: "";
+            position: absolute;
+            width: 380px;
+            height: 380px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.25), transparent 70%);
+            filter: blur(8px);
+            z-index: 0;
+        }
+
+        body::before {
+            top: -100px;
+            left: -60px;
+        }
+
+        body::after {
+            bottom: -120px;
+            right: -50px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.25), transparent 70%);
+        }
+
+        .auth-shell {
+            position: relative;
+            z-index: 1;
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: clamp(1.5rem, 5vw, 3rem);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            align-items: stretch;
+        }
+
+        .brand-panel {
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 1.5rem;
+            padding: clamp(1.5rem, 4vw, 2.5rem);
+            background: rgba(15, 23, 42, 0.75);
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.35);
+        }
+
+        .brand-panel h1 {
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            margin-bottom: 0.5rem;
+        }
+
+        .tagline {
+            color: #cbd5f5;
+            margin-bottom: 1.25rem;
+            font-size: 1rem;
+        }
+
+        .benefits {
+            display: grid;
+            gap: 0.85rem;
+            margin-top: 2rem;
+        }
+
+        .benefit-item {
+            display: flex;
+            gap: 0.65rem;
+            align-items: center;
+            color: #cbd5f5;
+        }
+
+        .benefit-item i {
+            color: #60a5fa;
+        }
+
+        .form-panel {
+            border-radius: 1.5rem;
+            padding: clamp(1.5rem, 4vw, 2.5rem);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            background: rgba(3, 6, 23, 0.92);
+            box-shadow: 0 35px 70px rgba(2, 6, 23, 0.7);
+        }
+
+        .panel-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 1.75rem;
+        }
+
+        .panel-header p {
+            color: #cbd5f5;
+            margin: 0.5rem 0 0;
+            font-size: 0.95rem;
+        }
+
+        .flash-message {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            color: #fecaca;
+            border-radius: 0.85rem;
+            padding: 0.7rem 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.35rem;
+            font-size: 0.9rem;
+            color: #cbd5f5;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border-radius: 0.9rem;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(15, 23, 42, 0.9);
+            color: #f8fbff;
+            font-size: 0.95rem;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5);
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .form-actions a {
+            color: #93c5fd;
+            text-decoration: none;
+        }
+
+        .submit-btn {
+            width: 100%;
+            border: none;
+            border-radius: 0.9rem;
+            padding: 0.9rem 1rem;
+            background: linear-gradient(120deg, #3b82f6, #6366f1);
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 30px rgba(59, 130, 246, 0.45);
+        }
+
+        .policy-banner {
+            margin-top: 1.5rem;
+            background: rgba(37, 99, 235, 0.15);
+            border: 1px solid rgba(37, 99, 235, 0.4);
+            border-radius: 1rem;
+            padding: 0.85rem 1rem;
+            font-size: 0.85rem;
+            color: #dbeafe;
+            display: flex;
+            gap: 0.6rem;
+        }
+
+        @media (max-width: 640px) {
+            .form-actions {
+                flex-direction: column;
+                gap: 0.35rem;
+                align-items: flex-start;
+            }
+        }
+    </style>
 </head>
-
-<body class=" text-white" style="background-size: 10px 10px;font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
-
-    <div id="flash-messages relative">
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-               {% for message in messages %}
-               <div class="bg-red-500 text-white p-2 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 top-1/2 left-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>{{ message }}</span>
+<body>
+    <div class="auth-shell">
+        <section class="brand-panel">
+            <img src="{{ url_for('static', filename='images/Luneslogo.png') }}" alt="Lunes" style="width:48px;height:48px;border-radius:12px;margin-bottom:1.25rem;">
+            <h1>Welcome back to your control center.</h1>
+            <p class="tagline">Log in to manage servers, watch credits, and keep deployments online 24/7.</p>
+            <div class="benefits">
+                <div class="benefit-item">
+                    <i class="fa-solid fa-lock"></i>
+                    <span>Secure Cloudflare Turnstile login</span>
                 </div>
-               {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
-    
-    <div class="p-4 lg:p-0 min-h-screen flex items-center justify-center bg-gray-900">
-        <div class="max-w-md w-full bg-gray-900 border-2 border-blue-500 p-8 shadow-2xl shadow-blue-500/20 rounded-md shadow-lg relative">
-            <img class="w-12 h-12 absolute top-[-20px] sm:top-[-24px] left-1/2 transform -translate-x-1/2" src="{{ url_for('static', filename='images/Luneslogo.png') }}"/>
-            <div class="text-center">
-                <h1 class="text-4xl font-bold mb-4">Welcome Back!</h1>
-                <p class="text-gray-400 mb-6">Login to your account or Create an account!</p>
-                <div class="bg-blue-500 text-white px-4 py-2 rounded-md flex items-center text-sm mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <span>Accounts inactive for 6+ months will have their passwords reset.</span>
+                <div class="benefit-item">
+                    <i class="fa-solid fa-server"></i>
+                    <span>One-click jump into each Pterodactyl server</span>
+                </div>
+                <div class="benefit-item">
+                    <i class="fa-solid fa-bell"></i>
+                    <span>Smart reminders for inactive accounts</span>
                 </div>
             </div>
+        </section>
+
+        <section class="form-panel">
+            <header class="panel-header">
+                <h2>Sign in</h2>
+                <p>Need an account? <a href="{{ url_for('user.register_user') }}" style="color:#93c5fd;text-decoration:none;">Create one in seconds.</a></p>
+            </header>
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="flash-message">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
             <form action="{{ url_for('user.login_user') }}" method="POST">
                 <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
-                <div class="mb-4">
-                    <label class="block text-gray-400 text-sm font-bold mb-2" for="email">Email</label>
-                    <input type="text" id="email" name="email" placeholder="myemail@gmail.com" class="w-full px-3 py-2 bg-gray-900 border-2 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <div class="form-group">
+                    <label for="email">Email address</label>
+                    <input type="email" id="email" name="email" placeholder="you@example.com" class="input-field" required>
                 </div>
-                <div class="mb-6">
-                    <label class="block text-gray-400 text-sm font-bold mb-2" for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Your Password Here" class="w-full px-3 py-2 bg-gray-900 border-2 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <div class="flex justify-between mt-2">
-                        <a href="{{ url_for('user.reset_password') }}" class="text-sm text-blue-500 hover:underline">Forgot password?</a>
-                        <a href="{{ url_for('user.register_user') }}" class="text-sm text-blue-500 hover:underline">Create account</a>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" class="input-field" required>
+                    <div class="form-actions">
+                        <a href="{{ url_for('user.reset_password') }}">Forgot password?</a>
+                        <a href="{{ url_for('user.register_user') }}">Need an account?</a>
                     </div>
                 </div>
-                <div class="g-recaptcha mb-6 w-full" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
-                <div class="mb-4">
-                    <button type="submit" class="hover:scale-105 w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-200">Submit</button>
-                </div>
+                <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}" style="margin:1rem 0;"></div>
+                <button type="submit" class="submit-btn">Continue to dashboard</button>
             </form>
-        </div>
+
+            <div class="policy-banner">
+                <i class="fa-solid fa-info-circle"></i>
+                <span>Accounts inactive for 6+ months will have passwords reset for security.</span>
+            </div>
+        </section>
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            var flashMessages = document.getElementById("flash-messages");
-            if (flashMessages) {
-                setTimeout(function() {
-                    flashMessages.style.display = "none";
-                }, 5000);
+        document.addEventListener('DOMContentLoaded', () => {
+            const flashes = document.querySelectorAll('.flash-message');
+            if (flashes.length) {
+                setTimeout(() => {
+                    flashes.forEach(msg => msg.style.display = 'none');
+                }, 6000);
             }
         });
     </script>
