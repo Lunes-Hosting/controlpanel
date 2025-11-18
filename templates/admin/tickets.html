@@ -34,8 +34,8 @@
     <div class="tickets-container">
         {% if tickets %}
             {% for ticket in tickets %}
-                <a href="{{ url_for('tickets.ticket', ticket_id=ticket[0]) }}" class="ticket-link">
-                    <div class="ticket-card">
+                <div class="ticket-card">
+                    <a href="{{ url_for('tickets.ticket', ticket_id=ticket[0]) }}" class="ticket-link">
                         <div class="ticket-header">
                             <div class="ticket-id">#{{ ticket[0] }}</div>
                             <div class="ticket-status status-{{ ticket[3]|lower }}">{{ ticket[3]|upper }}</div>
@@ -55,8 +55,17 @@
                                 <span {% if ticket[7] %}class="old-ticket"{% endif %}>{{ ticket[4] }}</span>
                             </div>
                         </div>
-                    </div>
-                </a>
+                    </a>
+                    <form action="{{ url_for('tickets.toggle_ticket_status', ticket_id=ticket[0]) }}" method="post" class="ticket-toggle-form">
+                        <button type="submit" class="ticket-toggle-button">
+                            {% if ticket[3] == 'open' %}
+                                Close ticket
+                            {% else %}
+                                Reopen ticket
+                            {% endif %}
+                        </button>
+                    </form>
+                </div>
             {% endfor %}
         {% else %}
             <div class="no-tickets">

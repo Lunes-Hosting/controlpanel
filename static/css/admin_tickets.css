@@ -182,6 +182,30 @@ body {
     color: #aaa;
 }
 
+.ticket-toggle-form {
+    padding: 10px 15px 15px 15px;
+    background-color: #2a2a2a;
+    border-top: 1px solid #3a3a3a;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.ticket-toggle-button {
+    background-color: #00adef;
+    border: none;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.ticket-toggle-button:hover {
+    background-color: #0099d6;
+}
+
 @media (max-width: 768px) {
     .title {
         font-size: 24px;
