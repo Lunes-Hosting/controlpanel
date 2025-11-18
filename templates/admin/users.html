@@ -1,349 +1,158 @@
-<!DOCTYPE html>
-<html>
-<head>
-    
-    <title>Admin - Users</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        /* Dark theme styles */
-        html, body {
-            background-color: #121212 !important;
-            color: #e0e0e0;
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
-            height: 100%;
-        }
+{% extends 'layouts/admin.html' %}
 
-        * {
-            box-sizing: border-box;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #121212;
-        }
-
-        /* Ensure no white spaces */
-        body > div {
-            background-color: #121212;
-        }
-
-        .page-header {
-            background-color: #1e1e1e;
-            color: white;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #333;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .page-header h1 {
-            margin: 0;
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: white;
-        }
-
-        .card {
-            background-color: #1e1e1e;
-            border: 1px solid #333;
-            border-radius: 4px;
-        }
-
-        .search-container {
-            background-color: #2a2a2a;
-            padding: 10px;
-            border-bottom: 1px solid #333;
-        }
-
-        #searchInput {
-            background-color: #3a3a3a;
-            border: 1px solid #555;
-            color: white;
-            width: 300px;
-            padding: 8px;
-            border-radius: 4px;
-        }
-
-        .table-responsive {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        table thead {
-            background-color: #2a2a2a;
-        }
-
-        table th, table td {
-            padding: 12px;
-            border-bottom: 1px solid #333;
-            color: #e0e0e0;
-        }
-
-        table tr:nth-child(even) {
-            background-color: #252525;
-        }
-
-        table tr:hover {
-            background-color: #2e2e2e;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 6px 12px;
-            margin: 2px;
-            border-radius: 4px;
-            text-decoration: none;
-            color: white !important;
-        }
-
-        .btn-info {
-            background-color: #17a2b8;
-        }
-
-        .btn-warning {
-            background-color: #ffc107;
-            color: black !important;
-        }
-
-        .btn-success {
-            background-color: #28a745;
-        }
-
-        .badge {
-            padding: 3px 6px;
-            border-radius: 3px;
-        }
-
-        .badge-danger {
-            background-color: #dc3545;
-            color: white;
-        }
-
-        .badge-success {
-            background-color: #28a745;
-            color: white;
-        }
-
-        .suspended-text {
-            color: #dc3545;
-            font-weight: bold;
-        }
-
-        .active-text {
-            color: #28a745;
-            font-weight: bold;
-        }
-
-        .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-top: 20px;
-            overflow-x: auto;
-            white-space: nowrap;
-            max-width: 100%;
-            padding: 10px;
-        }
-
-        .pagination-container {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            max-width: 100%;
-            overflow-x: auto;
-        }
-
-        .pagination a, 
-        .pagination span {
-            padding: 5px 10px;
-            margin: 0 2px;
-            border: 1px solid #444;
-            text-decoration: none;
-            color: #e0e0e0;
-            border-radius: 3px;
-            min-width: 30px;
-            text-align: center;
-        }
-
-        .pagination a:hover {
-            background-color: #2a2a2a;
-        }
-
-        .pagination .current {
-            background-color: #007bff;
-            color: white;
-            font-weight: bold;
-        }
-
-        .pagination-ellipsis {
-            padding: 5px;
-            color: #666;
-        }
-    </style>
-</head>
-<body>
-    {% include 'admin/admin_taskbar.html' %}
-    
-    <div class="container">
-        <div class="page-header">
-            <h1>User Management</h1>
-            <span>Total Users: {{ total_users }}</span>
+{% block content %}
+<div class="flex flex-col gap-6">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-white">User Management</h1>
+            <p class="text-gray-400">Total Users: {{ total_users }}</p>
         </div>
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-        <div class="card">
-            <div class="search-container">
-                <input type="text" id="searchInput" placeholder="Search users (name, email, ID)..." value="{{ search_term }}">
-            </div>
-            
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Credits</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if users %}
-                            {% for user in users %}
-                            <tr>
-                                <td>{{ user.id }}</td>
-                                <td>{{ user.name }}</td>
-                                <td>{{ user.email }}</td>
-                                <td>{{ user.role }}</td>
-                                <td>{{ user.credits }}</td>
-                                <td>
+    </div>
+
+    <div class="p-6 rounded-xl bg-[#1a202c]/50 border border-white/5">
+        <div class="mb-6">
+            <input type="text" id="searchInput" placeholder="Search users (name, email, ID)..." value="{{ search_term }}"
+                class="w-full md:w-96 bg-[#0f1219] border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/5 text-gray-400 text-sm uppercase tracking-wider">
+                        <th class="px-4 py-3">ID</th>
+                        <th class="px-4 py-3">Name</th>
+                        <th class="px-4 py-3">Email</th>
+                        <th class="px-4 py-3">Role</th>
+                        <th class="px-4 py-3">Credits</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-gray-300">
+                    {% if users %}
+                        {% for user in users %}
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="px-4 py-3 text-sm text-gray-400">{{ user.id }}</td>
+                                <td class="px-4 py-3 font-medium text-white">{{ user.name }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-400">{{ user.email }}</td>
+                                <td class="px-4 py-3">
+                                    <span class="px-2 py-1 rounded text-xs font-medium bg-gray-700 text-gray-300">{{ user.role }}</span>
+                                </td>
+                                <td class="px-4 py-3 font-mono">{{ user.credits }}</td>
+                                <td class="px-4 py-3 status-cell">
                                     {% if user.suspended %}
-                                    <span class="badge badge-danger suspended-text">Suspended</span>
+                                        <span class="px-2 py-1 rounded text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">Suspended</span>
                                     {% else %}
-                                    <span class="badge badge-success active-text">Active</span>
+                                        <span class="px-2 py-1 rounded text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20">Active</span>
                                     {% endif %}
                                 </td>
-                                <td>
-                                    <a href="/admin/user/{{ user.id }}/servers" class="btn btn-info">Servers</a>
+                                <td class="px-4 py-3 flex items-center gap-2">
+                                    <a href="/admin/user/{{ user.id }}/servers" class="px-3 py-1 rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-colors text-xs font-medium">
+                                        Servers
+                                    </a>
                                     <button onclick="toggleSuspension({{ user.id }}, this)" 
-                                       class="btn {{ 'btn-success' if user.suspended else 'btn-warning' }}">
+                                       class="px-3 py-1 rounded border transition-colors text-xs font-medium {{ 'bg-green-500/10 text-green-400 hover:bg-green-500/20 border-green-500/20' if user.suspended else 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 border-yellow-500/20' }}">
                                         {{ 'Unsuspend' if user.suspended else 'Suspend' }}
                                     </button>
                                 </td>
                             </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td colspan="7" style="text-align: center; padding: 20px;">
-                                    {% if search_term %}
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                                {% if search_term %}
                                     No users match the search term "{{ search_term }}".
-                                    {% else %}
+                                {% else %}
                                     No users found in the database.
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
-            
-            {% if total_pages > 1 %}
-            <div class="pagination">
-                <div class="pagination-container">
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if total_pages > 1 %}
+            <div class="flex justify-center mt-6">
+                <div class="flex gap-2">
                     {% if current_page > 1 %}
-                    <a href="{{ url_for('admin.users', page=1, search=search_term) }}">&laquo; First</a>
-                    <a href="{{ url_for('admin.users', page=current_page-1, search=search_term) }}">Previous</a>
+                        <a href="{{ url_for('admin.users', page=1, search=search_term) }}" class="px-3 py-1 rounded border border-white/10 hover:bg-white/5 text-gray-400 transition-colors">&laquo;</a>
+                        <a href="{{ url_for('admin.users', page=current_page-1, search=search_term) }}" class="px-3 py-1 rounded border border-white/10 hover:bg-white/5 text-gray-400 transition-colors">&lsaquo;</a>
                     {% endif %}
                     
-                    {# Show first few pages #}
-                    {% if current_page > 4 %}
-                    <a href="{{ url_for('admin.users', page=1, search=search_term) }}">1</a>
-                    <span class="pagination-ellipsis">...</span>
-                    {% endif %}
-                    
-                    {# Show pages around current page #}
-                    {% set start_page = [1, current_page-2]|max %}
-                    {% set end_page = [total_pages, current_page+2]|min %}
-                    
-                    {% for page in range(start_page, end_page + 1) %}
-                        {% if page == current_page %}
-                        <span class="current">{{ page }}</span>
-                        {% else %}
-                        <a href="{{ url_for('admin.users', page=page, search=search_term) }}">{{ page }}</a>
-                        {% endif %}
+                    {% set start = [current_page - 2, 1]|max %}
+                    {% set end = [start + 4, total_pages]|min %}
+                    {% set start = [end - 4, 1]|max %}
+
+                    {% for p in range(start, end + 1) %}
+                        <a href="{{ url_for('admin.users', page=p, search=search_term) }}" 
+                           class="px-3 py-1 rounded border transition-colors {{ 'bg-blue-600 border-blue-600 text-white' if p == current_page else 'border-white/10 hover:bg-white/5 text-gray-400' }}">
+                            {{ p }}
+                        </a>
                     {% endfor %}
-                    
-                    {# Show last few pages #}
-                    {% if current_page < total_pages - 3 %}
-                    <span class="pagination-ellipsis">...</span>
-                    <a href="{{ url_for('admin.users', page=total_pages, search=search_term) }}">{{ total_pages }}</a>
-                    {% endif %}
-                    
+
                     {% if current_page < total_pages %}
-                    <a href="{{ url_for('admin.users', page=current_page+1, search=search_term) }}">Next</a>
-                    <a href="{{ url_for('admin.users', page=total_pages, search=search_term) }}">Last &raquo;</a>
+                        <a href="{{ url_for('admin.users', page=current_page+1, search=search_term) }}" class="px-3 py-1 rounded border border-white/10 hover:bg-white/5 text-gray-400 transition-colors">&rsaquo;</a>
+                        <a href="{{ url_for('admin.users', page=total_pages, search=search_term) }}" class="px-3 py-1 rounded border border-white/10 hover:bg-white/5 text-gray-400 transition-colors">&raquo;</a>
                     {% endif %}
                 </div>
             </div>
-            {% endif %}
-        </div>
+        {% endif %}
     </div>
+</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('searchInput');
-            
-            searchInput.addEventListener('input', function() {
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        let searchTimeout;
+        
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
                 const searchTerm = this.value.trim();
-                
-                // Redirect with search term
+                const url = new URL(window.location.href);
                 if (searchTerm) {
-                    window.location.href = `{{ url_for('admin.users') }}?search=${encodeURIComponent(searchTerm)}`;
+                    url.searchParams.set('search', searchTerm);
+                    url.searchParams.set('page', 1);
                 } else {
-                    window.location.href = `{{ url_for('admin.users') }}`;
+                    url.searchParams.delete('search');
                 }
-            });
+                window.location.href = url.toString();
+            }, 500);
         });
-
-        function toggleSuspension(userId, button) {
-            fetch(`/admin/user/toggle_suspension/${userId}`, {
-                method: 'POST'
-            }).then(response => {
-                if (response.ok) {
-                    // Toggle button text and classes
-                    const isSuspended = button.textContent.trim() === 'Suspend';
-                    button.textContent = isSuspended ? 'Unsuspend' : 'Suspend';
-                    button.classList.toggle('btn-warning');
-                    button.classList.toggle('btn-success');
-                    
-                    // Toggle status badge
-                    const statusCell = button.closest('tr').querySelector('td:nth-child(6)');
-                    if (isSuspended) {
-                        statusCell.innerHTML = '<span class="badge badge-danger suspended-text">Suspended</span>';
-                    } else {
-                        statusCell.innerHTML = '<span class="badge badge-success active-text">Active</span>';
-                    }
-                }
-            });
+        
+        if (searchInput.value) {
+            searchInput.focus();
+            const val = searchInput.value;
+            searchInput.value = '';
+            searchInput.value = val;
         }
-    </script>
-</body>
-</html>
+    });
+
+    function toggleSuspension(userId, button) {
+        fetch(`/admin/user/toggle_suspension/${userId}`, {
+            method: 'POST'
+        }).then(response => {
+            if (response.ok) {
+                const isSuspended = button.textContent.trim() === 'Suspend';
+                button.textContent = isSuspended ? 'Unsuspend' : 'Suspend';
+                
+                // Toggle button styling
+                if (isSuspended) { // Now suspended, so button should show "Unsuspend" (green)
+                     button.className = "px-3 py-1 rounded border transition-colors text-xs font-medium bg-green-500/10 text-green-400 hover:bg-green-500/20 border-green-500/20";
+                } else { // Now active, so button should show "Suspend" (yellow)
+                     button.className = "px-3 py-1 rounded border transition-colors text-xs font-medium bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 border-yellow-500/20";
+                }
+                
+                // Toggle status badge
+                const statusCell = button.closest('tr').querySelector('.status-cell');
+                if (isSuspended) {
+                    statusCell.innerHTML = '<span class="px-2 py-1 rounded text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">Suspended</span>';
+                } else {
+                    statusCell.innerHTML = '<span class="px-2 py-1 rounded text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20">Active</span>';
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
