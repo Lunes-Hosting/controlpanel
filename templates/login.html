@@ -9,6 +9,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer></script>
     <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
         :root {
             color-scheme: dark;
         }
@@ -48,6 +52,7 @@
         .auth-shell {
             position: relative;
             z-index: 1;
+            width: 100%;
             max-width: 480px;
             margin: 0 auto;
             padding: clamp(1.5rem, 5vw, 3rem);
@@ -67,6 +72,7 @@
 
         .panel-header {
             margin-bottom: 1.5rem;
+            text-align: center;
         }
 
         .panel-header h2 {
