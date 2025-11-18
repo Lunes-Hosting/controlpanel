@@ -1,0 +1,30 @@
+{% set _endpoint = request.endpoint or '' %}
+<nav class="panel-nav">
+    <div class="panel-nav__shell">
+        <a href="{{ url_for('admin.admin_index') }}" class="panel-nav__brand">
+            <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Lunes Host" width="40" height="40" style="border-radius:12px;">
+            <div>
+                <p style="margin:0;font-size:0.75rem;color:rgba(226,232,240,0.7);letter-spacing:0.2em;text-transform:uppercase;">Admin</p>
+                <strong style="font-size:1.1rem;">Control Panel</strong>
+            </div>
+        </a>
+        <div class="panel-nav__links">
+            {% set nav_links = [
+                {'label': 'Overview', 'href': url_for('admin.admin_index'), 'match': 'admin.admin_index'},
+                {'label': 'Users', 'href': url_for('admin.users'), 'match': 'admin.users'},
+                {'label': 'Servers', 'href': url_for('admin.admin_servers'), 'match': 'admin.admin_server'},
+                {'label': 'Tickets', 'href': url_for('admin.admin_tickets_index'), 'match': 'admin.admin_tickets'},
+                {'label': 'Logs', 'href': url_for('admin.activity_logs'), 'match': 'admin.activity_logs'},
+                {'label': 'Stats', 'href': url_for('admin.admin_stats'), 'match': 'admin.admin_stats'},
+                {'label': 'Nodes', 'href': url_for('admin.nodes'), 'match': 'admin.nodes'}
+            ] %}
+            {% for item in nav_links %}
+                <a class="panel-nav__link {% if _endpoint.startswith(item.match) %}is-active{% endif %}" href="{{ item.href }}">{{ item.label }}</a>
+            {% endfor %}
+            <a class="panel-nav__cta" href="{{ url_for('index') }}">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                Exit Admin
+            </a>
+        </div>
+    </div>
+</nav>
