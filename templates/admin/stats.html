@@ -1,154 +1,105 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin - Statistics</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        html, body { background-color: #121212 !important; color: #e0e0e0; }
-        .card { background-color: #1e1e1e; border: 1px solid #333; border-radius: 12px; }
-        .metric { display:flex; align-items:center; gap:12px; }
-        .metric .value { font-size: 1.8rem; font-weight: 700; }
-        .metric .label { color: #a3a3a3; }
-        .section-title { font-size: 1.25rem; font-weight: 600; }
-        .chart-wrap { position: relative; height: 360px; }
-        .chart-wrap canvas { display: block; }
-    </style>
-</head>
-<body>
-    {% include 'admin/admin_taskbar.html' %}
+{% extends 'layouts/admin.html' %}
 
-    <div class="max-w-7xl mx-auto p-6">
-        <div class="flex items-center justify-between mb-6">
-            <h1 class="text-2xl font-semibold">Platform Statistics</h1>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div class="card p-5">
-                <div class="metric">
-                    <div class="value">{{ total_users }}</div>
-                </div>
-                <div class="label mt-1">Total Users</div>
-            </div>
-            <div class="card p-5">
-                <div class="metric">
-                    <div class="value">{{ total_clients }}</div>
-                </div>
-                <div class="label mt-1">Total Clients</div>
-            </div>
-            <div class="card p-5">
-                <div class="metric">
-                    <div class="value">{{ total_servers }}</div>
-                </div>
-                <div class="label mt-1">Total Servers</div>
-            </div>
-            <div class="card p-5">
-                <div class="metric">
-                    <div class="value">{{ free_servers }}/{{ paid_servers }}</div>
-                </div>
-                <div class="label mt-1">Free / Paid Servers</div>
-            </div>
-            <div class="card p-5">
-                <div class="metric">
-                    <div class="value">{{ total_tickets }}</div>
-                </div>
-                <div class="label mt-1">Total Tickets</div>
-            </div>
-            <div class="card p-5">
-                <div class="metric">
-                    <div class="value">{{ total_ticket_messages }}</div>
-                </div>
-                <div class="label mt-1">Total Ticket Messages</div>
-            </div>
-            <div class="card p-5">
-                <div class="metric">
-                    <div class="value">{{ '%.2f'|format(total_credits_circulation) }}</div>
-                </div>
-                <div class="label mt-1">Credits In Circulation (excl. admins)</div>
-            </div>
-            <div class="card p-5">
-                <div class="metric">
-                    <div class="value">{{ '%.2f'|format(total_monthly_credits_used) }}</div>
-                </div>
-                <div class="label mt-1">Total Monthly Credits Used</div>
-            </div>
-        </div>
-
-        <div class="card p-5">
-            <div class="section-title mb-4">Most Popular Plans</div>
-            <div class="chart-wrap">
-                <canvas id="plansChart"></canvas>
-            </div>
+{% block content %}
+<div class="flex flex-col gap-6">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-white">Platform Statistics</h1>
+            <p class="text-gray-400">Real-time system metrics</p>
         </div>
     </div>
 
-    <script>
-        const labels = {{ chart_labels|tojson }};
-        const values = {{ chart_values|tojson }};
-        const ctx = document.getElementById('plansChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Servers by Plan',
-                    data: values,
-                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-[#1a202c]/50 border border-white/5 rounded-xl p-5">
+            <div class="text-3xl font-bold text-white mb-1">{{ total_users }}</div>
+            <div class="text-sm text-gray-400">Total Users</div>
+        </div>
+        <div class="bg-[#1a202c]/50 border border-white/5 rounded-xl p-5">
+            <div class="text-3xl font-bold text-white mb-1">{{ total_clients }}</div>
+            <div class="text-sm text-gray-400">Total Clients</div>
+        </div>
+        <div class="bg-[#1a202c]/50 border border-white/5 rounded-xl p-5">
+            <div class="text-3xl font-bold text-white mb-1">{{ total_servers }}</div>
+            <div class="text-sm text-gray-400">Total Servers</div>
+        </div>
+        <div class="bg-[#1a202c]/50 border border-white/5 rounded-xl p-5">
+            <div class="text-3xl font-bold text-white mb-1">{{ free_servers }} <span class="text-lg text-gray-500 font-normal">/ {{ paid_servers }}</span></div>
+            <div class="text-sm text-gray-400">Free / Paid Servers</div>
+        </div>
+        <div class="bg-[#1a202c]/50 border border-white/5 rounded-xl p-5">
+            <div class="text-3xl font-bold text-white mb-1">{{ total_tickets }}</div>
+            <div class="text-sm text-gray-400">Total Tickets</div>
+        </div>
+        <div class="bg-[#1a202c]/50 border border-white/5 rounded-xl p-5">
+            <div class="text-3xl font-bold text-white mb-1">{{ total_ticket_messages }}</div>
+            <div class="text-sm text-gray-400">Total Messages</div>
+        </div>
+        <div class="bg-[#1a202c]/50 border border-white/5 rounded-xl p-5">
+            <div class="text-3xl font-bold text-white mb-1">{{ '%.2f'|format(total_credits_circulation) }}</div>
+            <div class="text-sm text-gray-400">Circulating Credits</div>
+        </div>
+        <div class="bg-[#1a202c]/50 border border-white/5 rounded-xl p-5">
+            <div class="text-3xl font-bold text-white mb-1">{{ '%.2f'|format(total_monthly_credits_used) }}</div>
+            <div class="text-sm text-gray-400">Monthly Credit Usage</div>
+        </div>
+    </div>
+
+    <div class="bg-[#1a202c]/50 border border-white/5 rounded-xl p-6">
+        <h3 class="text-lg font-semibold text-white mb-4">Server Distribution</h3>
+        <div class="relative h-80 w-full">
+            <canvas id="plansChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const labels = {{ chart_labels|tojson }};
+    const values = {{ chart_values|tojson }};
+    const ctx = document.getElementById('plansChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Servers by Plan',
+                data: values,
+                backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 1,
+                borderRadius: 4,
+                maxBarThickness: 40,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { 
+                    backgroundColor: '#1e293b',
+                    titleColor: '#f1f5f9',
+                    bodyColor: '#cbd5e1',
+                    borderColor: '#334155',
                     borderWidth: 1,
-                    borderRadius: 6,
-                    maxBarThickness: 24,
-                    categoryPercentage: 0.7,
-                    barPercentage: 0.9,
-                }]
+                    padding: 10,
+                    displayColors: false
+                },
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                indexAxis: 'y',
-                plugins: {
-                    legend: { labels: { color: '#e5e7eb' } },
-                    tooltip: { enabled: true },
+            scales: {
+                x: {
+                    grid: { display: false, color: '#334155' },
+                    ticks: { color: '#94a3b8' }
                 },
-                animation: false,
-                layout: { padding: { left: 0, right: 8, top: 8, bottom: 8 } },
-                interaction: {
-                    mode: 'nearest',
-                    axis: 'y',
-                    intersect: true
-                },
-                devicePixelRatio: 1,
-                scales: {
-                    x: {
-                        type: 'logarithmic',
-                        ticks: {
-                            color: '#cbd5e1',
-                            callback: function(value) {
-                                // Format log ticks nicely (1, 2, 5 x 10^n)
-                                const remain = value / Math.pow(10, Math.floor(Math.log10(value)));
-                                if (remain === 1 || remain === 2 || remain === 5) {
-                                    return value.toLocaleString();
-                                }
-                                return '';
-                            },
-                        },
-                        grid: { color: '#2a2a2a' }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            color: '#cbd5e1',
-                            autoSkip: true,
-                            maxTicksLimit: 12,
-                        },
-                        grid: { color: '#2a2a2a' }
-                    }
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#334155' },
+                    ticks: { color: '#94a3b8' }
                 }
             }
-        });
-    </script>
-</body>
-</html>
+        }
+    });
+</script>
+{% endblock %}

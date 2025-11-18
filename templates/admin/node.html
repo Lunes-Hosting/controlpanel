@@ -1,186 +1,91 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Admin - Node Details</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <style>
-        /* Dark theme styles */
-        html, body {
-            background-color: #121212 !important;
-            color: #e0e0e0;
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
-            height: 100%;
-        }
+{% extends 'layouts/admin.html' %}
 
-        * {
-            box-sizing: border-box;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #121212;
-        }
-
-        .page-header {
-            background-color: #1e1e1e;
-            color: white;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #333;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .page-header h1 {
-            margin: 0;
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: white;
-        }
-
-        .card {
-            background-color: #1e1e1e;
-            border: 1px solid #333;
-            border-radius: 4px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .badge {
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            margin-left: 10px;
-        }
-
-        .bg-success {
-            background-color: #198754;
-        }
-
-        .bg-danger {
-            background-color: #dc3545;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #333;
-            border-radius: 4px;
-            background-color: #2a2a2a;
-            color: #e0e0e0;
-        }
-
-        .btn {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            background-color: #0d6efd;
-            color: white;
-        }
-
-        .btn:hover {
-            background-color: #0b5ed7;
-        }
-
-        select.form-control {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 0.5rem center;
-            background-size: 16px 12px;
-        }
-    </style>
-</head>
-<body>
-    {% include 'admin/admin_taskbar.html' %}
-    
-    <div class="container">
-        <div class="page-header">
-            <h1>
-                Node Details: {{ node.name }}
+{% block content %}
+<div class="flex flex-col gap-6">
+    <div class="flex items-center gap-4">
+        <a href="{{ url_for('admin.nodes') }}" class="w-10 h-10 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 transition-colors">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <div>
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-bold text-white">{{ node.name }}</h1>
                 {% if "full" in node.name.lower() %}
-                    <span class="badge bg-danger">Full</span>
+                    <span class="px-2 py-1 rounded text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">Full</span>
                 {% else %}
-                    <span class="badge bg-success">Available</span>
+                    <span class="px-2 py-1 rounded text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20">Available</span>
                 {% endif %}
-            </h1>
-            <a href="{{ url_for('admin.nodes') }}" style="color: #e0e0e0; text-decoration: none;">Back to Nodes</a>
+            </div>
+            <p class="text-gray-400">Node ID: {{ node.node_id }}</p>
         </div>
-        
-        <div class="card">
-            <h2>Node Information</h2>
-            <p><strong>Node ID:</strong> {{ node.node_id }}</p>
-            <p><strong>Name:</strong> {{ node.name }}</p>
-        </div>
+    </div>
 
-        <div class="card">
-            <h2>Transfer Servers</h2>
-            <form action="{{ url_for('admin.transfer_servers', node_id=node.node_id) }}" method="POST">
-                <div class="form-group">
-                    <label for="num_servers">Number of Servers to Transfer:</label>
-                    <input type="number" id="num_servers" name="num_servers" class="form-control" min="1" max="{{ servers|length }}" required>
-                </div>
-                <div class="form-group">
-                    <label for="target_node">Transfer to Node:</label>
-                    <select id="target_node" name="target_node" class="form-control" required>
-                        <option value="">Select Target Node</option>
-                        {% for n in all_nodes %}
-                            {% if n.node_id != node.node_id %}
-                                <option value="{{ n.node_id }}">{{ n.name }}</option>
-                            {% endif %}
-                        {% endfor %}
-                    </select>
-                </div>
-                <button type="submit" class="btn">Transfer Servers</button>
-            </form>
-        </div>
-
-        <div class="card">
-            <h2>Servers on Node</h2>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Server ID</th>
-                            <th>Name</th>
-                            <th>Status</th>
-                            <th>Memory</th>
-                            <th>Disk</th>
-                            <th>CPU</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for server in servers %}
-                        <tr onclick="window.location.href='{{ url_for('admin.admin_server', server_id=server.attributes.id) }}'">
-                            <td>{{ server.attributes.id }}</td>
-                            <td>{{ server.attributes.name }}</td>
-                            <td>
-                                {% if server.attributes.suspended %}
-                                    <span class="badge bg-danger">Suspended</span>
-                                {% else %}
-                                    <span class="badge bg-success">Active</span>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Node Actions -->
+        <div class="lg:col-span-1">
+            <div class="p-6 rounded-xl bg-[#1a202c]/50 border border-white/5 h-full">
+                <h3 class="text-lg font-semibold text-white mb-4">Transfer Servers</h3>
+                <form action="{{ url_for('admin.transfer_servers', node_id=node.node_id) }}" method="POST" class="space-y-4">
+                    <div>
+                        <label for="num_servers" class="block text-sm text-gray-400 mb-1">Count</label>
+                        <input type="number" id="num_servers" name="num_servers" class="w-full bg-[#0f1219] border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500" 
+                               min="1" max="{{ servers|length }}" required>
+                    </div>
+                    <div>
+                        <label for="target_node" class="block text-sm text-gray-400 mb-1">Target Node</label>
+                        <select id="target_node" name="target_node" class="w-full bg-[#0f1219] border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500" required>
+                            <option value="">Select Destination...</option>
+                            {% for n in all_nodes %}
+                                {% if n.node_id != node.node_id %}
+                                    <option value="{{ n.node_id }}">{{ n.name }}</option>
                                 {% endif %}
-                            </td>
-                            <td>{{ server.attributes.limits.memory }} MB</td>
-                            <td>{{ server.attributes.limits.disk }} MB</td>
-                            <td>{{ server.attributes.limits.cpu }}%</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors">
+                        Start Transfer
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Server List -->
+        <div class="lg:col-span-2">
+            <div class="p-6 rounded-xl bg-[#1a202c]/50 border border-white/5">
+                <h3 class="text-lg font-semibold text-white mb-4">Hosted Servers ({{ servers|length }})</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-white/5 text-gray-400 text-sm uppercase tracking-wider">
+                                <th class="px-4 py-3">ID</th>
+                                <th class="px-4 py-3">Name</th>
+                                <th class="px-4 py-3">Status</th>
+                                <th class="px-4 py-3">Resources</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5 text-gray-300">
+                            {% for server in servers %}
+                            <tr class="hover:bg-white/5 transition-colors cursor-pointer" onclick="window.location.href='{{ url_for('admin.admin_server', server_id=server.attributes.id) }}'">
+                                <td class="px-4 py-3 text-sm text-gray-400">{{ server.attributes.id }}</td>
+                                <td class="px-4 py-3 font-medium text-white">{{ server.attributes.name }}</td>
+                                <td class="px-4 py-3">
+                                    {% if server.attributes.suspended %}
+                                        <span class="px-2 py-0.5 rounded text-xs bg-red-500/10 text-red-500 border border-red-500/20">Suspended</span>
+                                    {% else %}
+                                        <span class="px-2 py-0.5 rounded text-xs bg-green-500/10 text-green-500 border border-green-500/20">Active</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-xs text-gray-400 space-y-0.5">
+                                    <div>MEM: {{ server.attributes.limits.memory }}MB</div>
+                                    <div>DSK: {{ server.attributes.limits.disk }}MB</div>
+                                    <div>CPU: {{ server.attributes.limits.cpu }}%</div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

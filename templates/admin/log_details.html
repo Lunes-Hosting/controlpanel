@@ -1,228 +1,84 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Admin - Log Details</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        /* Dark theme styles */
-        html, body {
-            background-color: #121212 !important;
-            color: #e0e0e0;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 20px;
-        }
-        
-        .page-header {
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .card {
-            background-color: #1e1e1e;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        
-        .badge-info {
-            background-color: #3498DB;
-            color: white;
-        }
-        
-        .badge-warning {
-            background-color: #F1C40F;
-            color: black;
-        }
-        
-        .badge-danger {
-            background-color: #E74C3C;
-            color: white;
-        }
-        
-        .badge-success {
-            background-color: #2ECC71;
-            color: white;
-        }
-        
-        .badge-secondary {
-            background-color: #95A5A6;
-            color: white;
-        }
-        
-        .back-button {
-            display: inline-block;
-            margin-bottom: 20px;
-            padding: 8px 16px;
-            background-color: #3498DB;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        
-        .back-button:hover {
-            background-color: #2980B9;
-        }
-        
-        .detail-section {
-            margin-bottom: 20px;
-        }
-        
-        .detail-section h3 {
-            margin-top: 0;
-            border-bottom: 1px solid #333;
-            padding-bottom: 10px;
-        }
-        
-        .detail-row {
-            margin-bottom: 15px;
-        }
-        
-        .detail-row strong {
-            display: inline-block;
-            width: 100px;
-        }
-        
-        .message-content {
-            margin-top: 10px;
-            padding: 15px;
-            background-color: #252525;
-            border-radius: 4px;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-        
-        .raw-content {
-            margin-top: 10px;
-            padding: 15px;
-            background-color: #252525;
-            border-radius: 4px;
-            overflow-x: auto;
-            font-family: monospace;
-            white-space: pre-wrap;
-        }
-        
-        /* Flash messages */
-        .flash-messages {
-            margin-bottom: 20px;
-        }
-        
-        .alert {
-            padding: 10px 15px;
-            margin-bottom: 10px;
-            border-radius: 4px;
-        }
-        
-        .alert-success {
-            background-color: #2ECC71;
-            color: white;
-        }
-        
-        .alert-error {
-            background-color: #E74C3C;
-            color: white;
-        }
-        
-        .alert-warning {
-            background-color: #F1C40F;
-            color: black;
-        }
-        
-        .alert-info {
-            background-color: #3498DB;
-            color: white;
-        }
-    </style>
-</head>
-<body>
-    {% include 'admin/admin_taskbar.html' %}
-    
-    <div class="container">
-        <a href="{{ url_for('admin.activity_logs') }}" class="back-button">
-            <i class="fas fa-arrow-left"></i> Back to Activity Logs
+{% extends 'layouts/admin.html' %}
+
+{% block content %}
+<div class="flex flex-col gap-6">
+    <div class="flex items-center gap-4">
+        <a href="{{ url_for('admin.activity_logs') }}" class="w-10 h-10 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 transition-colors">
+            <i class="fa-solid fa-arrow-left"></i>
         </a>
-        
-        <div class="page-header">
-            <h1>Log Details</h1>
+        <div>
+            <h1 class="text-2xl font-bold text-white">Log Details</h1>
+            <p class="text-gray-400">Viewing log entry #{{ log.id }}</p>
         </div>
-        
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">
-                            {{ message }}
-                        </div>
-                    {% endfor %}
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="bg-blue-500/10 border border-blue-500/20 text-blue-400 px-4 py-3 rounded-lg">
+                    {{ message }}
                 </div>
-            {% endif %}
-        {% endwith %}
-        
-        <div class="card">
-            <div class="detail-section">
-                <h3>Log Information</h3>
-                <div class="detail-row">
-                    <strong>ID:</strong> {{ log.id }}
-                </div>
-                <div class="detail-row">
-                    <strong>Time:</strong> {{ log.create_time }}
-                </div>
-                <div class="detail-row">
-                    <strong>Status:</strong>
-                    {% if log.status == 'Info' %}
-                        <span class="badge badge-info">Info</span>
-                    {% elif log.status == 'Warning' %}
-                        <span class="badge badge-warning">Warning</span>
-                    {% elif log.status == 'Error' %}
-                        <span class="badge badge-danger">Error</span>
-                    {% elif log.status == 'Success' %}
-                        <span class="badge badge-success">Success</span>
-                    {% elif log.status == 'Debug' %}
-                        <span class="badge badge-secondary">Debug</span>
-                    {% elif log.status == 'No Code' %}
-                        <span class="badge badge-secondary">No Code</span>
-                    {% else %}
-                        <span class="badge badge-secondary">{{ log.status }}</span>
-                    {% endif %}
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-1 space-y-6">
+            <div class="p-6 rounded-xl bg-[#1a202c]/50 border border-white/5">
+                <h3 class="text-lg font-semibold text-white mb-4">Meta Information</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between py-2 border-b border-white/5">
+                        <span class="text-gray-400">ID</span>
+                        <span class="font-mono text-gray-200">{{ log.id }}</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-white/5">
+                        <span class="text-gray-400">Timestamp</span>
+                        <span class="text-gray-200">{{ log.create_time }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b border-white/5">
+                        <span class="text-gray-400">Status</span>
+                        {% if log.status == 'Info' %}
+                            <span class="px-2 py-1 rounded text-xs font-medium bg-blue-500/10 text-blue-500 border border-blue-500/20">Info</span>
+                        {% elif log.status == 'Warning' %}
+                            <span class="px-2 py-1 rounded text-xs font-medium bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">Warning</span>
+                        {% elif log.status == 'Error' %}
+                            <span class="px-2 py-1 rounded text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">Error</span>
+                        {% elif log.status == 'Success' %}
+                            <span class="px-2 py-1 rounded text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20">Success</span>
+                        {% elif log.status == 'Debug' %}
+                            <span class="px-2 py-1 rounded text-xs font-medium bg-purple-500/10 text-purple-500 border border-purple-500/20">Debug</span>
+                        {% else %}
+                            <span class="px-2 py-1 rounded text-xs font-medium bg-gray-500/10 text-gray-500 border border-gray-500/20">{{ log.status }}</span>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-            
-            <div class="detail-section">
-                <h3>Message</h3>
-                <div class="message-content">{{ log.message }}</div>
+        </div>
+
+        <div class="lg:col-span-2 space-y-6">
+            <div class="p-6 rounded-xl bg-[#1a202c]/50 border border-white/5">
+                <h3 class="text-lg font-semibold text-white mb-4">Message Content</h3>
+                <div class="p-4 rounded-lg bg-[#0f1219] border border-white/5 font-mono text-sm text-gray-300 whitespace-pre-wrap break-words">
+                    {{ log.message }}
+                </div>
             </div>
-            
+
             {% if log.non_embed_message %}
-            <div class="detail-section">
-                <h3>Additional Message</h3>
-                <div class="message-content">{{ log.non_embed_message }}</div>
+            <div class="p-6 rounded-xl bg-[#1a202c]/50 border border-white/5">
+                <h3 class="text-lg font-semibold text-white mb-4">Additional Data</h3>
+                <div class="p-4 rounded-lg bg-[#0f1219] border border-white/5 font-mono text-sm text-gray-300 whitespace-pre-wrap break-words">
+                    {{ log.non_embed_message }}
+                </div>
             </div>
             {% endif %}
-            
-            <div class="detail-section">
-                <h3>Raw Content</h3>
-                <div class="raw-content">{{ log.raw_content }}</div>
+
+            <div class="p-6 rounded-xl bg-[#1a202c]/50 border border-white/5">
+                <h3 class="text-lg font-semibold text-white mb-4">Raw Payload</h3>
+                <div class="p-4 rounded-lg bg-[#0f1219] border border-white/5 font-mono text-xs text-gray-400 whitespace-pre-wrap break-all overflow-x-auto">
+                    {{ log.raw_content }}
+                </div>
             </div>
         </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}
