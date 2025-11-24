@@ -63,8 +63,6 @@ import stripe
 
 stripe.api_key = STRIPE_SECRET_KEY
 store = Blueprint('store', __name__)
-active_payments = []
-
 
 @store.route("/")
 @login_required
@@ -168,7 +166,6 @@ def create_checkout_session(price_link: str):
         cancel_url=YOUR_CANCEL_URL,
         customer_email=str(session['email']).strip().lower()
     )
-    active_payments.append(check_session['id'])
     session['price_link'] = price_link
     session['pay_id'] = check_session['id']
     return redirect(check_session['url'])
@@ -220,13 +217,21 @@ def success():
         return redirect(url_for("user.index"))
         #return url_for('index')
     check_session = stripe.checkout.Session.retrieve(pay_id)
-    if check_session is None or pay_id not in active_payments:
+    if check_session is None:
         flash("not valid payment")
         return redirect(url_for("user.index"))
         #return url_for('index')
+
+    # Ensure the Stripe session belongs to the logged-in user
+    session_email = str(session.get('email', '')).strip().lower()
+    customer_email = str(check_session.get('customer_email', '')).strip().lower()
+    if not session_email or session_email != customer_email:
+        webhook_log(f"Payment session email mismatch for pay_id {pay_id}: session_email={session_email}, customer_email={customer_email}", database_log=True)
+        flash("not valid payment")
+        return redirect(url_for("user.index"))
+
     if check_session['payment_status'] == 'paid':
         print(check_session)
-        active_payments.remove(pay_id)
         credits_to_add = None
         for product in products:
             if product['price_link'] == session['price_link']:
@@ -238,12 +243,16 @@ def success():
             #return url_for('index')
         add_credits(check_session['customer_email'], credits_to_add)
         webhook_log(f"**NEW PAYMENT ALERT**: User with email: {check_session['customer_email']} bought {credits_to_add} credits.", database_log=True)
+        # Clear session payment identifiers so refresh can't double-credit
+        session.pop('pay_id', None)
+        session.pop('price_link', None)
         flash("Success")
         return redirect(url_for("user.index"))
         #return url_for('index')
 
     elif check_session['status'] == 'expired':
-        active_payments.remove(pay_id)
+        session.pop('pay_id', None)
+        session.pop('price_link', None)
         flash("payment link expired")
         return redirect(url_for("user.index"))
         #return url_for('index')
