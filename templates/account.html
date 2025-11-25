@@ -216,7 +216,7 @@
 
                 <div class="panel-card rounded-2xl overflow-hidden border border-white/5">
                     {% if servers %}
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-6">
                         {% for server in servers %}
                         {% set limits = server['attributes'].get('limits', {}) %}
                         {% set feature = server['attributes'].get('feature_limits', {}) %}
@@ -276,7 +276,7 @@
             </section>
             {% endif %}
 
-            <!-- Store Section -->
+            <!-- Store Section (Available to all users including suspended) -->
             <section class="panel-section" id="StoreArea" aria-labelledby="store-heading">
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 section-heading mb-6">
                     <div class="flex items-center gap-3">

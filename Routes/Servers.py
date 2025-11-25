@@ -308,6 +308,9 @@ def create_server():
     if not verified:
         return redirect(url_for('user.index'))
 
+    if check_if_user_suspended(str(get_ptero_id(session['email'])[0])):
+        return redirect(url_for('user.index'))
+
     # Enforce 2-minute cooldown from registration
     created_at_row = DatabaseManager.execute_query(
         "SELECT created_at FROM users WHERE email = %s",
@@ -756,6 +759,9 @@ def transfer_server_route(server_id):
     if not verify_server_ownership(server_id, session['email']):
         return "You can't transfer this server - you don't own it!"
     
+    if check_if_user_suspended(str(get_ptero_id(session['email'])[0])):
+        return redirect(url_for('user.index'))
+    
     # Get server information
     info = get_server_information(server_id)
     current_node_id = info['attributes']['node']
@@ -814,6 +820,9 @@ def transfer_server_submit(server_id):
     
     if not verify_server_ownership(server_id, session['email']):
         return "You can't transfer this server - you don't own it!", 403
+    
+    if check_if_user_suspended(str(get_ptero_id(session['email'])[0])):
+        return jsonify({'message': 'Your account is suspended.'}), 403
     
     # Get target node from JSON data
     data = request.get_json()
