@@ -23,18 +23,7 @@
         {% endblock %}
         <div class="page-shell {% block page_shell_class %}{% endblock %}">
             {% block flash_messages %}
-                {% with messages = get_flashed_messages() %}
-                    {% if messages %}
-                        <div class="flash-stack">
-                            {% for message in messages %}
-                                <div class="flash-card">
-                                    <i class="fa-solid fa-circle-info"></i>
-                                    <span>{{ message }}</span>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                {% endwith %}
+                {% include 'partials/flash_messages.html' %}
             {% endblock %}
             {% block content %}{% endblock %}
         </div>

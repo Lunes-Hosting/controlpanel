@@ -202,16 +202,7 @@
                 <p>Need an account? <a href="{{ url_for('user.register_user') }}" style="color:#93c5fd;text-decoration:none;">Create one in seconds.</a></p>
             </header>
 
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="flash-message">
-                            <i class="fa-solid fa-circle-info"></i>
-                            <span>{{ message }}</span>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+            {% include 'partials/flash_messages.html' %}
 
             <form action="{{ url_for('user.login_user') }}" method="POST">
                 <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">

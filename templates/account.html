@@ -15,32 +15,8 @@
     <div class="background-blob blob-two"></div>
     <div class="noise-overlay"></div>
     <main class="relative z-10">
-    <nav class="sticky w-full bg-gradient-to-t from-slate-950/40 via-slate-950/70 to-blue-900/70 top-0 z-50 backdrop-blur-md border-b border-white/5">
-        <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-row items-center justify-between h-16">
-                <a href="/" class="group flex items-center space-x-3">
-                    <div class="relative"><img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" rel="preload" class="h-auto w-10 rounded-lg" width="32" height="32"></div>
-                    <div>
-                        <h2 class="text-xl font-bold text-white">Lunes</h2>
-                    </div>
-                </a>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            {% for message in messages %}
-                <div class="bg-blue-500 text-white px-4 py-2 mb-4 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6" />
-                    </svg>
-                    <span>{{ message }}</span>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    {% include 'partials/top_nav.html' %}
+    {% include 'partials/flash_messages.html' %}
 
     {% if not verified %}
     <!-- Email Verification Warning -->
@@ -116,11 +92,6 @@
                                 <h3>{{ formatted_credits }}</h3>
                                 <small>Charged hourly per plan</small>
                             </article>
-                            <article>
-                                <p>Support Priority</p>
-                                <h3>{% if suspended %}Alert{% else %}Standard{% endif %}</h3>
-                                <small>{% if suspended %}Reach support to restore service{% else %}Within SLA window{% endif %}</small>
-                            </article>
                         </div>
 
                         <div class="hero-actions">
@@ -177,7 +148,6 @@
                                 <i class="fa-solid fa-chart-line"></i>
                             </div>
                             <div class="status-info">
-                                <p>Need to pause a service? Suspend any server from its detail page. Usage will stop immediately.</p>
                             </div>
                         </div>
                     </div>
@@ -230,7 +200,7 @@
             <!-- Servers Section -->
             {% if verified and not suspended %}
             <section class="panel-section" aria-labelledby="servers-heading">
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 section-heading rounded-2xl border border-white/5 bg-gradient-to-r from-slate-900/60 to-slate-900/20 px-4 sm:px-6 py-4">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 section-heading rounded-2xl border border-white/5 bg-gradient-to-r from-slate-900/60 to-slate-900/20 px-4 sm:px-6 py-4 mb-6">
                     <div class="flex items-center gap-3">
                         <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
                         <div>
@@ -284,7 +254,7 @@
             </section>
             {% elif not verified %}
             <section class="panel-section" aria-labelledby="servers-heading">
-                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading rounded-2xl border border-white/5 bg-gradient-to-r from-slate-900/60 to-slate-900/20 px-4 sm:px-6 py-4">
+                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading rounded-2xl border border-white/5 bg-gradient-to-r from-slate-900/60 to-slate-900/20 px-4 sm:px-6 py-4 mb-6">
                     <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
                     <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
                 </div>
@@ -295,7 +265,7 @@
             </section>
             {% elif suspended %}
             <section class="panel-section" aria-labelledby="servers-heading">
-                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading rounded-2xl border border-white/5 bg-gradient-to-r from-slate-900/60 to-slate-900/20 px-4 sm:px-6 py-4">
+                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading rounded-2xl border border-white/5 bg-gradient-to-r from-slate-900/60 to-slate-900/20 px-4 sm:px-6 py-4 mb-6">
                     <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
                     <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
                 </div>
@@ -308,7 +278,7 @@
 
             <!-- Store Section -->
             <section class="panel-section" id="StoreArea" aria-labelledby="store-heading">
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 section-heading">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 section-heading mb-6">
                     <div class="flex items-center gap-3">
                         <i class="fa-solid fa-store fa-2xl text-green-400"></i>
                         <div>
@@ -468,12 +438,12 @@
 
             <!-- Other Section -->
             <section class="panel-section" aria-labelledby="other-heading">
-                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading rounded-2xl border border-white/5 bg-gradient-to-r from-slate-900/60 to-slate-900/20 px-4 sm:px-6 py-4">
+                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading rounded-2xl border border-white/5 bg-gradient-to-r from-slate-900/60 to-slate-900/20 px-4 sm:px-6 py-4 mb-6">
                     <i class="fa-solid fa-barcode fa-2xl text-blue-400"></i>
                     <h1 id="other-heading" class="text-2xl font-semibold">Community & Policies</h1>
                 </div>
 
-                <div class="panel-card flex flex-col lg:flex-row gap-8 items-center lg:items-stretch rounded-2xl border border-white/5">
+                <div class="panel-card flex flex-col lg:flex-row gap-8 items-center lg:items-stretch rounded-2xl border border-white/5 p-6">
                     <div class="flex flex-col items-center text-center gap-4">
                         <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" rel="preload" class="h-auto w-32 rounded-lg" width="128" height="128">
                         <p class="text-2xl font-bold">Lunes Hosting</p>
@@ -520,6 +490,10 @@
             --panel-border: rgba(59, 130, 246, 0.35);
             --panel-bg: rgba(15, 23, 42, 0.8);
             --panel-shadow: 0 25px 50px -12px rgba(30, 64, 175, 0.35);
+        }
+
+        html {
+            scroll-behavior: smooth;
         }
 
         .background-blob {
@@ -1177,7 +1151,7 @@
             <h3 class="text-xl font-bold mb-4">Delete Account</h3>
             <div class="mb-4">
                 <label for="nodeSelect" class="block text-sm font-medium text-gray-300 mb-2">HEADS UP:</label>
-                <p class="text-xl text-blue-500" > <a href="https://www.youtube.com/watch?v=u5CVsCnxyXg&pp=ygUMTm8gU3VycHJpc2Vz" class="underline">No alarms and no surprises.</a></p>
+                <p class="text-gray-300">This action is irreversible. All your servers and data will be permanently deleted.</p>
             </div>
             <div class="flex justify-end gap-2">
                 <button onclick="closeDeleteModal()" style="cursor: pointer;" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors duration-200">Cancel</button>

@@ -59,21 +59,6 @@
             padding: clamp(1.5rem, 5vw, 3rem);
         }
 
-        nav {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1.25rem 0;
-        }
-
-        nav a {
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            align-items: center;
-            gap: 0.65rem;
-        }
-
         .hero {
             display: grid;
             gap: 1.5rem;
@@ -231,53 +216,22 @@
             color: #cbd5f5;
         }
 
-        .flash-wrapper {
-            margin-top: 1rem;
-        }
+    .flash-wrapper {
+        margin-top: 1rem;
+    }
 
-        .flash-message {
-            display: flex;
-            gap: 0.6rem;
-            align-items: center;
-            padding: 0.9rem 1.1rem;
-            border-radius: 1rem;
-            background: rgba(56, 189, 248, 0.12);
-            border: 1px solid rgba(56, 189, 248, 0.35);
-            color: #e0f2fe;
-        }
-
-        @media (max-width: 640px) {
-            .page-shell {
-                padding: 1.25rem 1rem 2.25rem;
-            }
-            nav {
-                flex-direction: column;
-                gap: 1rem;
-                align-items: flex-start;
-            }
-            .ticket-meta {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        }
+    .flash-message {
+        display: flex;
+        gap: 0.6rem;
+        align-items: center;
+        padding: 0.9rem 1.1rem;
+        border-radius: 1rem;
+    }
     </style>
 </head>
 <body>
+    {% include 'partials/flash_messages.html' %}
     <div class="page-shell">
-        <nav>
-            <a href="/">
-                <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Lunes" width="40" height="40" style="border-radius:12px;">
-                <div>
-                    <p style="margin:0;font-size:0.85rem;color:#94a3b8;">Support Center</p>
-                    <strong style="font-size:1.2rem;">Lunes Host</strong>
-                </div>
-            </a>
-            <div style="display:flex;gap:0.6rem;font-size:0.9rem;color:#94a3b8;">
-                <i class="fa-solid fa-shield-halved"></i>
-                <span>Average response &lt; 4h</span>
-            </div>
-        </nav>
-
         <section class="hero">
             <div>
                 <h1>Raise a ticket, get help quickly.</h1>
@@ -297,19 +251,6 @@
                     <strong>Live</strong>
                 </div>
             </div>
-
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    <div class="flash-wrapper">
-                        {% for message in messages %}
-                            <div class="flash-message">
-                                <i class="fa-solid fa-circle-info"></i>
-                                <span>{{ message }}</span>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
         </section>
 
         <div class="content-grid">

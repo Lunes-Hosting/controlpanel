@@ -9,9 +9,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}"/>
 </head>
 <body class="bg-gray-900 text-white font-sans p-8" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
-    {% include 'taskbar.html' %}
+    {% include 'partials/top_nav.html' %}
+    {% include 'partials/flash_messages.html' %}
 
-    <main class="container mx-auto">
+    <main class="container mx-auto mt-8">
         <!-- Page Heading -->
         <div class="text-center mb-12">
             <h1 class="text-4xl md:text-5xl font-bold mb-4 text-gray-100">

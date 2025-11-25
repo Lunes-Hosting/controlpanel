@@ -1,0 +1,67 @@
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="fixed top-24 left-1/2 transform -translate-x-1/2 z-[100] w-full max-w-2xl px-4 space-y-3 pointer-events-none" id="flash-container">
+            {% for category, message in messages %}
+                {% set lower_msg = message.lower() %}
+                {# Heuristic to determine type if generic 'message' category is used #}
+                {% set is_error = category in ['error', 'danger'] or 'fail' in lower_msg or 'error' in lower_msg or 'incorrect' in lower_msg or 'required' in lower_msg or 'suspended' in lower_msg or 'not valid' in lower_msg or 'expired' in lower_msg or 'please select' in lower_msg %}
+                {% set is_success = category == 'success' or 'success' in lower_msg or 'sent' in lower_msg or 'created' in lower_msg %}
+                
+                <div class="pointer-events-auto flex items-center p-4 rounded-xl shadow-lg border backdrop-blur-md transition-all duration-300 animate-fade-in-down
+                    {% if is_error %}
+                        bg-red-500/10 border-red-500/30 text-red-200
+                    {% elif is_success %}
+                        bg-green-500/10 border-green-500/30 text-green-200
+                    {% else %}
+                        bg-blue-500/10 border-blue-500/30 text-blue-200
+                    {% endif %}
+                " role="alert">
+                    <div class="flex-shrink-0 mr-3">
+                        {% if is_error %}
+                            <i class="fa-solid fa-circle-exclamation text-xl"></i>
+                        {% elif is_success %}
+                            <i class="fa-solid fa-circle-check text-xl"></i>
+                        {% else %}
+                            <i class="fa-solid fa-circle-info text-xl"></i>
+                        {% endif %}
+                    </div>
+                    <div class="flex-1 text-sm font-medium">
+                        {{ message }}
+                    </div>
+                    <button type="button" class="ml-3 text-white/50 hover:text-white transition-colors" onclick="this.parentElement.remove()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const container = document.getElementById('flash-container');
+                if (container) {
+                    // Auto-dismiss after 6 seconds
+                    setTimeout(() => {
+                        if (container) {
+                            container.style.opacity = '0';
+                            container.style.transform = 'translate(-50%, -20px)';
+                            container.style.transition = 'all 0.5s ease';
+                            setTimeout(() => container.remove(), 500);
+                        }
+                    }, 6000);
+                }
+            });
+        </script>
+        
+        <style>
+            @keyframes fadeInDown {
+                from { opacity: 0; transform: translate(-50%, -20px); }
+                to { opacity: 1; transform: translate(-50%, 0); }
+            }
+            /* Custom animation that respects the centered positioning */
+            .animate-fade-in-down {
+                /* Reset transform to match the flex container flow, handled by JS/CSS logic mostly */
+                animation: none; 
+            }
+        </style>
+    {% endif %}
+{% endwith %}

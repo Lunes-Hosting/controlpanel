@@ -281,29 +281,19 @@
             .server-meta {
                 flex-direction: column;
                 gap: 0.4rem;
-                align-items: flex-start;
+            }
+
+            .server-specs {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 0.75rem;
             }
         }
     </style>
 </head>
 <body class="text-white font-sans" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
-    {% include 'taskbar.html' %}
-
-    <!-- Flash Messages -->
-    <div id="flash-messages" class="flash-container">
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="flash-message mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <span>{{ message }}</span>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
+    {% include 'partials/top_nav.html' %}
+    {% include 'partials/flash_messages.html' %}
 
     <!-- Main Content -->
     <div class="page-shell">
