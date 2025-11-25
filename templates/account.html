@@ -231,7 +231,7 @@
                                 </span>
                             </div>
                             <div class="server-card__body">
-                                <span class="server-pill"><i class="fa-solid fa-microchip"></i>{{ limits.get('cpu', '—') }}% CPU</span>
+                                <span class="server-pill"><i class="fa-solid fa-microchip"></i>{% if limits.get('cpu') == 0 %}Unmetered{% else %}{{ limits.get('cpu', '—') }}%{% endif %} CPU</span>
                                 <span class="server-pill"><i class="fa-solid fa-memory"></i>{{ limits.get('memory', '—') }} MB RAM</span>
                                 <span class="server-pill"><i class="fa-solid fa-hard-drive"></i>{{ limits.get('disk', '—') }} MB Disk</span>
                                 <span class="server-pill"><i class="fa-solid fa-users"></i>{{ feature.get('databases', 'Unlimited') }} DB Slots</span>
