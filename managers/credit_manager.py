@@ -13,10 +13,12 @@ to manage the credit system across the platform.
 """
 
 import threading
+from threadedreturn import ThreadWithReturnValue
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 from products import products
 from .logging import webhook_log
+from .email_manager import send_email
 from .server_manager import suspend_server, unsuspend_server, delete_server
 from .user_manager import check_if_user_suspended
 from security import safe_requests
@@ -207,6 +209,7 @@ def use_credits():
                 server_id = server['attributes']['id']
                 server_name = server['attributes']['name']
                 webhook_log(f"User {user_email} can't afford server {server_name} (ID: {server_id}). Suspending.", database_log=True)
+                ThreadWithReturnValue(target=send_email, args=(user_email, f"Server suspended", f"Your server: {server_name} has been suspended due to your account running out of credits. If your account balance remains the same in 4 days, your server will be deleted permanently.", current_app._get_current_object())).start()
                 threading.Thread(target=suspend_server, args=(server_id,)).start()
         
         # Update user's credits with the remaining amount
