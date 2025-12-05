@@ -22,6 +22,7 @@ from .email_manager import send_email
 from .server_manager import suspend_server, unsuspend_server, delete_server
 from .user_manager import check_if_user_suspended
 from security import safe_requests
+from flask import current_app
 import datetime
 
 # API authentication headers
