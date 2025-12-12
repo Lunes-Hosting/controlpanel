@@ -216,7 +216,7 @@
 
                 <div class="panel-card rounded-2xl overflow-hidden border border-white/5">
                     {% if servers %}
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-6">
+                    <div class="server-grid gap-6 p-6">
                         {% for server in servers %}
                         {% set limits = server['attributes'].get('limits', {}) %}
                         {% set feature = server['attributes'].get('feature_limits', {}) %}
@@ -834,10 +834,19 @@
             box-shadow: 0 18px 35px rgba(37, 99, 235, 0.45);
         }
 
+        .server-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 280px));
+            justify-content: center;
+            align-items: stretch;
+        }
+
         .server-card {
             display: flex;
             flex-direction: column;
             gap: 1rem;
+            width: 100%;
+            min-width: 0;
             padding: 1.5rem;
             border-radius: 1.25rem;
             background: rgba(15, 23, 42, 0.95);
@@ -853,11 +862,18 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
+            gap: 0.75rem;
+        }
+        .server-card__header > div {
+            min-width: 0;
         }
         .server-title {
             font-size: 1.2rem;
             font-weight: 600;
             margin-top: 0.35rem;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            line-height: 1.25;
         }
         .server-meta {
             font-size: 0.7rem;
@@ -869,6 +885,7 @@
             padding: 0.35rem 0.85rem;
             border-radius: 999px;
             font-size: 0.75rem;
+            flex-shrink: 0;
             background: rgba(16, 185, 129, 0.15);
             border: 1px solid rgba(16, 185, 129, 0.4);
             color: #a7f3d0;
@@ -892,8 +909,14 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 0.75rem;
             font-size: 0.85rem;
             color: rgba(148, 163, 184, 0.8);
+        }
+        .server-card__footer p {
+            margin: 0;
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
         .empty-state {
             padding: 2rem;
@@ -1085,6 +1108,10 @@
         @media (max-width: 640px) {
             body {
                 padding: 1rem 0.75rem;
+            }
+
+            .server-grid {
+                grid-template-columns: 1fr;
             }
 
             .hero-panel {
