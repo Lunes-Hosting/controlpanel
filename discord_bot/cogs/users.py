@@ -101,7 +101,7 @@ class Users(commands.Cog):
             try:
                 DatabaseManager.execute_query(
                     "UPDATE users SET role = client WHERE email = %s",
-                    (email)
+                    (email,)
                 )
                 # Get new role
                 new_role = DatabaseManager.execute_query(
