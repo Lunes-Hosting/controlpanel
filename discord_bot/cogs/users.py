@@ -89,6 +89,34 @@ class Users(commands.Cog):
                 await ctx.respond(f"Error suspending user: {str(e)}", ephemeral=True)
                 logger.error(f'Error with discord command "/suspend": {str(e)}')
 
+    @slash_command(name="giveclient", description="Make a user a client.")
+    async def suspend_command(self, ctx, email: discord.Option(str, "User's email")): # type: ignore
+        if self.flask_app is None:
+            await ctx.respond("Error: Flask app not initialized", ephemeral=True)
+            return
+        with self.flask_app.app_context():
+            if not (ctx.author.guild_permissions.administrator or discord.utils.get(ctx.author.roles, id=1364999900135165993)):
+                await ctx.respond("You do not have permission to use this command.", ephemeral=True)
+                return
+            try:
+                DatabaseManager.execute_query(
+                    "UPDATE users SET role = client WHERE email = %s",
+                    (email)
+                )
+                # Get new role
+                new_role = DatabaseManager.execute_query(
+                    "SELECT role FROM users WHERE email = %s",
+                    (email,)
+                )
+                embed = discord.Embed(title="User Suspended", color=discord.Color.red())
+                embed.add_field(name="Email:", value=str(email), inline=False)
+                await ctx.respond(embed=embed, ephemeral=True)
+                logger.info(f"Client role given to {email}. Current role: {new_role}")
+                return
+            except Exception as e:
+                await ctx.respond(f"Error giving client role to user: {str(e)}", ephemeral=True)
+                logger.error(f'Error with discord command "/giveclient": {str(e)}')
+
     @slash_command(name="unsuspend", description="Unsuspend a user")
     async def unsuspend_command(self, ctx, email: discord.Option(str, "User's email")): # type: ignore
         if self.flask_app is None:
