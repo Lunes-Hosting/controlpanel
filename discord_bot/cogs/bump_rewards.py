@@ -180,20 +180,20 @@ class BumpRewards(commands.Cog):
                 logger.error(f"Failed to prompt unlinked bumper {bumper_id} (process phase): {e}")
             return
 
-        # Award 3 credit to the linked email
+        # Award 4 credit to the linked email
         email = info.get("email")
         try:
             logger.info(
-                f"(process) Awarding +3 credit to email={email} (discord_id={bumper_id}) for DISBOARD bump"
+                f"(process) Awarding +4 credit to email={email} (discord_id={bumper_id}) for DISBOARD bump"
             )
-            add_credits(email, 3, set_client=False)
+            add_credits(email, 4, set_client=False)
             await message.channel.send(
                 content=(
                     f"<@{bumper_id}>, thanks for the bump on [{message.guild.name} | DISBOARD: Discord Server List]"
-                    f"(https://disboard.org/server/{message.guild.id})! +3 credit added to your account."
+                    f"(https://disboard.org/server/{message.guild.id})! +4 credit added to your account."
                 )
             )
-            logger.info(f"(process) Awarded +3 credit to {email} for DISBOARD bump by {bumper_id}")
+            logger.info(f"(process) Awarded +4 credit to {email} for DISBOARD bump by {bumper_id}")
         except Exception as e:
             logger.error(f"Failed to add bump credit for {email} ({bumper_id}) (process phase): {e}")
             try:
