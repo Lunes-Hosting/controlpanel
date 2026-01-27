@@ -368,6 +368,48 @@
                 {% endif %}
             </section>
 
+            <section class="panel-section" id="SubscriptionStoreArea" aria-labelledby="subscription-store-heading">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 section-heading mb-6">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-repeat fa-2xl text-blue-400"></i>
+                        <div>
+                            <p class="text-sm uppercase tracking-wider text-blue-300/80">Billing</p>
+                            <h1 id="subscription-store-heading" class="text-2xl font-semibold">Subscription Credits</h1>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('store.billing_portal') }}" class="action-btn secondary">
+                        <i class="fa-solid fa-gear"></i>
+                        Manage Subscription
+                    </a>
+                </div>
+
+                <div class="panel-card rounded-3xl border border-white/10 overflow-hidden bg-gradient-to-r from-slate-950/80 to-slate-900/40 p-6">
+                    <div class="space-y-2 mb-6">
+                        <p class="text-sm text-gray-400">Choose a monthly credit pack. Credits are automatically added after Stripe payment completes.</p>
+                        <p class="text-sm text-gray-400">If payment fails, we will email you and cancel the subscription.</p>
+                    </div>
+
+                    {% if subscription_credit_options %}
+                        <div class="recommended-grid">
+                            {% for price_link, credits in subscription_credit_options %}
+                                <a class="bundle-card" href="{{ url_for('store.create_subscription_checkout_session', price_link=price_link) }}">
+                                    <div>
+                                        <p class="bundle-label">Monthly Pack</p>
+                                        <h4 class="bundle-value">{{ credits }} Credits</h4>
+                                        <p class="bundle-price">Billed monthly</p>
+                                    </div>
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center text-gray-400">
+                            No subscription packages available
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+
             <div id="store-data" class="sr-only" data-products='{{ products | tojson | safe }}' data-checkout-template="{{ url_for('store.create_checkout_session', price_link='__PRICE_LINK__') }}"></div>
               <script>
                 const storeDataEl = document.getElementById('store-data');

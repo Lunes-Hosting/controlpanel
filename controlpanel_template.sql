@@ -1,6 +1,5 @@
 -- MySQL dump 10.13  Distrib 8.0.33, for Win64 (x86_64)
 --
--- Host: node6.lunes.host    Database: controlpanel
 -- ------------------------------------------------------
 -- Server version	11.7.2-MariaDB-ubu2404
 
@@ -27,7 +26,7 @@ CREATE TABLE `activity_logs` (
   `create_time` datetime DEFAULT NULL COMMENT 'Create Time',
   `content` longtext DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=446296 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -42,7 +41,7 @@ CREATE TABLE `pending_deletions` (
   `email` varchar(255) NOT NULL COMMENT 'User Email',
   `deletion_requested_time` datetime NOT NULL COMMENT 'When deletion was requested',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=608 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Stores users pending deletion';
+) ENGINE=InnoDB AUTO_INCREMENT=4706 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Stores users pending deletion';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -87,6 +86,20 @@ CREATE TABLE `projects` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `stripe_processed_invoices`
+--
+
+DROP TABLE IF EXISTS `stripe_processed_invoices`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `stripe_processed_invoices` (
+  `invoice_id` varchar(255) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`invoice_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ticket_blacklists`
 --
 
@@ -120,7 +133,22 @@ CREATE TABLE `ticket_comments` (
   `ticketcomment` text NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=874 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4913 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ticket_discord_channels`
+--
+
+DROP TABLE IF EXISTS `ticket_discord_channels`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ticket_discord_channels` (
+  `ticket_id` int(10) unsigned NOT NULL,
+  `channel_id` bigint(20) unsigned NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`ticket_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -139,7 +167,7 @@ CREATE TABLE `tickets` (
   `reply_status` varchar(255) NOT NULL DEFAULT 'waiting' COMMENT 'responded OR waiting depending on who replyed last',
   `last_reply` timestamp NULL DEFAULT NULL COMMENT 'Timestamp of latest reply',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=299 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1824 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -172,7 +200,7 @@ CREATE TABLE `users` (
   `show_email` tinyint(4) NOT NULL DEFAULT 0 COMMENT 'Shows Email on codehub',
   PRIMARY KEY (`id`),
   UNIQUE KEY `users_email_unique` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=14213 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=42103 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -188,4 +216,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-03-24 14:24:02
+-- Dump completed on 2026-01-27  7:52:40

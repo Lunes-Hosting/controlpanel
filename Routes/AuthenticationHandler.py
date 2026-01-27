@@ -65,7 +65,7 @@ from products import products
 
 from cacheext import cache
 from managers.database_manager import DatabaseManager
-from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY
+from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY, SUBSCRIPTION_CREDIT_PRICES
 
 # Create a blueprint for the user routes
 user = Blueprint('user', __name__)
@@ -217,6 +217,11 @@ def index():
             fixed_list.append(product)
             #products_local.remove(product)
 
+    subscription_credit_options = sorted(
+        ((price_link, int(credits)) for price_link, credits in (SUBSCRIPTION_CREDIT_PRICES or {}).items()),
+        key=lambda x: x[1],
+    )
+
     return render_template(
         "account.html", 
         credits=int(current_credits), 
@@ -227,6 +232,7 @@ def index():
         monthly_usage=monthly_usage,
         servers=servers,
         products=fixed_list,
+        subscription_credit_options=subscription_credit_options,
         verified=verified,
         suspended=suspended
     )

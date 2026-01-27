@@ -48,7 +48,7 @@ Payment Flow:
 5. Transaction logged
 """
 
-from flask import Blueprint, request, render_template, session, flash, redirect, url_for
+from flask import Blueprint, request, render_template, session, flash, redirect, url_for, current_app
 import sys
 from threadedreturn import ThreadWithReturnValue
 sys.path.append("..")
@@ -57,12 +57,46 @@ from managers.user_manager import get_ptero_id, get_id
 from managers.credit_manager import add_credits
 from managers.email_manager import send_email
 from managers.logging import webhook_log
-from config import STRIPE_SECRET_KEY, YOUR_SUCCESS_URL, YOUR_CANCEL_URL
+from managers.database_manager import DatabaseManager
+from config import (
+    STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET,
+    SUBSCRIPTION_CREDIT_PRICES,
+    HOSTED_URL,
+    YOUR_SUCCESS_URL,
+    YOUR_CANCEL_URL,
+)
 from products import products
 import stripe
 
 stripe.api_key = STRIPE_SECRET_KEY
 store = Blueprint('store', __name__)
+
+
+def _ensure_processed_invoice_table_exists() -> None:
+    DatabaseManager.execute_query(
+        """
+        CREATE TABLE IF NOT EXISTS stripe_processed_invoices (
+            invoice_id VARCHAR(255) PRIMARY KEY,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+
+
+def _already_processed_invoice(invoice_id: str) -> bool:
+    row = DatabaseManager.execute_query(
+        "SELECT invoice_id FROM stripe_processed_invoices WHERE invoice_id = %s",
+        (invoice_id,),
+    )
+    return bool(row)
+
+
+def _mark_invoice_processed(invoice_id: str) -> None:
+    DatabaseManager.execute_query(
+        "INSERT INTO stripe_processed_invoices (invoice_id) VALUES (%s)",
+        (invoice_id,),
+    )
 
 @store.route("/")
 @login_required
@@ -105,6 +139,67 @@ def storepage():
         if product['price_link'] is None:
             products_local.remove(product)
     return render_template("store.html", products=products_local)
+
+
+@store.route('/subscribe/<price_link>', methods=['POST', 'GET'])
+@login_required
+def create_subscription_checkout_session(price_link: str):
+    if price_link not in SUBSCRIPTION_CREDIT_PRICES:
+        flash("not valid subscription")
+        return redirect(url_for("user.index"))
+
+    credits_per_month = int(SUBSCRIPTION_CREDIT_PRICES[price_link])
+    user_email = str(session.get('email', '')).strip().lower()
+    if not user_email:
+        flash("not valid user")
+        return redirect(url_for("user.index"))
+
+    success_url = f"{HOSTED_URL}user/?subscription=success"
+    cancel_url = f"{HOSTED_URL}user/?subscription=cancel"
+
+    check_session = stripe.checkout.Session.create(
+        payment_method_types=['card'],
+        allow_promotion_codes=True,
+        line_items=[{
+            'price': price_link,
+            'quantity': 1,
+        }],
+        mode='subscription',
+        success_url=success_url,
+        cancel_url=cancel_url,
+        customer_email=user_email,
+        subscription_data={
+            'metadata': {
+                'user_email': user_email,
+                'credits_per_month': str(credits_per_month),
+                'price_link': price_link,
+            }
+        },
+    )
+
+    return redirect(check_session['url'])
+
+
+@store.route('/portal', methods=['GET'])
+@login_required
+def billing_portal():
+    user_email = str(session.get('email', '')).strip().lower()
+    if not user_email:
+        flash("not valid user")
+        return redirect(url_for("user.index"))
+
+    customers = stripe.Customer.list(email=user_email, limit=1)
+    if customers and customers.get('data'):
+        customer_id = customers['data'][0]['id']
+    else:
+        customer = stripe.Customer.create(email=user_email)
+        customer_id = customer['id']
+
+    portal_session = stripe.billing_portal.Session.create(
+        customer=customer_id,
+        return_url=f"{HOSTED_URL}user/",
+    )
+    return redirect(portal_session['url'])
 
 
 @store.route('/checkout/<price_link>', methods=['POST', 'GET'])
@@ -169,6 +264,134 @@ def create_checkout_session(price_link: str):
     session['price_link'] = price_link
     session['pay_id'] = check_session['id']
     return redirect(check_session['url'])
+
+
+@store.route('/stripe_webhook', methods=['POST'])
+def stripe_webhook():
+    payload = request.data
+    sig_header = request.headers.get('Stripe-Signature')
+
+    if not STRIPE_WEBHOOK_SECRET:
+        webhook_log("Stripe webhook secret not configured", database_log=True)
+        return "", 500
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload=payload,
+            sig_header=sig_header,
+            secret=STRIPE_WEBHOOK_SECRET,
+        )
+    except Exception as e:
+        webhook_log(f"Stripe webhook signature verification failed: {e}", database_log=True)
+        return "", 400
+
+    event_type = event.get('type')
+    data_object = (event.get('data') or {}).get('object') or {}
+
+    try:
+        if event_type == 'invoice.payment_succeeded':
+            invoice_id = str(data_object.get('id') or '').strip()
+            if not invoice_id:
+                return "", 200
+
+            _ensure_processed_invoice_table_exists()
+            if _already_processed_invoice(invoice_id):
+                return "", 200
+
+            invoice = stripe.Invoice.retrieve(
+                invoice_id,
+                expand=['lines.data.price'],
+            )
+
+            subscription_id = invoice.get('subscription')
+            subscription = None
+            if subscription_id:
+                subscription = stripe.Subscription.retrieve(subscription_id)
+
+            metadata = (subscription or {}).get('metadata') or {}
+            user_email = str(metadata.get('user_email') or '').strip().lower()
+
+            credits_per_month = metadata.get('credits_per_month')
+            credits_to_add = None
+            try:
+                if credits_per_month is not None:
+                    credits_to_add = int(credits_per_month)
+            except Exception:
+                credits_to_add = None
+
+            if credits_to_add is None:
+                lines = (invoice.get('lines') or {}).get('data') or []
+                if lines:
+                    price = lines[0].get('price')
+                    price_id = price.get('id') if isinstance(price, dict) else None
+                    if price_id:
+                        credits_to_add = SUBSCRIPTION_CREDIT_PRICES.get(price_id)
+            if credits_to_add is None:
+                webhook_log(f"Subscription invoice {invoice_id} missing credit mapping", database_log=True)
+                return "", 200
+
+            if not user_email:
+                customer_id = invoice.get('customer')
+                if customer_id:
+                    customer = stripe.Customer.retrieve(customer_id)
+                    user_email = str(customer.get('email') or '').strip().lower()
+
+            if not user_email:
+                webhook_log(f"Subscription invoice {invoice_id} missing user email", database_log=True)
+                return "", 200
+
+            add_credits(user_email, int(credits_to_add))
+            _mark_invoice_processed(invoice_id)
+            webhook_log(
+                f"Subscription payment succeeded: {user_email} credited {int(credits_to_add)} (invoice {invoice_id})",
+                database_log=True,
+            )
+            return "", 200
+
+        if event_type == 'invoice.payment_failed':
+            invoice_id = str(data_object.get('id') or '').strip()
+            subscription_id = data_object.get('subscription')
+
+            user_email = ''
+            if subscription_id:
+                subscription = stripe.Subscription.retrieve(subscription_id)
+                metadata = (subscription.get('metadata') or {})
+                user_email = str(metadata.get('user_email') or '').strip().lower()
+
+            if not user_email:
+                customer_id = data_object.get('customer')
+                if customer_id:
+                    customer = stripe.Customer.retrieve(customer_id)
+                    user_email = str(customer.get('email') or '').strip().lower()
+
+            if user_email:
+                try:
+                    send_email(
+                        user_email,
+                        "Subscription payment failed",
+                        "Your subscription payment failed and your subscription has been canceled. Please update your payment method and resubscribe.",
+                        current_app._get_current_object(),
+                    )
+                except Exception as e:
+                    webhook_log(f"Failed sending payment failed email to {user_email}: {e}", database_log=True)
+
+            if subscription_id:
+                try:
+                    stripe.Subscription.delete(subscription_id)
+                except Exception as e:
+                    webhook_log(f"Failed canceling subscription {subscription_id}: {e}", database_log=True)
+
+            webhook_log(
+                f"Subscription payment failed: invoice={invoice_id} subscription={subscription_id} email={user_email}",
+                database_log=True,
+            )
+            return "", 200
+
+    except Exception as e:
+        webhook_log(f"Stripe webhook handler error: {e}", database_log=True)
+        return "", 500
+
+    return "", 200
 
 
 @store.route('/success', methods=['GET'])
