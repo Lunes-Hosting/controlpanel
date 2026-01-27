@@ -154,8 +154,8 @@ def create_subscription_checkout_session(price_link: str):
         flash("not valid user")
         return redirect(url_for("user.index"))
 
-    success_url = f"{HOSTED_URL}user/?subscription=success"
-    cancel_url = f"{HOSTED_URL}user/?subscription=cancel"
+    success_url = f"{HOSTED_URL}?subscription=success"
+    cancel_url = f"{HOSTED_URL}?subscription=cancel"
 
     check_session = stripe.checkout.Session.create(
         payment_method_types=['card'],
@@ -197,7 +197,7 @@ def billing_portal():
 
     portal_session = stripe.billing_portal.Session.create(
         customer=customer_id,
-        return_url=f"{HOSTED_URL}user/",
+        return_url=f"{HOSTED_URL}",
     )
     return redirect(portal_session['url'])
 
