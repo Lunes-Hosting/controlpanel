@@ -583,9 +583,7 @@ def create_server_submit():
         plan_id = int(request.form.get('plan'))
         for product in products_local:
             if product['id'] == plan_id:
-                # SECURITY FIX: Check if plan is enabled and not an addon
                 if product.get('enabled') is False:
-                    webhook_log(f"User {session['email']} attempted to create server with disabled Plan ID {plan_id}", 1, database_log=True)
                     flash("Invalid plan selected.")
                     return redirect(url_for('servers.create_server'))
                 if product.get('is_addon') is True:
@@ -608,7 +606,7 @@ def create_server_submit():
 
     if check_if_user_suspended(str(get_ptero_id(session['email'])[0])):
         return ("Your Account has been suspended for breaking our TOS, if you believe this is a mistake you can submit "
-                "apeal at panel@lunes.host")
+                "appeal at panel@lunes.host")
 
     body = {
         "name": request.form['name'],
@@ -708,15 +706,13 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
         for product in products_local:
             if product['id'] == selected_plan_id:
                 
-                # --- SECURITY FIX: VALIDATE PLAN IS ENABLED ---
+               
                 if product.get('enabled') is False:
-                    # Log the attempt so you know who is trying to exploit it
-                    webhook_log(f"Security Alert: User {session.get('email')} attempted to upgrade to disabled Plan ID {selected_plan_id} (Server: {server_id})", 1, database_log=True)
                     return "Error: This plan is not available for selection."
                 
-                # --- SECURITY FIX: VALIDATE NOT ADDON ---
+                
                 if product.get('is_addon') is True:
-                     return "Error: This product is an addon, not a server plan."
+                     return "Error: This plan is not available for selection."
 
                 found_product = True
                 main_product = product
