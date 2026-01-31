@@ -92,6 +92,24 @@ def inject_discord_invites():
         'DISCORD_INVITE': DISCORD_INVITE
     }
 
+@app.context_processor
+def inject_user_roles():
+    """
+    Make user role checks available to all templates.
+    """
+    from managers.user_manager import is_admin, is_support
+    
+    # user locked in 
+    if 'email' in session:
+        return {
+            'is_admin': is_admin(session['email']),
+            'is_support': is_support(session['email'])
+        }
+    return {
+        'is_admin': False,
+        'is_support': False
+    }
+
 def rate_limit_key():
     """Generate a unique key for rate limiting based on user's session."""
     return session.get('random_id')
