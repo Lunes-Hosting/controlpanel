@@ -429,7 +429,7 @@ def delete_server(server_id):
             requests.delete(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60)
             return redirect(url_for('user.index'))
         else:
-            webhook_log(f"Server with id {server_id} attempted deleted from user {session["email"]}", 1, database_log=True)
+            webhook_log(f"Server with id {server_id} attempted deleted from user {session['email']}", 1, database_log=True)
             return "You can't delete this server you dont own it!"
     except KeyError:
         webhook_log(f"Server with id {server_id} not found", 1)
@@ -583,6 +583,15 @@ def create_server_submit():
         plan_id = int(request.form.get('plan'))
         for product in products_local:
             if product['id'] == plan_id:
+                # SECURITY FIX: Check if plan is enabled and not an addon
+                if product.get('enabled') is False:
+                    webhook_log(f"User {session['email']} attempted to create server with disabled Plan ID {plan_id}", 1, database_log=True)
+                    flash("Invalid plan selected.")
+                    return redirect(url_for('servers.create_server'))
+                if product.get('is_addon') is True:
+                     flash("You cannot use an addon as a server plan.")
+                     return redirect(url_for('servers.create_server'))
+
                 found_product = True
                 main_product = product
                 credits_used = main_product['price'] / 30 / 24
@@ -694,22 +703,36 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
             return "You can't update this server you dont own it!"
 
     found_product = False
-    selected_plan_id = int(request.form.get('plan'))
-    for product in products_local:
-        if product['id'] == selected_plan_id:
-            found_product = True
-            main_product = product
-            credits_used = main_product['price'] / 30 / 24
-            
-            # Check if this is a free plan (memory = 128MB)
-            is_free_plan = main_product['limits']['memory'] == 128
-            
-            # Only check credits if not downgrading to free plan
-            if bypass_owner_only is False and not is_free_plan:
-                res = remove_credits(session['email'], credits_used)
-                if res == "SUSPEND":
-                    flash("You are out of credits")
-                    return redirect(url_for('index'))
+    try:
+        selected_plan_id = int(request.form.get('plan'))
+        for product in products_local:
+            if product['id'] == selected_plan_id:
+                
+                # --- SECURITY FIX: VALIDATE PLAN IS ENABLED ---
+                if product.get('enabled') is False:
+                    # Log the attempt so you know who is trying to exploit it
+                    webhook_log(f"Security Alert: User {session.get('email')} attempted to upgrade to disabled Plan ID {selected_plan_id} (Server: {server_id})", 1, database_log=True)
+                    return "Error: This plan is not available for selection."
+                
+                # --- SECURITY FIX: VALIDATE NOT ADDON ---
+                if product.get('is_addon') is True:
+                     return "Error: This product is an addon, not a server plan."
+
+                found_product = True
+                main_product = product
+                credits_used = main_product['price'] / 30 / 24
+                
+                # Check if this is a free plan (memory = 128MB)
+                is_free_plan = main_product['limits']['memory'] == 128
+                
+                # Only check credits if not downgrading to free plan
+                if bypass_owner_only is False and not is_free_plan:
+                    res = remove_credits(session['email'], credits_used)
+                    if res == "SUSPEND":
+                        flash("You are out of credits")
+                        return redirect(url_for('index'))
+    except (ValueError, TypeError):
+        return "Invalid plan ID"
 
     if not found_product:
         return "You already have free server"
