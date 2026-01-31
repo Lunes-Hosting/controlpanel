@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Account Page</title>
-    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>
@@ -103,6 +103,14 @@
                                 <i class="fa-solid fa-store"></i>
                                 Buy Credits
                             </a>
+                            
+                            {% if is_admin %}
+                            <a href="{{ url_for('admin.admin_index') }}" class="action-btn admin-btn">
+                                <i class="fa-solid fa-shield-cat"></i>
+                                Admin
+                            </a>
+                            {% endif %}
+                            
                             <a href="{{ url_for('user.logout') }}" class="action-btn ghost">
                                 <i class="fa-solid fa-right-from-bracket"></i>
                                 Log Out
@@ -602,6 +610,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 2rem;
+            align-items: stretch;
         }
         .profile-header {
             display: flex;
@@ -659,6 +668,7 @@
             border-radius: 1rem;
             background: rgba(15, 23, 42, 0.7);
             border: 1px solid rgba(59, 130, 246, 0.2);
+            height: 100%;
         }
         .hero-metrics article p {
             text-transform: uppercase;
@@ -697,6 +707,10 @@
         .action-btn.secondary {
             background: linear-gradient(135deg, #059669, #34d399);
             box-shadow: 0 12px 30px rgba(16, 185, 129, 0.35);
+        }
+        .action-btn.admin-btn {
+            background: linear-gradient(135deg, #a855f7, #d946ef);
+            box-shadow: 0 12px 30px rgba(168, 85, 247, 0.35);
         }
         .action-btn.ghost {
             border-color: rgba(148, 163, 184, 0.4);
@@ -1147,6 +1161,7 @@
             display: block;
         }
 
+        /* Mobile Optimization */
         @media (max-width: 640px) {
             body {
                 padding: 1rem 0.75rem;
@@ -1181,6 +1196,22 @@
 
             .hero-metrics {
                 grid-template-columns: 1fr;
+            }
+
+            /* Increased Font Sizes for Mobile Readability */
+            .eyebrow, .hero-metrics article p, .status-label {
+                font-size: 0.8rem; /* Bumped from 0.7rem */
+            }
+            .hero-metrics article h3 {
+                font-size: 1.4rem;
+            }
+            .hero-metrics article small {
+                font-size: 0.85rem;
+            }
+            
+            /* Box Layout Fixes */
+            .hero-metrics article, .insight-card, .status-card {
+                padding: 1.25rem;
             }
 
             .stat-card {
