@@ -26,6 +26,24 @@ from managers.utils import HEADERS
 from config import PTERODACTYL_URL
 from security import safe_requests
 
+def shorten_number(n):
+    """
+    Format large numbers into human readable strings (k, M, B, T).
+    """
+    try:
+        n = float(n)
+    except (ValueError, TypeError):
+        return "0"
+        
+    if n >= 1_000_000_000_000:
+        return f'{n/1_000_000_000_000:.2f}T'
+    if n >= 1_000_000_000:
+        return f'{n/1_000_000_000:.2f}B'
+    if n >= 1_000_000:
+        return f'{n/1_000_000:.2f}M'
+    if n >= 1_000:
+        return f'{n/1_000:.2f}K'
+    return f'{n:.2f}'
 
 @admin.route("/stats")
 @admin_required
@@ -102,8 +120,8 @@ def admin_stats():
         paid_servers=paid_servers,
         total_tickets=total_tickets,
         total_ticket_messages=total_ticket_messages,
-        total_credits_circulation=total_credits_circulation,
-        total_monthly_credits_used=total_monthly_credits_used,
+        total_credits_circulation=shorten_number(total_credits_circulation),
+        total_monthly_credits_used=shorten_number(total_monthly_credits_used),
         chart_labels=chart_labels,
         chart_values=chart_values,
     )
