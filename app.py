@@ -14,9 +14,10 @@ Configuration:
     - SESSION_TYPE: filesystem-based session storage
     - MAIL_* configs: Email server settings
     - RECAPTCHA_* configs: Google ReCAPTCHA settings
+
 """
 
-from flask import Flask
+from flask import Flask, request
 from flask_apscheduler import APScheduler
 from flask_limiter import Limiter
 from flask_mail import Mail, Message
@@ -58,9 +59,11 @@ app.config.update(
     MAX_CONTENT_LENGTH=10 * 1024 * 1024,  # 10 MB
     SESSION_PERMANENT=True,
     SESSION_TYPE="filesystem",
-    PERMANENT_SESSION_LIFETIME=datetime.timedelta(days=31),  # Set session timeout to 7 days
+    PERMANENT_SESSION_LIFETIME=datetime.timedelta(days=31),
     SECRET_KEY=SECRET_KEY,
-    SCHEDULER_API_ENABLED=True,
+    SCHEDULER_API_ENABLED=False,
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SAMESITE='Lax',
     MAIL_SERVER=MAIL_SERVER,
     MAIL_PORT=MAIL_PORT,
     MAIL_USE_TLS=True,
@@ -99,7 +102,6 @@ def inject_user_roles():
     """
     from managers.user_manager import is_admin, is_support
     
-    # user locked in 
     if 'email' in session:
         return {
             'is_admin': is_admin(session['email']),
@@ -110,14 +112,24 @@ def inject_user_roles():
         'is_support': False
     }
 
+
 def rate_limit_key():
-    """Generate a unique key for rate limiting based on user's session."""
-    return session.get('random_id')
+    """Generate a rate limit key from client IP + session identifier.
+    Using both means:
+    - Session cycling (clearing cookies) doesn't fully reset the limit,
+      because the IP component of the key stays the same.
+    - Different users on the same IP (NAT) are still somewhat separated
+      by their session component.
+    """
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    ip = ip.split(',')[0].strip() if ip else request.remote_addr
+    
+    session_id = session.get('random_id', 'anonymous')
+    return f"{ip}:{session_id}"
 
 if not DEBUG_FRONTEND_MODE:
     # Configure rate limiting
     limiter = Limiter(rate_limit_key, app=app, default_limits=["200 per day", "5000 per hour"])
-
 
     # Apply rate limits to blueprints
     for blueprint, limit in [
@@ -139,12 +151,12 @@ else:
     ]:
         app.register_blueprint(blueprint, 
                             url_prefix=f"/{blueprint.name}" if blueprint.name != "user" else None)
+
 # Register admin blueprint separately (no rate limit)
 app.register_blueprint(admin, url_prefix="/admin")
 
 
 if not DEBUG_FRONTEND_MODE:
-# if False:
     @scheduler.task('interval', id='credit_usage', seconds=3600, misfire_grace_time=900)
     def process_credits():
         """Process hourly credit usage for all servers."""
@@ -178,7 +190,6 @@ if not DEBUG_FRONTEND_MODE:
             delete_inactive_free_servers()
             print("Inactive free tier servers check complete")
 
-    # Schedule the first run of delete_inactive_free_servers to happen 60 seconds after startup
     @scheduler.task('date', id='initial_delete_inactive_free_servers', run_date=datetime.datetime.now() + datetime.timedelta(seconds=60))
     def initial_delete_inactive_free_servers_task():
         """Initial run of delete_inactive_free_servers shortly after startup."""
@@ -196,7 +207,6 @@ if not DEBUG_FRONTEND_MODE:
         pterocache.update_all()
         print("User sync complete")
 
-
     scheduler.start()
 
 @app.route('/')
@@ -205,13 +215,11 @@ def index():
     """Main route - redirects to login if not authenticated."""
 
 if not DEBUG_FRONTEND_MODE:
-    # Load bot extensions
     extensions = ['discord_bot.cogs.statistics', 'discord_bot.cogs.users', 'discord_bot.cogs.linking', 'discord_bot.cogs.blackjack', 'discord_bot.cogs.coinflip', 'discord_bot.cogs.bump_rewards']
 
     for extension in extensions:
         print(f'Loading {extension}')
         if extension == 'discord_bot.cogs.users':
-            # Special handling for users cog to pass Flask app
             module = importlib.import_module(extension)
             module.setup(bot, app)
         else:
@@ -221,7 +229,6 @@ if not DEBUG_FRONTEND_MODE:
         asyncio.run(run_bot())
 
 if __name__ == '__main__':
-    # Create separate processes for Flask and the Discord bot
     webhook_log("**----------------DASHBOARD HAS STARTED UP----------------**")
     
     if ENABLE_BOT and not DEBUG_FRONTEND_MODE:
