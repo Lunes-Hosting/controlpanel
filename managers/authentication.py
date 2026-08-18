@@ -32,6 +32,15 @@ HEADERS = {
     'Content-Type': 'application/json'
 }
 
+GMAIL_DOMAINS = {"gmail.com", "googlemail.com"}
+
+
+def requires_manual_server_approval(email: str) -> bool:
+    """Return whether a new account must be reviewed before creating servers."""
+    normalized_email = (email or "").strip().lower()
+    _, separator, domain = normalized_email.rpartition("@")
+    return not separator or domain not in GMAIL_DOMAINS
+
 def login_required(f):
     """
     Decorator that checks if a user is logged in.
@@ -245,10 +254,13 @@ def register(email: str, password: str, name: str, ip: str):
         # Get next user ID
         user_id = DatabaseManager.execute_query("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
         
+        # Non-Gmail free accounts require staff review before they can create a server.
+        role = "sketchy" if requires_manual_server_approval(email) else "member"
+
         # Insert user into database
-        query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, ip, credits, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())")
+        query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, ip, credits, role, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())")
         password_hash = passthread.join()
-        values = (name, email, password_hash, user_id, data['attributes']['id'], ip, 5)
+        values = (name, email, password_hash, user_id, data['attributes']['id'], ip, 5, role)
         DatabaseManager.execute_query(query, values)
         
         return data

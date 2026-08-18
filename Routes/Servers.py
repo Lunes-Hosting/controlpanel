@@ -69,6 +69,20 @@ from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY
 
 servers = Blueprint('servers', __name__)
 
+SERVER_APPROVAL_MESSAGE = (
+    "Your free account requires manual approval before you can create a server. "
+    "You can wait for staff approval or purchase credits to become a client and continue immediately."
+)
+
+
+def _has_server_creation_approval(email):
+    """Only pending non-Gmail accounts are blocked; purchases promote them to client."""
+    role_row = DatabaseManager.execute_query(
+        "SELECT role FROM users WHERE email = %s",
+        (email,),
+    )
+    return bool(role_row and role_row[0] != 'sketchy')
+
 
 def get_user_verification_and_ptero_id(email):
         
@@ -297,6 +311,10 @@ def create_server():
         - get_nodes(): Lists locations
     """
 
+    if not _has_server_creation_approval(session['email']):
+        flash(SERVER_APPROVAL_MESSAGE)
+        return redirect(url_for('user.index'))
+
     if 'pterodactyl_id' in session:
         ptero_id = session['pterodactyl_id']
     else:
@@ -441,6 +459,10 @@ def create_server_submit():
     """
     Handle server creation form submission.
     """
+    if not _has_server_creation_approval(session['email']):
+        flash(SERVER_APPROVAL_MESSAGE)
+        return redirect(url_for('user.index'))
+
     recaptcha_response = request.form.get('g-recaptcha-response')
     data = {
         'secret': RECAPTCHA_SECRET_KEY,

@@ -54,7 +54,7 @@ from security import safe_requests
 
 sys.path.append("..")
 from pterocache import *
-from managers.authentication import login_required, login, register
+from managers.authentication import login_required, login, register, requires_manual_server_approval
 from managers.email_manager import send_email, generate_verification_token, send_verification_email, generate_reset_token, send_reset_email
 from managers.user_manager import account_get_information, get_id, get_name, instantly_delete_user, get_ptero_id
 from managers.server_manager import improve_list_servers, delete_server as manager_delete_server
@@ -127,7 +127,7 @@ def login_user():
             return render_template("login.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
         data = request.form
-        email = data.get('email')
+        email = (data.get('email') or '').strip().lower()
         password = data.get('password')
         ip = _get_client_ip(request)
         try:
@@ -459,7 +459,39 @@ def register_user():
         )
         email_thread.start()
 
-        flash('A verification email has been sent. Please check your inbox and spam to verify your email.')
+        if requires_manual_server_approval(email):
+            approval_message = (
+                "Due to increased spam, free users with non-Gmail addresses must receive "
+                "manual approval before creating a server. Your account has been sent to "
+                "our staff for review. You can wait for approval, or purchase credits to "
+                "become a client and create a server immediately."
+            )
+            threading.Thread(
+                target=send_email,
+                args=(
+                    email,
+                    "Manual approval required for free server creation",
+                    approval_message,
+                    current_app._get_current_object(),
+                ),
+                daemon=True,
+            ).start()
+
+            # Safely hand this request from Flask's thread to the Discord bot.
+            from discord_bot.account_approval import queue_account_review
+            user_id = get_id(email)
+            if user_id:
+                queue_account_review(
+                    user_id=user_id[0],
+                    name=name,
+                    email_domain=email.rsplit('@', 1)[-1].lower(),
+                )
+            flash(
+                'A verification email has been sent. Your free account is also waiting '
+                'for manual approval before it can create a server.'
+            )
+        else:
+            flash('A verification email has been sent. Please check your inbox and spam to verify your email.')
         return redirect(url_for('index'))
     if 'email' in session:
         return redirect(url_for("user.index"))
