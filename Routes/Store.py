@@ -397,88 +397,70 @@ def stripe_webhook():
 @store.route('/success', methods=['GET'])
 @login_required
 def success():
-    """
-    Handle successful payment callback from Stripe.
-    
-    Templates:
-        - success.html: Confirmation page
-        
-    API Calls:
-        - Stripe: Verify payment
-        
-    Database Queries:
-        - Update user credits
-        - Log transaction
-        
-    Process:
-        1. Verify session data
-        2. Check payment status
-        3. Calculate credit amount
-        4. Update user balance
-        5. Clear session data
-        6. Log transaction
-        
-    Session Requirements:
-        - pay_id: Checkout session ID
-        - price_link: Product price ID
-        
-    Returns:
-        template: success.html with:
-            - amount: Credits added
-            - balance: New total
-            - transaction: Payment details
-            
-    Related Functions:
-        - verify_payment(): Checks status
-        - add_credits(): Updates balance
-        - log_payment(): Records transaction
-    """
+    pay_id = session.get('pay_id')
+    if not pay_id:
+        flash("Invalid payment session")
+        return redirect(url_for("user.index"))
+
     try:
-        pay_id = session['pay_id']
-    except KeyError:
-        flash("not valid payment")
+        check_session = stripe.checkout.Session.retrieve(
+            pay_id,
+            expand=['line_items.data.price']
+        )
+    except Exception as e:
+        flash("Could not retrieve payment details")
         return redirect(url_for("user.index"))
-        #return url_for('index')
-    check_session = stripe.checkout.Session.retrieve(pay_id)
+
     if check_session is None:
-        flash("not valid payment")
+        flash("Payment session not found")
         return redirect(url_for("user.index"))
-        #return url_for('index')
 
-    # Ensure the Stripe session belongs to the logged-in user
-    session_email = str(session.get('email', '')).strip().lower()
-    customer_email = str(check_session.get('customer_email', '')).strip().lower()
+    session_email = session.get('email', '').strip().lower()
+    customer_email = check_session.get('customer_email', '').strip().lower()
     if not session_email or session_email != customer_email:
-        webhook_log(f"Payment session email mismatch for pay_id {pay_id}: session_email={session_email}, customer_email={customer_email}", database_log=True)
-        flash("not valid payment")
+        webhook_log(
+            f"Email mismatch for session {pay_id}: session={session_email}, customer={customer_email}",
+            database_log=True
+        )
+        flash("Invalid payment")
         return redirect(url_for("user.index"))
 
-    if check_session['payment_status'] == 'paid':
-        print(check_session)
-        credits_to_add = None
-        for product in products:
-            if product['price_link'] == session['price_link']:
-                credits_to_add = product['price']
-                break
-        if credits_to_add is None:
-            flash("Failed please open a ticket")
-            return redirect(url_for("user.index"))
-            #return url_for('index')
-        add_credits(check_session['customer_email'], credits_to_add)
-        webhook_log(f"**NEW PAYMENT ALERT**: User with email: {check_session['customer_email']} bought {credits_to_add} credits.", database_log=True)
-        # Clear session payment identifiers so refresh can't double-credit
-        session.pop('pay_id', None)
-        session.pop('price_link', None)
-        flash("Success")
+    if check_session.get('payment_status') != 'paid':
+        flash("Payment not completed")
         return redirect(url_for("user.index"))
-        #return url_for('index')
 
-    elif check_session['status'] == 'expired':
-        session.pop('pay_id', None)
-        session.pop('price_link', None)
-        flash("payment link expired")
+    line_items = check_session.get('line_items', {}).get('data', [])
+    if not line_items:
+        flash("No product found in this payment")
         return redirect(url_for("user.index"))
-        #return url_for('index')
+
+    price_id = line_items[0].get('price', {}).get('id')
+    if not price_id:
+        flash("Product price not found")
+        return redirect(url_for("user.index"))
+
+    credits_to_add = None
+    for product in products:
+        if product.get('price_link') == price_id:
+            credits_to_add = product.get('price')
+            break
+
+    if credits_to_add is None:
+        flash("Could not determine credit amount – please open a support ticket")
+        return redirect(url_for("user.index"))
+
+    add_credits(customer_email, credits_to_add)
+    webhook_log(
+        f"**PAYMENT SUCCESS**: {customer_email} bought {credits_to_add} credits (session {pay_id})",
+        database_log=True
+    )
+
+    # 8. Clear session variables to prevent double-crediting on refresh
+    session.pop('pay_id', None)
+    session.pop('price_link', None)
+
+    flash("Payment successful! Credits added.")
+    return redirect(url_for("user.index"))
 
 
 @store.route('/cancel', methods=['GET'])
