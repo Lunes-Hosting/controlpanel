@@ -705,22 +705,25 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
                 "apeal at panel@lunes.host")
 
     ptero_id = get_ptero_id(session['email'])[0]
-    response = improve_list_servers(ptero_id) #improved
-    
-    # Extract servers from the response
-    servers_list = []
-    if response and 'attributes' in response and 'relationships' in response['attributes']:
-        if 'servers' in response['attributes']['relationships']:
-            servers_list = response['attributes']['relationships']['servers']['data']
-        
-    products_local = list(products)
-    for server_inc in servers_list:
-        if server_inc['attributes']['user'] == ptero_id:
-            if server_inc['attributes']['limits']['memory'] == 128 and bypass_owner_only is False:
-                products_local.remove(products[0])
-                break
-        elif bypass_owner_only is False:
+
+    # why tf did we have this thing being repeated twice??? cleanup fix too.
+    resp = resp_thread.join().json()
+    target_attrs = resp.get('attributes', {}) if isinstance(resp, dict) else {}
+
+    if bypass_owner_only is False:
+        if target_attrs.get('user') != ptero_id:
+            webhook_log(
+                f"IDOR attempt: user {session['email']} (ptero_id={ptero_id}) tried to update "
+                f"server {server_id} they don't own",
+                2, database_log=True
+            )
             return "You can't update this server you dont own it!"
+
+    target_is_free_tier = target_attrs.get('limits', {}).get('memory') == 128
+
+    products_local = list(products)
+    if target_is_free_tier and bypass_owner_only is False:
+        products_local.remove(products[0])
 
     found_product = False
     try:
@@ -740,10 +743,8 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
                 main_product = product
                 credits_used = main_product['price'] / 30 / 24
                 
-                # Check if this is a free plan (memory = 128MB)
                 is_free_plan = main_product['limits']['memory'] == 128
                 
-                # Only check credits if not downgrading to free plan
                 if bypass_owner_only is False and not is_free_plan:
                     res = remove_credits(session['email'], credits_used)
                     if res == "SUSPEND":
@@ -755,7 +756,6 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
     if not found_product:
         return "You already have free server"
 
-    resp = resp_thread.join().json()
     body = main_product['limits']
     body["feature_limits"] = main_product['product_limits']
     body['allocation'] = resp['attributes']['allocation']
