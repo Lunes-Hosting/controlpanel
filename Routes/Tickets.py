@@ -24,6 +24,8 @@ Access Control:
 - Admins can view all tickets
 - Only ticket owner or admin can close tickets
 - Closed tickets visible only to admins
+- Replies require ticket ownership or an admin/support role
+- Only admins can reply to closed tickets
 
 Session Requirements:
 ------------------
@@ -47,7 +49,7 @@ Message Formatting:
 """
 
 from hashlib import sha256
-from flask import Blueprint, request, render_template, session, flash, current_app, redirect, url_for
+from flask import Blueprint, request, render_template, session, flash, current_app, redirect, url_for, abort
 import sys, time, datetime
 from threadedreturn import ThreadWithReturnValue
 sys.path.append("..")
@@ -150,21 +152,35 @@ def create_ticket_submit():
     )
     return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
 
-@tickets.route('/message/submit/<ticket_id>', methods=['POST'])
+@tickets.route('/message/submit/<int:ticket_id>', methods=['POST'])
 @login_required
 def add_message_submit(ticket_id):
     """Add a new message to an existing ticket."""
 
-    message = request.form['message']
-    user_id = get_id(session['email'])[0]
-    ts = time.time()
-    timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    user = get_id(session['email'])
+    if not user:
+        abort(403)
+    user_id = user[0]
 
-    # Get ticket info
+    # Authorize this ticket before writing a comment or sending notifications.
     tick_info = DatabaseManager.execute_query(
-        "SELECT user_id, title FROM tickets WHERE (id = %s)",
+        "SELECT user_id, status FROM tickets WHERE (id = %s)",
         (ticket_id,)
     )
+    if not tick_info:
+        abort(404)
+
+    admin = is_admin(session['email'])
+    staff = admin or is_support(session['email'])
+    if tick_info[0] != user_id and not staff:
+        # Do not disclose whether another user's ticket exists.
+        abort(404)
+    if tick_info[1] == 'closed' and not admin:
+        abort(403)
+
+    message = request.form['message']
+    ts = time.time()
+    timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
     # Get next comment ID
     comment_id = DatabaseManager.execute_query(
@@ -180,7 +196,7 @@ def add_message_submit(ticket_id):
 
     author_name_data = get_name(user_id)
     author_name = author_name_data[0] if author_name_data else session['email']
-    if not is_admin(session['email']) and not is_support(session['email']):
+    if not staff:
         DatabaseManager.execute_query(
             "UPDATE tickets SET reply_status = 'waiting', last_reply = NOW() WHERE id = %s",
             (ticket_id,)
