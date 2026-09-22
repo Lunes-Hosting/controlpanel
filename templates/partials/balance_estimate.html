@@ -1,0 +1,73 @@
+<section class="balance-card" aria-labelledby="balance-heading" data-state="{{ billing.state }}">
+    <div class="balance-heading">
+        <h2 id="balance-heading">How long will my balance last?</h2>
+        <i class="fa-regular fa-clock" aria-hidden="true"></i>
+    </div>
+    <p class="balance-duration">{{ billing.duration }}</p>
+    {% if billing.available and billing.hours is not none %}
+        <p class="balance-caption">At your current server costs</p>
+        <div class="balance-scale" role="meter" aria-label="Balance coverage, up to 30 days" aria-valuemin="0" aria-valuemax="30" aria-valuenow="{{ [billing.hours / 24, 30]|min|round(2) }}" aria-valuetext="{{ billing.duration }} at current usage">
+            <span style="width: {{ billing.coverage_percent }}%"></span>
+        </div>
+        <div class="balance-scale-labels"><span>0 days</span><span>30 days covered</span></div>
+        {% if billing.state == 'empty' %}
+            <p class="balance-notice">Your balance won’t cover the next full billing hour. Add credits to keep your paid servers running.</p>
+        {% elif billing.state == 'critical' %}
+            <p class="balance-notice">A day or less left. A small top-up can keep your servers running.</p>
+        {% elif billing.state == 'low' %}
+            <p class="balance-notice">Three days or less left. Top up when you’re ready to extend your coverage.</p>
+        {% elif billing.state == 'week' %}
+            <p class="balance-notice">A week or less left. Plan your next top-up here.</p>
+        {% endif %}
+    {% elif billing.state == 'free' %}
+        <p class="balance-caption">{% if billing.servers %}Your current plans are free. Your balance stays available for upgrades.{% else %}Your credits are ready for your first server.{% endif %}</p>
+    {% elif billing.state == 'paused' %}
+        <p class="balance-caption">Suspended servers aren’t billed. Costs may restart when they resume.</p>
+    {% else %}
+        <p class="balance-caption">We couldn’t confirm your server costs. Refresh the page to try again.</p>
+    {% endif %}
+
+    {% if billing.available %}
+        <dl class="balance-totals">
+            <div><dt>Available</dt><dd>{{ billing.balance_label }} <span>credits</span></dd></div>
+            <div><dt>Daily cost</dt><dd>{{ billing.daily_label }} <span>credits</span></dd></div>
+        </dl>
+        {% if billing.servers %}
+        <details class="balance-breakdown">
+            <summary>Cost by server <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+            <ul>
+                {% for server in billing.servers %}
+                <li>
+                    <div class="balance-server-name">
+                        <a href="{{ url_for('servers.server', server_id=server.id) }}">{{ server.name }}</a>
+                        <span>{{ server.plan }}{% if server.suspended %} · Suspended{% endif %}</span>
+                    </div>
+                    <div class="balance-server-cost">
+                        {% if server.suspended %}Not billed{% elif server.monthly_cost == 0 %}Free{% else %}{{ server.daily_label }} <span>/ day</span>{% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            <p class="balance-footnote">Costs in credits. {{ billing.monthly_label }} per 30 days, billed hourly. Stopping a server doesn’t stop billing.</p>
+        </details>
+        {% endif %}
+        {% if billing.suspended_count and billing.state != 'paused' %}
+            <p class="balance-footnote">Suspended servers are excluded. Your estimate will change if they resume.</p>
+        {% endif %}
+        {% if billing.hours is not none %}
+            <p class="balance-footnote">Estimate only. Plan changes and future credit payments aren’t included.</p>
+        {% endif %}
+    {% endif %}
+    <div class="balance-actions">
+        {% if not billing.available %}
+            <a class="balance-topup" href="{{ url_for('user.index') }}">Refresh estimate <i class="fa-solid fa-rotate-right" aria-hidden="true"></i></a>
+        {% elif suspended %}
+            <a class="balance-topup" href="{{ url_for('tickets.tickets_index') }}">Contact support <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        {% elif products %}
+            <a class="balance-topup" href="#StoreArea">Add credits <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+            {% if billing.hours is not none %}<span>Preview the extra time below</span>{% endif %}
+        {% else %}
+            <a class="balance-topup" href="{{ url_for('tickets.tickets_index') }}">Billing help <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        {% endif %}
+    </div>
+</section>

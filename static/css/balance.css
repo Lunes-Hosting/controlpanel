@@ -1,0 +1,66 @@
+.balance-card {
+    --balance-accent: #60a5fa;
+    padding: 1.5rem;
+    border: 1px solid rgba(147, 197, 253, 0.25);
+    border-radius: 1.25rem;
+    background: rgba(15, 23, 42, 0.88);
+    color: #f8fafc;
+    font-variant-numeric: tabular-nums;
+}
+.balance-card[data-state="week"],
+.balance-card[data-state="low"],
+.balance-card[data-state="critical"],
+.balance-card[data-state="empty"] { --balance-accent: #fbbf24; }
+.balance-heading, .balance-scale-labels, .balance-totals > div,
+.balance-breakdown summary, .balance-breakdown li, .balance-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+.balance-heading h2 { font-size: 0.9rem; font-weight: 500; color: #cbd5e1; }
+.balance-heading > i { color: #94a3b8; flex-shrink: 0; }
+.balance-duration { margin: 1rem 0 0.2rem; font-size: clamp(1.75rem, 3vw, 2.25rem); font-weight: 650; line-height: 1.25; letter-spacing: -0.035em; }
+.balance-caption { color: #94a3b8; font-size: 0.85rem; line-height: 1.6; }
+.balance-scale { height: 5px; border-radius: 4px; background: #25334b; margin-top: 1.5rem; overflow: hidden; }
+.balance-scale > span { display: block; height: 100%; background: var(--balance-accent); border-radius: inherit; }
+.balance-scale-labels { color: #94a3b8; font-size: 0.7rem; margin-top: 0.5rem; }
+.balance-notice { color: #fde68a; font-size: 0.82rem; line-height: 1.6; margin-top: 1rem; }
+.balance-totals { display: grid; gap: 0.65rem; margin-top: 1.25rem; font-size: 0.85rem; }
+.balance-totals dt, .balance-totals dd span { color: #94a3b8; }
+.balance-totals dd { text-align: right; }
+.balance-breakdown { margin-top: 1rem; border-top: 1px solid rgba(148, 163, 184, 0.16); }
+.balance-breakdown summary { cursor: pointer; padding: 1rem 0; font-size: 0.8rem; color: #cbd5e1; list-style: none; }
+.balance-breakdown summary::-webkit-details-marker { display: none; }
+.balance-breakdown summary i { font-size: 0.6rem; }
+.balance-breakdown[open] summary i { transform: rotate(180deg); }
+.balance-breakdown ul { margin: 0; padding: 0; list-style: none; }
+.balance-breakdown li { padding: 0.7rem 0; align-items: flex-start; border-top: 1px solid rgba(148, 163, 184, 0.1); }
+.balance-server-name { min-width: 0; font-size: 0.85rem; }
+.balance-server-name a { overflow-wrap: anywhere; }
+.balance-server-name a:hover { color: #93c5fd; text-decoration: underline; }
+.balance-server-name > span { display: block; margin-top: 0.2rem; color: #94a3b8; font-size: 0.72rem; }
+.balance-server-cost { flex-shrink: 0; font-size: 0.8rem; text-align: right; }
+.balance-server-cost span { color: #94a3b8; }
+.balance-footnote { color: #94a3b8; font-size: 0.73rem; line-height: 1.6; margin-top: 0.75rem; }
+.balance-actions { flex-wrap: wrap; margin-top: 1.25rem; justify-content: flex-start; }
+.balance-topup { display: inline-flex; gap: 0.75rem; align-items: center; background: #2563eb; border: 1px solid #3b82f6; border-radius: 0.65rem; padding: 0.65rem 0.9rem; font-size: 0.85rem; font-weight: 600; color: white; }
+.balance-topup:hover { background: #1d4ed8; }
+.balance-topup i { font-size: 0.7rem; }
+.balance-actions > span { color: #94a3b8; font-size: 0.72rem; }
+.balance-card a:focus-visible, .balance-breakdown summary:focus-visible { outline: 2px solid #93c5fd; outline-offset: 4px; border-radius: 3px; }
+.coverage-preview { padding: 1rem 0; margin-top: 1rem; border-top: 1px solid rgba(148, 163, 184, 0.2); border-bottom: 1px solid rgba(148, 163, 184, 0.2); }
+.coverage-preview p { color: #94a3b8; font-size: 0.8rem; line-height: 1.6; }
+.coverage-preview strong { display: block; font-weight: 600; color: #e2e8f0; font-size: 1.05rem; margin: 0.2rem 0; }
+.plan-coverage { padding: 1rem; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 0.85rem; font-size: 0.85rem; line-height: 1.6; color: #cbd5e1; }
+.plan-coverage strong { color: #f8fafc; font-weight: 600; }
+.plan-coverage small { display: block; color: #94a3b8; margin-top: 0.5rem; }
+#StoreArea { scroll-margin-top: 1.5rem; }
+@media (max-width: 640px) {
+    .balance-card { padding: 1.15rem; }
+    .balance-heading h2 { max-width: 17rem; }
+    .hero-panel .hero-grid { grid-template-columns: minmax(0, 1fr); }
+    .hero-panel .hero-grid > div { min-width: 0; }
+    .profile-header > div { min-width: 0; overflow-wrap: anywhere; }
+    .balance-server-cost { max-width: 45%; }
+}

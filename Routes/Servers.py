@@ -64,6 +64,7 @@ from managers.credit_manager import get_credits, convert_to_product, use_credits
 from managers.logging import webhook_log
 from managers.utils import HEADERS
 from products import products
+from billing import balance_estimate, plan_estimates
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY
 
@@ -256,17 +257,20 @@ def server(server_id):
         return "You can't view this server - you don't own it!"
         
     
-    response = improve_list_servers(ptero_id) #improved
+    try:
+        response = improve_list_servers(ptero_id)
+    except requests.RequestException:
+        response = None
     
     # Extract servers from the response
-    servers_list = []
+    servers_list = None
     if response and 'attributes' in response and 'relationships' in response['attributes']:
         if 'servers' in response['attributes']['relationships']:
             servers_list = response['attributes']['relationships']['servers']['data']
     
     # Filter available products
     products_local = [p for p in products if p['enabled']]
-    for server in servers_list:
+    for server in servers_list or []:
         if (server['attributes']['user'] == ptero_id and 
             server['attributes']['limits']['memory'] == 128):
             products_local.remove(products[0])
@@ -278,7 +282,12 @@ def server(server_id):
     # Get current product for the server
     current_product = convert_to_product(info)
     
-    return render_template('server.html', info=info, products=products_local, nodes=tuple(nodes), verified=verified, credits=int(credits), current_product=current_product)
+    return render_template(
+        'server.html', info=info, products=products_local, nodes=tuple(nodes),
+        verified=verified, credits=credits, current_product=current_product,
+        billing=balance_estimate(credits, servers_list, products),
+        plan_previews=plan_estimates(credits, servers_list, products, server_id, products_local),
+    )
 
 @servers.route("/create", methods=["GET"])
 @login_required

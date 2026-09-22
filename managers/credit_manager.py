@@ -24,6 +24,7 @@ from .user_manager import check_if_user_suspended
 from security import safe_requests
 from flask import current_app
 import datetime
+from billing import match_product
 
 # API authentication headers
 HEADERS = {
@@ -133,16 +134,7 @@ def convert_to_product(data):
     Returns:
         dict: Product information
     """
-    memory = data['attributes']['limits']['memory']
-    
-    # Find matching product based on memory
-    for product in products:
-        if product['limits']['memory'] == memory:
-            return product
-            
-    # If no exact match, find closest match
-    closest_product = min(products, key=lambda p: abs(p['limits']['memory'] - memory))
-    return closest_product
+    return match_product(data, products)
 
 def use_credits():
     """

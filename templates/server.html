@@ -8,6 +8,7 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/balance.css') }}">
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
     <style>
@@ -465,6 +466,11 @@
                                 </div>
                             {% endif %}
                         </div>
+                        <div id="plan-coverage" class="plan-coverage" aria-live="polite" aria-atomic="true">
+                            <p>Current balance coverage: <strong>{{ billing.duration }}</strong></p>
+                            <p id="plan-coverage-result">Select a plan to preview your account’s coverage.</p>
+                            <small id="plan-coverage-note">Estimates include your other servers at their current plans.</small>
+                        </div>
                         <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-center text-white px-4 py-2 font-semibold">Submit Change</button>
                     </form>
                     {% if credits == 0 %}
@@ -555,6 +561,7 @@
         </div>
     </div>
 
+    <script id="plan-previews" type="application/json">{{ plan_previews | tojson }}</script>
     <script>
         function openTransferModal() {
             document.getElementById('transferModal').style.display = 'block';
@@ -603,6 +610,9 @@
         document.addEventListener('DOMContentLoaded', function () {
             const planSelect = document.getElementById('plan');
             if (!planSelect) return;
+            const planPreviews = JSON.parse(document.getElementById('plan-previews').textContent);
+            const coverageResult = document.getElementById('plan-coverage-result');
+            const coverageNote = document.getElementById('plan-coverage-note');
 
             const detailMap = {
                 name: document.getElementById('planDetailName'),
@@ -630,6 +640,17 @@
                 detailMap.cpu.textContent = formatCpu(option.dataset.cpu);
                 detailMap.db.textContent = option.dataset.db;
                 detailMap.backups.textContent = option.dataset.backups;
+                const preview = planPreviews[option.value];
+                if (!preview?.available) {
+                    coverageResult.textContent = 'Coverage preview unavailable. Refresh to try again.';
+                    coverageNote.textContent = 'Your plan hasn’t been changed.';
+                } else if (!preview.affordable) {
+                    coverageResult.textContent = 'Add credits before switching to this plan.';
+                    coverageNote.textContent = `This change requires ${preview.upfront_label} credits for the first hour.`;
+                } else {
+                    coverageResult.textContent = `After this change: ${preview.duration.toLowerCase()}.`;
+                    coverageNote.textContent = `Includes ${preview.upfront_label} credits charged now and your other current plans. Suspended servers are excluded; future payments aren’t included.`;
+                }
             };
 
             updatePlanDetail(planSelect.selectedOptions[0]);

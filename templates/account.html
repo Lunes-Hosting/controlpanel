@@ -9,6 +9,7 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/balance.css') }}">
     </head>
     <body class="bg-slate-950 text-white min-h-screen relative overflow-x-hidden" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
     <div class="background-blob blob-one"></div>
@@ -36,7 +37,7 @@
     </div>
     {% endif %}
 
-    {% set formatted_credits = "{:,.0f}".format(credits | float) %}
+    {% set formatted_credits = "{:,.2f}".format(credits | float).rstrip('0').rstrip('.') %}
 
     <div class="content max-w-5xl mx-auto">
         <div class="container mx-auto p-4 sm:p-6">
@@ -63,7 +64,7 @@
                         <div class="hero-badges">
                             <span class="badge-chip">
                                 <i class="fa-solid fa-server"></i>
-                                {{ server_count }} servers online
+                                {{ server_count }} servers
                             </span>
                             <span class="badge-chip">
                                 <i class="fa-solid fa-sack-dollar"></i>
@@ -83,9 +84,9 @@
 
                         <div class="hero-metrics">
                             <article>
-                                <p>Monthly Usage</p>
+                                <p>30-day cost</p>
                                 <h3>{{ monthly_usage }}</h3>
-                                <small>Across all running services</small>
+                                <small>Credits at current plans</small>
                             </article>
                             <article>
                                 <p>Server Credits</p>
@@ -123,41 +124,7 @@
                     </div>
 
                     <div class="hero-right">
-                        <div class="credit-card">
-                            <div class="credit-header">
-                                <p>Current Balance</p>
-                                <span>Updated hourly</span>
-                            </div>
-                            <h2>{{ formatted_credits }} <small>credits</small></h2>
-                            {% set credit_percent = server_count * 12 %}
-                            {% set credit_width = 100 if credit_percent > 100 else credit_percent %}
-                            <div class="credit-meter">
-                                <div class="credit-progress" style="--progress-width: {{ credit_width }};"></div>
-                            </div>
-                            <div class="credit-footer">
-                                <span><i class="fa-solid fa-clock"></i> Hourly billing enabled</span>
-                                <span><i class="fa-solid fa-bolt"></i> Auto-suspend when empty</span>
-                            </div>
-                        </div>
-
-                        <div class="status-card">
-                            <div class="status-row">
-                                <div>
-                                    <p class="status-label">Servers Active</p>
-                                    <h4>{{ server_count }}</h4>
-                                </div>
-                                <i class="fa-solid fa-signal"></i>
-                            </div>
-                            <div class="status-row">
-                                <div>
-                                    <p class="status-label">Monthly Usage</p>
-                                    <h4>{{ monthly_usage }}</h4>
-                                </div>
-                                <i class="fa-solid fa-chart-line"></i>
-                            </div>
-                            <div class="status-info">
-                            </div>
-                        </div>
+                        {% include 'partials/balance_estimate.html' %}
                     </div>
                 </div>
             </section>
@@ -201,7 +168,7 @@
                         <p>Automation</p>
                     </header>
                     <h3>Auto-suspend Safety</h3>
-                    <p>Servers are suspended when credits hit zero and may resume automatically if you add more credits while servers still exist.</p>
+                    <p>Paid servers are suspended when your balance can’t cover their hourly cost. Adding credits may resume them while they still exist.</p>
                 </article>
             </section>
 
@@ -223,7 +190,12 @@
                 </div>
 
                 <div class="panel-card rounded-2xl overflow-hidden border border-white/5">
-                    {% if servers %}
+                    {% if not billing.available %}
+                    <div class="empty-state">
+                        <p class="text-lg font-semibold">Server details are unavailable</p>
+                        <p class="text-sm text-gray-400">Refresh to try again. Your servers haven’t been changed.</p>
+                    </div>
+                    {% elif servers %}
                     <div class="server-grid gap-6 p-6">
                         {% for server in servers %}
                         {% set limits = server['attributes'].get('limits', {}) %}
@@ -343,11 +315,18 @@
                                 </p>
                                 <p class="text-sm text-gray-400">Delivered instantly once payment clears.</p>
                             </div>
+                            {% set first_topup = topup_previews.get(products[0]['price_link']) if products else none %}
+                            <div id="topup-coverage" class="coverage-preview" aria-live="polite" aria-atomic="true" {% if not first_topup or not first_topup.available or first_topup.hours is none %}hidden{% endif %}>
+                                <p>Balance coverage after this top-up</p>
+                                <strong id="topup-duration">{{ first_topup.duration if first_topup and first_topup.available and first_topup.hours is not none else '' }}</strong>
+                                <p id="topup-extra">{% if first_topup and first_topup.extra_duration %}Adds {{ first_topup.extra_duration }} at current costs.{% endif %}</p>
+                                <p>One-time purchase.{% if billing.suspended_count %} Suspended servers excluded.{% endif %}</p>
+                            </div>
                         </div>
                         <div class="mt-4">
-                            <a id="purchaseLink" href="{{ url_for('user.logout') }}" class="btn-primary w-full justify-center gap-2 text-center">
+                            <a id="purchaseLink" {% if products %}href="{{ url_for('store.create_checkout_session', price_link=products[0]['price_link']) }}"{% else %}aria-disabled="true"{% endif %} class="btn-primary w-full justify-center gap-2 text-center">
                                 <i class="fa-solid fa-cash-register"></i>
-                                <span>Purchase Credits</span>
+                                <span>{{ 'Purchase Credits' if products else 'No packages available' }}</span>
                             </a>
                         </div>
                     </div>
@@ -419,6 +398,7 @@
             </section>
 
             <div id="store-data" class="sr-only" data-products='{{ products | tojson | safe }}' data-checkout-template="{{ url_for('store.create_checkout_session', price_link='__PRICE_LINK__') }}"></div>
+            <script id="topup-previews" type="application/json">{{ topup_previews | tojson }}</script>
               <script>
                 const storeDataEl = document.getElementById('store-data');
                 const parsedProducts = storeDataEl?.dataset.products ? JSON.parse(storeDataEl.dataset.products) : [];
@@ -440,6 +420,10 @@
                 const purchaseBtn = document.getElementById('purchaseLink');
                 const purchaseText = purchaseBtn ? purchaseBtn.querySelector('span') : null;
                 const selectedCredits = document.getElementById('selectedCredits');
+                const topupPreviews = JSON.parse(document.getElementById('topup-previews').textContent);
+                const topupCoverage = document.getElementById('topup-coverage');
+                const topupDuration = document.getElementById('topup-duration');
+                const topupExtra = document.getElementById('topup-extra');
 
                 const calculateCost = (credits) => {
                     const cost = parseFloat(credits || 0) / 100;
@@ -449,6 +433,10 @@
                 const updatePackageDisplay = (index) => {
                     if (!priceLinkDict.length) return;
                     const pkg = priceLinkDict[index];
+                    const preview = topupPreviews[parsedProducts[index].price_link];
+                    topupCoverage.hidden = !preview?.available || preview.hours === null;
+                    topupDuration.textContent = topupCoverage.hidden ? '' : preview.duration;
+                    topupExtra.textContent = topupCoverage.hidden ? '' : `Adds ${preview.extra_duration} at current costs.`;
                     const creditLabel = `${pkg.creditsLabel} Lunes Credits`;
                     if (sliderValue) sliderValue.textContent = creditLabel;
                     if (selectedCredits) selectedCredits.textContent = creditLabel;
@@ -457,10 +445,12 @@
                         if (pkg.disabled || pkg.link === '#') {
                             purchaseBtn.classList.add('pointer-events-none', 'opacity-60');
                             purchaseBtn.setAttribute('href', '#');
+                            purchaseBtn.setAttribute('aria-disabled', 'true');
                             if (purchaseText) purchaseText.textContent = 'Unavailable';
                         } else {
                             purchaseBtn.classList.remove('pointer-events-none', 'opacity-60');
                             purchaseBtn.setAttribute('href', pkg.link);
+                            purchaseBtn.removeAttribute('aria-disabled');
                             if (purchaseText) purchaseText.textContent = 'Purchase Credits';
                         }
                     }
@@ -474,6 +464,7 @@
                         if (purchaseBtn) {
                             purchaseBtn.classList.add('pointer-events-none', 'opacity-60');
                             purchaseBtn.setAttribute('href', '#');
+                            purchaseBtn.setAttribute('aria-disabled', 'true');
                         }
                         return;
                     }
@@ -728,76 +719,6 @@
             display: grid;
             gap: 1.5rem;
         }
-        .credit-card {
-            border-radius: 1.5rem;
-            padding: 1.75rem;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.65), rgba(15, 23, 42, 0.9));
-            border: 1px solid rgba(147, 197, 253, 0.4);
-            box-shadow: 0 20px 40px rgba(30, 64, 175, 0.5);
-        }
-        .credit-header {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            color: rgba(226, 232, 240, 0.8);
-        }
-        .credit-card h2 {
-            font-size: clamp(2.5rem, 4vw, 3.5rem);
-            font-weight: 800;
-            margin: 0.5rem 0 1rem;
-        }
-        .credit-card h2 small {
-            font-size: 1rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.4em;
-        }
-        .credit-meter {
-            width: 100%;
-            height: 10px;
-            border-radius: 999px;
-            background: rgba(15, 23, 42, 0.4);
-            overflow: hidden;
-            margin-bottom: 0.75rem;
-        }
-        .credit-progress {
-            height: 100%;
-            border-radius: 999px;
-            background: linear-gradient(90deg, #22d3ee, #a855f7);
-            width: calc(var(--progress-width, 65) * 1%);
-            transition: width 0.3s ease;
-        }
-        .credit-footer {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            color: rgba(226, 232, 240, 0.85);
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        .status-card {
-            border-radius: 1.25rem;
-            padding: 1.5rem;
-            background: rgba(15, 23, 42, 0.85);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-        }
-        .status-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        .status-label {
-            text-transform: uppercase;
-            letter-spacing: 0.2em;
-            font-size: 0.7rem;
-            color: rgba(148, 163, 184, 0.7);
-        }
-        .status-info {
-            font-size: 0.9rem;
-            color: rgba(148, 163, 184, 0.9);
-        }
-
         .insights-grid {
             margin-top: 2.5rem;
             display: grid;
@@ -1210,7 +1131,7 @@
             }
             
             /* Box Layout Fixes */
-            .hero-metrics article, .insight-card, .status-card {
+            .hero-metrics article, .insight-card {
                 padding: 1.25rem;
             }
 

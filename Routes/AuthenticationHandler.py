@@ -58,10 +58,10 @@ from managers.authentication import login_required, login, register, requires_ma
 from managers.email_manager import send_email, generate_verification_token, send_verification_email, generate_reset_token, send_reset_email
 from managers.user_manager import account_get_information, get_id, get_name, instantly_delete_user, get_ptero_id
 from managers.server_manager import improve_list_servers, delete_server as manager_delete_server
-from managers.credit_manager import convert_to_product
 from managers.utils import HEADERS
 from managers.logging import webhook_log
 from products import products
+from billing import balance_estimate, topup_estimates
 
 from cacheext import cache
 from managers.database_manager import DatabaseManager
@@ -193,16 +193,21 @@ def index():
 
     session['suspended'] = suspended
 
-    response = improve_list_servers(ptero_id)
+    try:
+        response = improve_list_servers(ptero_id)
+    except requests.RequestException:
+        current_app.logger.warning('Could not load servers for the balance estimate', exc_info=True)
+        response = None
     
     # Extract servers from the response
-    servers = []
+    servers = None
     if response and 'attributes' in response and 'relationships' in response['attributes']:
         if 'servers' in response['attributes']['relationships']:
             servers = response['attributes']['relationships']['servers']['data']
     
-    server_count = len(servers)
-    monthly_usage = sum(convert_to_product(server)['price'] for server in servers)
+    billing = balance_estimate(current_credits, servers, products)
+    server_count = len(servers or [])
+    monthly_usage = billing.get('monthly_label', '—')
 
     #username = DatabaseManager.execute_query(
     #    "SELECT name FROM users WHERE email = %s", 
@@ -224,13 +229,15 @@ def index():
 
     return render_template(
         "account.html", 
-        credits=int(current_credits), 
+        credits=current_credits,
         server_count=server_count,
         username=username, 
         hash=sha256(session['email'].encode('utf-8')).hexdigest(),
         email=session['email'], 
         monthly_usage=monthly_usage,
-        servers=servers,
+        servers=servers or [],
+        billing=billing,
+        topup_previews=topup_estimates(current_credits, servers, products, fixed_list),
         products=fixed_list,
         subscription_credit_options=subscription_credit_options,
         verified=verified,
