@@ -183,7 +183,7 @@ def login(email: str, password: str, ip: str):
     
     return None
 
-def register(email: str, password: str, name: str, ip: str):
+def register(email: str, password: str, name: str, ip: str, needs_review: bool = False):
     """
     Registers a new user.
     
@@ -255,7 +255,7 @@ def register(email: str, password: str, name: str, ip: str):
         user_id = DatabaseManager.execute_query("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
         
         # Non-Gmail free accounts require staff review before they can create a server.
-        role = "sketchy" if requires_manual_server_approval(email) else "member"
+        role = "sketchy" if needs_review or requires_manual_server_approval(email) else "member"
 
         # Insert user into database
         query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, ip, credits, role, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())")

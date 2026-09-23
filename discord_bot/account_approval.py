@@ -135,9 +135,9 @@ def _email_domain(email):
     return str(email).rsplit("@", 1)[-1].lower()
 
 
-def _review_embed(user_id, name, email_domain, status="Pending review", color=None):
+def _review_embed(user_id, name, email_domain, status="Pending review", color=None, reason=None):
     embed = discord.Embed(
-        title="Non-Gmail account review",
+        title="Free account review",
         description=(
             "This free account must be manually approved before it can create a server. "
             "A successful credit purchase automatically changes the role to client."
@@ -147,11 +147,13 @@ def _review_embed(user_id, name, email_domain, status="Pending review", color=No
     embed.add_field(name="Account ID", value=str(user_id), inline=True)
     embed.add_field(name="Username", value=str(name), inline=True)
     embed.add_field(name="Email domain", value=str(email_domain), inline=False)
+    if reason:
+        embed.add_field(name="Review reason", value=str(reason), inline=False)
     embed.add_field(name="Status", value=status, inline=False)
     return embed
 
 
-async def _post_account_review(user_id, name, email_domain):
+async def _post_account_review(user_id, name, email_domain, reason):
     if _bot is None:
         return
 
@@ -161,14 +163,14 @@ async def _post_account_review(user_id, name, email_domain):
         channel = await _bot.fetch_channel(channel_id)
 
     await channel.send(
-        embed=_review_embed(user_id, name, email_domain),
+        embed=_review_embed(user_id, name, email_domain, reason=reason),
         view=AccountApprovalView(user_id),
     )
 
 
-def queue_account_review(user_id: int, name: str, email_domain: str):
+def queue_account_review(user_id: int, name: str, email_domain: str, reason: str = "Non-Gmail email domain"):
     """Queue a Discord review from a Flask request thread."""
-    review = (int(user_id), name, email_domain)
+    review = (int(user_id), name, email_domain, reason)
     with _pending_lock:
         if _bot_loop is None or _bot is None or not _bot_loop.is_running():
             _pending_reviews.append(review)
