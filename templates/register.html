@@ -1,11 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-<!DOCTYPE html>
-<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lunes Host | Register</title>
+    <title>Lunes Host | {{ 'Registration blocked' if alt_detected else 'Register' }}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
@@ -204,9 +202,118 @@
             color: #c7d2fe;
             text-decoration: none;
         }
+
+        body.alt-blocked {
+            background: #050506;
+            color: #f0f0f2;
+        }
+
+        body.alt-blocked::before,
+        body.alt-blocked::after {
+            display: none;
+        }
+
+        .alt-screen {
+            min-height: 100vh;
+            box-sizing: border-box;
+            display: grid;
+            place-items: center;
+            padding: clamp(1.5rem, 6vw, 5rem);
+        }
+
+        .alt-lines {
+            width: min(1000px, 100%);
+            display: grid;
+            gap: clamp(0.9rem, 3vh, 1.8rem);
+            text-align: center;
+        }
+
+        .alt-line {
+            margin: 0;
+            opacity: 0;
+            transform: translateY(6px);
+            animation: alt-reveal 0.32s ease-out forwards;
+            font-size: clamp(2.2rem, 6.6vw, 5.7rem);
+            line-height: 1.04;
+            letter-spacing: -0.06em;
+        }
+
+        .alt-line-one {
+            color: #85858d;
+            font-weight: 500;
+            animation-delay: 0.7s;
+        }
+
+        .alt-line-two {
+            color: #d9d9dd;
+            font-weight: 600;
+            animation-delay: 2.35s;
+        }
+
+        .alt-line-three {
+            color: #cf3948;
+            font-weight: 800;
+            animation-delay: 4.1s;
+        }
+
+        .alt-connection {
+            opacity: 0;
+            transform: translateY(6px);
+            animation: alt-reveal 0.32s ease-out forwards;
+        }
+
+        .alt-connection {
+            margin-top: clamp(2.5rem, 8vh, 5rem);
+            color: #bbbcc2;
+            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+            font-size: clamp(0.85rem, 1.45vw, 1rem);
+            letter-spacing: 0.06em;
+            line-height: 1.9;
+            overflow-wrap: anywhere;
+            animation-delay: 6.1s;
+        }
+
+        .alt-connection p {
+            margin: 0;
+        }
+
+        .alt-connection-ip {
+            color: #777780;
+            font-size: 0.9em;
+            letter-spacing: 0.12em;
+        }
+
+        @keyframes alt-reveal {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .alt-line, .alt-connection {
+                animation: none;
+                opacity: 1;
+                transform: none;
+            }
+        }
     </style>
 </head>
-<body>
+<body class="{{ 'alt-blocked' if alt_detected else '' }}">
+    {% if alt_detected %}
+    <main class="alt-screen" role="alert" aria-label="Registration blocked">
+        <div class="alt-lines">
+            <p class="alt-line alt-line-one">You changed the email.</p>
+            <p class="alt-line alt-line-two">That's all you changed.</p>
+            <p class="alt-line alt-line-three">Fuck off with the alts.</p>
+            {% if connection and connection.ip %}
+            <div class="alt-connection">
+                {% if connection.location %}
+                <p>{{ connection.location }}</p>
+                {% endif %}
+                <p class="alt-connection-ip">{{ connection.ip }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+    {% else %}
     <div class="auth-shell">
         <section class="brand-panel">
             <img src="{{ url_for('static', filename='images/Luneslogo.png') }}" alt="Lunes" style="width:48px;height:48px;border-radius:12px;margin-bottom:1.25rem;">
@@ -239,6 +346,8 @@
             {% include 'partials/flash_messages.html' %}
 
             <form action="{{ url_for('user.register_user') }}" method="POST">
+                <input type="hidden" name="signup_storage" id="signup_storage">
+                <input type="hidden" name="signup_fingerprint" id="signup_fingerprint">
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input type="text" id="username" name="username" placeholder="Lunes" value="{{ default_username }}" class="input-field" required>
@@ -263,14 +372,57 @@
         </section>
     </div>
 
+    {% endif %}
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            {% if not alt_detected %}
+            // A first-party ID survives a cleared cookie. No third-party service is used.
+            try {
+                let id = localStorage.getItem('lunes_signup_device');
+                if (!/^[0-9a-f]{64}$/.test(id || '')) {
+                    const bytes = new Uint8Array(32);
+                    crypto.getRandomValues(bytes);
+                    id = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+                    localStorage.setItem('lunes_signup_device', id);
+                }
+                document.getElementById('signup_storage').value = id;
+            } catch (_) { /* Cookie tracking still works when storage is disabled. */ }
+
+            // This coarse profile only sends a possible match to staff review.
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 220;
+                canvas.height = 40;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#4962a9';
+                ctx.fillRect(0, 0, 220, 40);
+                ctx.font = '17px Arial';
+                ctx.fillStyle = '#fff';
+                ctx.fillText('Lunes signup profile 123', 4, 26);
+                const pixels = ctx.getImageData(0, 0, 220, 40).data;
+                let hash = 2166136261;
+                for (const byte of pixels) hash = Math.imul(hash ^ byte, 16777619);
+                const profile = {
+                    v: 1,
+                    canvas: (hash >>> 0).toString(16).padStart(8, '0'),
+                    agent: navigator.userAgent.slice(0, 300),
+                    screen: [screen.width, screen.height, screen.colorDepth].join('x'),
+                    zone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+                    language: navigator.language || '',
+                    cores: navigator.hardwareConcurrency || 0,
+                    touch: navigator.maxTouchPoints || 0
+                };
+                document.getElementById('signup_fingerprint').value = JSON.stringify(profile);
+            } catch (_) { /* Fingerprinting is optional; do not break signup. */ }
+
             const flashes = document.querySelectorAll('.flash-message');
             if (flashes.length) {
                 setTimeout(() => {
                     flashes.forEach(msg => msg.style.display = 'none');
                 }, 6000);
             }
+            {% endif %}
         });
     </script>
 </body>

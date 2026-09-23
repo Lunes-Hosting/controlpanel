@@ -55,6 +55,9 @@ from security import safe_requests
 sys.path.append("..")
 from pterocache import *
 from managers.authentication import login_required, login, register, requires_manual_server_approval
+from managers.signup_signals import (collect_signals, device_token, find_matches,
+                                     record_signup, set_device_cookie)
+from managers.signup_location import connection_details
 from managers.email_manager import send_email, generate_verification_token, send_verification_email, generate_reset_token, send_reset_email
 from managers.user_manager import account_get_information, get_id, get_name, instantly_delete_user, get_ptero_id
 from managers.server_manager import improve_list_servers, delete_server as manager_delete_server
@@ -72,6 +75,13 @@ user = Blueprint('user', __name__)
 TOKEN_EXPIRATION_TIME = 1800  # 30 minutes
 
 pterocache = PteroCache()
+
+
+@user.after_request
+def _signup_cookie(response):
+    if request.endpoint == 'user.register_user':
+        return set_device_cookie(response)
+    return response
 
 def _get_client_ip(req: 'flask.Request') -> str:
     """Best-effort real client IP behind Cloudflare/Proxies.
@@ -430,10 +440,33 @@ def register_user():
         
 
         data = request.form
-        email = data.get('email')
-        password = data.get('password')
-        name = data.get('username')
+        email = (data.get('email') or '').strip().lower()
+        password = data.get('password') or ''
+        name = (data.get('username') or '').strip()
         ip = _get_client_ip(request)
+        if not email or not password or not name:
+            flash("Please fill in all registration fields.")
+            return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
+
+        # Enrollment starts with this release. Existing users are not scanned,
+        # changed, or subjected to a new login-time check.
+        signals = collect_signals(data)
+        try:
+            matches = find_matches(signals)
+        except Exception as exc:
+            # A deployment without CREATE TABLE permission should not stop
+            # the existing registration protections from operating.
+            webhook_log(f"Signup device lookup unavailable: {exc}", database_log=True)
+            matches = {'exact': None, 'profile': None}
+        if matches['exact']:
+            webhook_log(
+                f"Signup rejected: device already used by account ID {matches['exact']}",
+                database_log=True,
+            )
+            return render_template(
+                "register.html", alt_detected=True,
+                connection=connection_details(request.headers, ip),
+            ), 409
 
         # Check if 'suspended' key exists in session, if not, initialize it to False
         if 'suspended' not in session:
@@ -444,10 +477,20 @@ def register_user():
             webhook_log(f"Failed to register email {email} ip: {ip} due to alt suspended account")
             return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
-        res = register(email, password, name, ip)
+        profile_review = bool(matches['profile'])
+        res = register(email, password, name, ip, needs_review=profile_review)
         if isinstance(res, str):
             flash(res + " If this is an error, please contact support.")
             return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
+
+        user_id = get_id(email)[0]
+        try:
+            record_signup(user_id, signals)
+        except Exception as exc:
+            # The account already exists in both panels. Keep registration usable
+            # and log the missing signal so staff can fix the database failure.
+            webhook_log(f"Could not record signup device for account ID {user_id}: {exc}",
+                        database_log=True)
 
         verification_token = generate_verification_token()
         cache.set(verification_token, email, timeout=TOKEN_EXPIRATION_TIME)
@@ -459,12 +502,11 @@ def register_user():
         )
         email_thread.start()
 
-        if requires_manual_server_approval(email):
+        if requires_manual_server_approval(email) or profile_review:
             approval_message = (
-                "Due to increased spam, free users with non-Gmail addresses must receive "
-                "manual approval before creating a server. Your account has been sent to "
-                "our staff for review. You can wait for approval, or purchase credits to "
-                "become a client and create a server immediately."
+                "Your free account requires manual approval before creating a server. "
+                "Your account has been sent to our staff for review. You can wait for "
+                "approval, or purchase credits to become a client and create a server immediately."
             )
             threading.Thread(
                 target=send_email,
@@ -479,12 +521,13 @@ def register_user():
 
             # Safely hand this request from Flask's thread to the Discord bot.
             from discord_bot.account_approval import queue_account_review
-            user_id = get_id(email)
             if user_id:
                 queue_account_review(
-                    user_id=user_id[0],
+                    user_id=user_id,
                     name=name,
                     email_domain=email.rsplit('@', 1)[-1].lower(),
+                    reason=(f"Browser profile matches account ID {matches['profile']}"
+                            if profile_review else "Non-Gmail email domain"),
                 )
             flash(
                 'A verification email has been sent. Your free account is also waiting '
@@ -495,6 +538,7 @@ def register_user():
         return redirect(url_for('index'))
     if 'email' in session:
         return redirect(url_for("user.index"))
+    device_token()
     return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
 
