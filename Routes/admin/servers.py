@@ -157,9 +157,11 @@ def admin_server(server_id):
     else:
         ptero_id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = ptero_id
-
+  
     products_local = list(products)
     info = get_server_information(server_id)
+    if not info:
+        abort(404)
     product = convert_to_product(info)
     return render_template('admin/server.html', info=info, products=products_local, product=product)
 
