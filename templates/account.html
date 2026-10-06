@@ -105,6 +105,10 @@
                             <h2>{{ formatted_credits }} <small>credits</small></h2>
                             {% set credit_percent = server_count * 12 %}
                             {% set credit_width = 100 if credit_percent > 100 else credit_percent %}
+                            <div class="credit-meter-heading">
+                                <span>Credit meter</span>
+                                <span class="credit-meter-ratio">{{ credit_width }}% / 100%</span>
+                            </div>
                             <div class="credit-meter" role="progressbar" aria-label="Server capacity" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ credit_width }}">
                                 <div class="credit-progress" style="--progress-width: {{ credit_width }};"></div>
                             </div>
@@ -760,6 +764,23 @@
             overflow: hidden;
             border-radius: 0.125rem;
             background: rgba(15, 23, 42, 0.7);
+        }
+        .credit-meter-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.45rem;
+            color: rgba(203, 213, 225, 0.8);
+            font-size: 0.7rem;
+            line-height: 1.4;
+        }
+        .credit-meter-ratio {
+            color: #e2e8f0;
+            font-size: 0.72rem;
+            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+            white-space: nowrap;
         }
         .credit-meter-caption {
             margin: 0.5rem 0 0;
