@@ -218,8 +218,12 @@
                         <a href="{{ url_for('user.register_user') }}">Need an account?</a>
                     </div>
                 </div>
+                {% if not config.DEBUG_FRONTEND_MODE %}
                 <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}" style="margin:1rem 0;"></div>
-                <button type="submit" class="submit-btn">Continue to dashboard</button>
+      
+                {% endif %}
+
+          <button type="submit" class="submit-btn">Continue to dashboard</button>
             </form>
 
             <div class="policy-banner">

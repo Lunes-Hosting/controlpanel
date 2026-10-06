@@ -130,11 +130,15 @@ def login_user():
             'response': recaptcha_response
         }
 
-        response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data, timeout=60)
-        result = response.json()
-        if not result['success']:
-            flash("Failed captcha please try again")
-            return render_template("login.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
+        if DEBUG_FRONTEND_MODE is True:
+            # Skip reCAPTCHA verification in debug mode
+            pass
+        else:
+            response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data, timeout=60)
+            result = response.json()
+            if not result['success']:
+                flash("Failed captcha please try again")
+                return render_template("login.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
         data = request.form
         email = (data.get('email') or '').strip().lower()

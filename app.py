@@ -73,6 +73,7 @@ app.config.update(
     RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY,
     RECAPTCHA_PRIVATE_KEY=RECAPTCHA_SECRET_KEY
 )
+app.config["DEBUG_FRONTEND_MODE"] = DEBUG_FRONTEND_MODE
 
 # Configure URL scheme for background thread URL generation
 if not app.config.get('PREFERRED_URL_SCHEME'):
