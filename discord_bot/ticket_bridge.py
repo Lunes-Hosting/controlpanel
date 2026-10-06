@@ -1,22 +1,24 @@
 import asyncio
+import logging
 from typing import Any, List, Optional, Tuple, Dict
 
-from discord_bot.ticket_sync import (
-    create_discord_ticket_channel,
-    delete_discord_ticket_channel,
-    send_discord_ticket_message,
-    update_ticket_channel_status,
-)
-from discord_bot.utils.logger import logger
+from config import DEBUG_FRONTEND_MODE, ENABLE_BOT
 
 
 _bot: Optional[Any] = None
 _bot_loop: Optional[asyncio.AbstractEventLoop] = None
 _pending_tasks: List[Tuple[str, Tuple[Any, ...], Dict[str, Any]]] = []
+_bot_enabled = ENABLE_BOT and not DEBUG_FRONTEND_MODE
+logger = logging.getLogger("bot_logger")
+
+if _bot_enabled:
+    from discord_bot.utils.logger import logger
 
 
 def set_bot_loop(loop: asyncio.AbstractEventLoop, bot_instance: Any) -> None:
     global _bot_loop, _bot
+    if not _bot_enabled:
+        return
     _bot = bot_instance
     _bot_loop = loop
     if not _pending_tasks:
@@ -28,9 +30,11 @@ def set_bot_loop(loop: asyncio.AbstractEventLoop, bot_instance: Any) -> None:
 
 
 def _get_bot_loop() -> Optional[asyncio.AbstractEventLoop]:
+    if not _bot_enabled:
+        return None
     if _bot_loop and _bot_loop.is_running():
         return _bot_loop
-    loop = getattr(bot, "loop", None)
+    loop = getattr(_bot, "loop", None)
     if loop and loop.is_running():
         return loop
     return None
@@ -42,6 +46,9 @@ def _queue_task(task_type: str, args: Tuple[Any, ...], kwargs: Dict[str, Any]) -
 
 
 def _submit_task(task_type: str, args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> None:
+    if not _bot_enabled:
+        logger.debug("Discord ticket bridge disabled; skipping %s task", task_type)
+        return
     loop = _get_bot_loop()
     if _bot is None:
         logger.warning("Discord ticket bridge: bot instance not available; queueing %s task", task_type)
@@ -50,6 +57,13 @@ def _submit_task(task_type: str, args: Tuple[Any, ...], kwargs: Dict[str, Any]) 
     if not loop:
         _queue_task(task_type, args, kwargs)
         return
+    from discord_bot.ticket_sync import (
+        create_discord_ticket_channel,
+        delete_discord_ticket_channel,
+        send_discord_ticket_message,
+        update_ticket_channel_status,
+    )
+
     if task_type == "create":
         coro = create_discord_ticket_channel(_bot, *args, **kwargs)
     elif task_type == "message":
