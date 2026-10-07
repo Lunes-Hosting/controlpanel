@@ -14,13 +14,105 @@ Functions in this module interact with Flask-Mail to send emails to users.
 import threading
 import secrets
 import string
+from html import escape
 from flask_mail import Mail, Message
 from flask import url_for, current_app
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-def send_email(email: str, title: str, message: str, inner_app):
+
+def _render_email_html(title: str, message: str, action_label: str = None, action_url: str = None):
+    """Render a compact, email-client-friendly Lunes Hosting notification."""
+    safe_title = escape(title)
+    safe_message = escape(message).replace("\n", "<br>")
+    action = ""
+    if action_label and action_url:
+        action = f"""
+            <tr>
+                <td align="center" style="padding: 28px 0 8px;">
+                    <a href="{escape(action_url, quote=True)}"
+                       style="display: inline-block; padding: 14px 24px; border-radius: 8px;
+                              background-color: #2563eb; color: #ffffff; font-size: 15px;
+                              font-weight: 700; text-decoration: none;">
+                        {escape(action_label)}
+                    </a>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 12px 0 0; color: #64748b; font-size: 12px; line-height: 1.6;
+                           overflow-wrap: anywhere;">
+                    If the button does not work, copy and paste this link into your browser:<br>
+                    <a href="{escape(action_url, quote=True)}"
+                       style="color: #2563eb; text-decoration: underline;">
+                        {escape(action_url)}
+                    </a>
+                </td>
+            </tr>
+        """
+
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{safe_title} | Lunes Hosting</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0b1220;
+             color: #e2e8f0; font-family: Arial, Helvetica, sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+           style="background-color: #0b1220; padding: 36px 16px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+                       style="max-width: 600px; background-color: #111c2f;
+                              border: 1px solid #23324a; border-radius: 14px; overflow: hidden;">
+                    <tr>
+                        <td style="padding: 24px 32px; background-color: #0f172a;
+                                   border-bottom: 1px solid #263650;">
+                            <p style="margin: 0; color: #93c5fd; font-size: 13px;
+                                      font-weight: 700; letter-spacing: 2px; text-transform: uppercase;">
+                                Lunes Hosting
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 36px 32px 40px;">
+                            <p style="margin: 0 0 10px; color: #60a5fa; font-size: 12px;
+                                      font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;">
+                                Account notification
+                            </p>
+                            <h1 style="margin: 0 0 20px; color: #f8fafc; font-size: 26px;
+                                       line-height: 1.25;">{safe_title}</h1>
+                            <p style="margin: 0; color: #cbd5e1; font-size: 15px;
+                                      line-height: 1.8;">{safe_message}</p>
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                                {action}
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                <p style="max-width: 560px; margin: 20px auto 0; color: #94a3b8;
+                          font-size: 12px; line-height: 1.7; text-align: center;">
+                    You are receiving this email because you have an account with Lunes Hosting.
+                    If you need help, please contact our support team.
+                </p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
+
+
+def _plain_email_body(message: str, action_label: str = None, action_url: str = None):
+    body = message
+    if action_label and action_url:
+        body = f"{body}\n\n{action_label}: {action_url}"
+    return f"Lunes Hosting\n\n{body}\n\nYou are receiving this email because you have an account with Lunes Hosting."
+
+
+def send_email(email: str, title: str, message: str, inner_app,
+               action_label: str = None, action_url: str = None):
     """
     Sends an email to the user asynchronously using APScheduler.
     
@@ -40,8 +132,8 @@ def send_email(email: str, title: str, message: str, inner_app):
     
     with inner_app.app_context():
         msg = Message(title, sender=inner_app.config['MAIL_DEFAULT_SENDER'], recipients=[email])
-        msg.body = message
-        msg.html = f"<p>{message}</p>"
+        msg.body = _plain_email_body(message, action_label, action_url)
+        msg.html = _render_email_html(title, message, action_label, action_url)
         
         # Start a thread to send the email
         threading.Thread(target=send_async_email, args=(inner_app, msg)).start()
@@ -80,8 +172,11 @@ def send_verification_email(email, verification_token, inner_app):
             
         verification_url = f"{base_url}/verify_email/{verification_token}"
         
-        message = f"Please verify your email by clicking on the following link: <a href='{verification_url}'>Verify Email</a>"
-        send_email(email, "Email Verification", message, inner_app)
+        message = "Please verify your email address to finish setting up your Lunes Hosting account."
+        send_email(
+            email, "Email Verification", message, inner_app,
+            action_label="Verify Email", action_url=verification_url,
+        )
     except Exception as e:
         print(f"Error sending verification email: {str(e)}")
 
@@ -119,8 +214,15 @@ def send_reset_email(email: str, reset_token: str, inner_app):
             
         reset_url = f"{base_url}/reset_password/{reset_token}"
         
-        message = f"Please reset your password by clicking on the following link: <a href='{reset_url}'>Reset Password</a>"
-        send_email(email, "Password Reset", message, inner_app)
+        message = (
+            "We received a request to reset the password for your Lunes Hosting account. "
+            "Use the button below to choose a new password. If you did not request this, "
+            "you can safely ignore this email."
+        )
+        send_email(
+            email, "Password Reset", message, inner_app,
+            action_label="Reset Password", action_url=reset_url,
+        )
     except Exception as e:
         print(f"Error sending reset email: {str(e)}")
 
@@ -153,15 +255,11 @@ def send_email_without_app_context(email: str, title: str, message: str, smtp_co
             msg['To'] = recipient
             msg['Subject'] = subject
             
-            # Create plain text version by removing HTML tags if present
-            plain_text = body.replace('<a href=', '').replace('</a>', '').replace('>', ': ')
-            
-            # Add plain text part first (will be displayed if HTML is not supported)
-            text_part = MIMEText(plain_text, 'plain')
+            # Include plain-text and branded HTML versions for clients with different capabilities.
+            text_part = MIMEText(_plain_email_body(body), 'plain')
             msg.attach(text_part)
             
-            # Add HTML part second (will be preferred by most mail clients)
-            html_part = MIMEText(f"<html><body>{body}</body></html>", 'html')
+            html_part = MIMEText(_render_email_html(title, body), 'html')
             msg.attach(html_part)
             
             # Connect to SMTP server
