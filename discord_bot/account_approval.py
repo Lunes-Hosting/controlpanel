@@ -88,13 +88,21 @@ class AccountApprovalView(discord.ui.View):
             color = discord.Color.light_grey()
 
         self._disable_buttons()
-        embed = _review_embed(
-            self.user_id,
-            name,
-            _email_domain(email),
-            status,
-            color,
-        )
+        if interaction.message and interaction.message.embeds:
+            embed = interaction.message.embeds[0]
+            embed.color = color
+            for i, field in enumerate(embed.fields):
+                if field.name == "Status":
+                    embed.set_field_at(i, name="Status", value=status, inline=False)
+                    break
+        else:
+            embed = _review_embed(
+                self.user_id,
+                name,
+                email,
+                status=status,
+                color=color,
+            )
         embed.set_footer(text=f"Reviewed by {interaction.user}")
         await interaction.response.edit_message(embed=embed, view=self)
 
@@ -120,13 +128,21 @@ class AccountApprovalView(discord.ui.View):
             color = discord.Color.light_grey()
 
         self._disable_buttons()
-        embed = _review_embed(
-            self.user_id,
-            name,
-            _email_domain(email),
-            status,
-            color,
-        )
+        if interaction.message and interaction.message.embeds:
+            embed = interaction.message.embeds[0]
+            embed.color = color
+            for i, field in enumerate(embed.fields):
+                if field.name == "Status":
+                    embed.set_field_at(i, name="Status", value=status, inline=False)
+                    break
+        else:
+            embed = _review_embed(
+                self.user_id,
+                name,
+                email,
+                status=status,
+                color=color,
+            )
         embed.set_footer(text=f"Reviewed by {interaction.user}")
         await interaction.response.edit_message(embed=embed, view=self)
 
@@ -135,7 +151,16 @@ def _email_domain(email):
     return str(email).rsplit("@", 1)[-1].lower()
 
 
-def _review_embed(user_id, name, email_domain, status="Pending review", color=None, reason=None):
+def _review_embed(
+    user_id,
+    name,
+    email,
+    status="Pending review",
+    color=None,
+    reason=None,
+    alt_ip=None,
+    main_account_info=None,
+):
     embed = discord.Embed(
         title="Free account review",
         description=(
@@ -146,14 +171,24 @@ def _review_embed(user_id, name, email_domain, status="Pending review", color=No
     )
     embed.add_field(name="Account ID", value=str(user_id), inline=True)
     embed.add_field(name="Username", value=str(name), inline=True)
-    embed.add_field(name="Email domain", value=str(email_domain), inline=False)
+    embed.add_field(name="Full Email", value=str(email), inline=True)
+    if alt_ip:
+        embed.add_field(name="Signup IP", value=str(alt_ip), inline=True)
+    if main_account_info:
+        main_summary = (
+            f"ID: {main_account_info.get('id', 'N/A')}\n"
+            f"Username: {main_account_info.get('name', 'N/A')}\n"
+            f"Full Email: {main_account_info.get('email', 'N/A')}\n"
+            f"Main IP: {main_account_info.get('ip', 'N/A')}"
+        )
+        embed.add_field(name="Matched Main Account", value=main_summary, inline=False)
     if reason:
         embed.add_field(name="Review reason", value=str(reason), inline=False)
     embed.add_field(name="Status", value=status, inline=False)
     return embed
 
 
-async def _post_account_review(user_id, name, email_domain, reason):
+async def _post_account_review(user_id, name, email, reason, alt_ip=None, main_account_info=None):
     if _bot is None:
         return
 
@@ -163,14 +198,30 @@ async def _post_account_review(user_id, name, email_domain, reason):
         channel = await _bot.fetch_channel(channel_id)
 
     await channel.send(
-        embed=_review_embed(user_id, name, email_domain, reason=reason),
+        embed=_review_embed(
+            user_id,
+            name,
+            email,
+            reason=reason,
+            alt_ip=alt_ip,
+            main_account_info=main_account_info,
+        ),
         view=AccountApprovalView(user_id),
     )
 
 
-def queue_account_review(user_id: int, name: str, email_domain: str, reason: str = "Non-Gmail email domain"):
+def queue_account_review(
+    user_id: int,
+    name: str,
+    email: str = "",
+    reason: str = "Non-Gmail email domain",
+    alt_ip: Optional[str] = None,
+    main_account_info: Optional[dict] = None,
+    email_domain: Optional[str] = None,
+):
     """Queue a Discord review from a Flask request thread."""
-    review = (int(user_id), name, email_domain, reason)
+    resolved_email = email or email_domain or ""
+    review = (int(user_id), name, resolved_email, reason, alt_ip, main_account_info)
     with _pending_lock:
         if _bot_loop is None or _bot is None or not _bot_loop.is_running():
             _pending_reviews.append(review)
