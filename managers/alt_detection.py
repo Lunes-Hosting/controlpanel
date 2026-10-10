@@ -146,7 +146,19 @@ def check_login_ip(
         if other_role in ("admin", "support"):
             continue
 
-        action_title = "server creation" if action == "server_creation" else "login"
+        if action == "server_creation":
+            action_title = "server creation"
+            action_reason = "Alt account attempted to create server from IP historically used by main account."
+            main_action_reason = "Main account created server; newer alt account sharing this IP was suspended."
+        elif action == "live_session":
+            action_title = "live session"
+            action_reason = "Alt account connected to active session from IP historically used by main account."
+            main_action_reason = "Main account connected to session; newer alt account sharing this IP was suspended."
+        else:
+            action_title = "login"
+            action_reason = "Alt account logged in from IP historically used by main account."
+            main_action_reason = "Main account logged in; newer alt account sharing this IP was suspended."
+
         if is_older_account(other_created, other_id, created_at, user_id):
             # Other account is older -> OTHER is MAIN, CURRENT is ALT.
             # Suspend the current account.
@@ -158,11 +170,6 @@ def check_login_ip(
             except Exception as exc:
                 print(f"Failed to suspend alt user {user_id}: {exc}")
 
-            action_reason = (
-                "Alt account attempted to create server from IP historically used by main account."
-                if action == "server_creation"
-                else "Alt account logged in from IP historically used by main account."
-            )
             webhook_log(
                 f"Alt account detected and suspended on {action_title}:\n\n"
                 f"Suspended Alt Account:\n"
@@ -204,11 +211,6 @@ def check_login_ip(
                 except Exception as exc:
                     print(f"Failed to suspend alt user {other_id}: {exc}")
 
-                main_action_reason = (
-                    "Main account created server; newer alt account sharing this IP was suspended."
-                    if action == "server_creation"
-                    else "Main account logged in; newer alt account sharing this IP was suspended."
-                )
                 webhook_log(
                     f"Alt account detected and suspended on {action_title}:\n\n"
                     f"Suspended Alt Account:\n"

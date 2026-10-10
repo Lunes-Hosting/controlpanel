@@ -158,6 +158,7 @@ def login_user():
                 return response
             except AttributeError:
                 session['email'] = email
+                session['last_checked_ip'] = ip
                 # Check for next parameter in form data, URL args, then fall back to session next
                 next_page = request.form.get('next') or request.args.get('next') or session.pop("next", url_for("user.index"))
                 # Make sure we have a valid URL to redirect to

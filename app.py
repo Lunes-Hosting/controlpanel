@@ -17,7 +17,7 @@ Configuration:
 
 """
 
-from flask import Flask, request
+from flask import Flask, request, session, redirect, url_for, flash
 from flask_apscheduler import APScheduler
 from flask_limiter import Limiter
 from flask_mail import Mail, Message
@@ -112,6 +112,66 @@ def inject_user_roles():
         'is_admin': False,
         'is_support': False
     }
+
+
+@app.before_request
+def check_session_ip():
+    """
+    Catch alt accounts live while browsing any page on the dashboard.
+    If a logged-in user changes IP (e.g. VPN turns off to reveal home IP),
+    verify their IP against historical IPs of other accounts.
+    """
+    if request.endpoint == 'static' or request.path.startswith('/static/'):
+        return None
+    if 'email' not in session:
+        return None
+    if request.endpoint in ('user.login_user', 'user.logout_user'):
+        return None
+
+    from managers.alt_detection import get_client_ip, check_login_ip
+    from managers.database_manager import DatabaseManager
+
+    client_ip = get_client_ip(request)
+    if not client_ip:
+        return None
+
+    # Performance optimization: if IP hasn't changed since last check, skip DB query
+    if session.get('last_checked_ip') == client_ip:
+        return None
+
+    try:
+        user_row = DatabaseManager.execute_query(
+            "SELECT id, name, role, created_at, suspended FROM users WHERE email = %s",
+            (session['email'],)
+        )
+        if not user_row:
+            return None
+
+        user_id, name, role, created_at, suspended = user_row[0], user_row[1], user_row[2], user_row[3], user_row[4]
+        if suspended:
+            session.clear()
+            flash("Your account has been suspended for breaking our TOS. If you believe this is a mistake, please contact support on Discord.")
+            return redirect(url_for('user.login_user'))
+
+        ip_check = check_login_ip(
+            user_id=int(user_id),
+            email=session['email'],
+            name=name,
+            role=role,
+            created_at=created_at,
+            ip=client_ip,
+            action="live_session",
+        )
+        if not ip_check.get("allowed", True):
+            session.clear()
+            flash("Your account has been suspended for breaking our TOS. If you believe this is a mistake, please contact support on Discord.")
+            return redirect(url_for('user.login_user'))
+
+        session['last_checked_ip'] = client_ip
+    except Exception as exc:
+        print(f"Error checking live session IP: {exc}")
+
+    return None
 
 
 def rate_limit_key():
