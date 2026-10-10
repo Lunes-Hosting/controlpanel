@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lunes Host | Login</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer></script>
     <style>
         *, *::before, *::after {
@@ -20,9 +20,11 @@
         body {
             margin: 0;
             min-height: 100vh;
-            background: radial-gradient(circle at top, #1f2a44 0%, #0b1220 55%, #05070c 100%);
+            background:
+                radial-gradient(ellipse at 50% 18%, rgba(30, 64, 175, 0.18), transparent 42%),
+                #020617;
             color: #f8fbff;
-            font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
+            font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
             position: relative;
             overflow-x: hidden;
         }
@@ -53,37 +55,86 @@
             position: relative;
             z-index: 1;
             width: 100%;
-            max-width: 480px;
+            max-width: 520px;
             margin: 0 auto;
-            padding: clamp(1.5rem, 5vw, 3rem);
+            padding: clamp(1.25rem, 4vw, 2rem);
             display: flex;
             flex-direction: column;
             justify-content: center;
-            min-height: 100vh;
+            min-height: calc(100vh - 4rem);
+            min-height: calc(100svh - 4rem);
         }
 
         .form-panel {
-            border-radius: 1.5rem;
-            padding: clamp(1.5rem, 4vw, 2.5rem);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            background: rgba(3, 6, 23, 0.92);
-            box-shadow: 0 35px 70px rgba(2, 6, 23, 0.7);
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.125rem;
+            padding: clamp(1.5rem, 5vw, 2.5rem);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            background: linear-gradient(155deg, rgba(15, 23, 42, 0.98), rgba(8, 15, 32, 0.96));
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38), 0 0 36px rgba(37, 99, 235, 0.08);
+        }
+
+        .form-panel::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #3b82f6 28%, #22d3ee 72%, transparent);
+        }
+
+        .brand-mark {
+            display: grid;
+            place-items: center;
+            margin: 0 auto 0.4rem;
+        }
+
+        .brand-mark img {
+            display: block;
+            width: 68px;
+            height: 68px;
+            object-fit: contain;
         }
 
         .panel-header {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.75rem;
             text-align: center;
+        }
+
+        .panel-header .panel-eyebrow {
+            margin: 0 0 0.5rem;
+            color: #93c5fd;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            line-height: 1.4;
+            text-transform: uppercase;
         }
 
         .panel-header h2 {
             margin: 0;
-            font-size: 1.75rem;
+            font-size: clamp(1.65rem, 5vw, 1.9rem);
+            font-weight: 750;
+            letter-spacing: -0.04em;
         }
 
         .panel-header p {
-            color: #cbd5f5;
-            margin: 0.5rem 0 0;
-            font-size: 0.95rem;
+            color: #94a3b8;
+            margin: 0.65rem 0 0;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .panel-header a {
+            color: #93c5fd;
+            font-weight: 600;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .panel-header a:hover {
+            color: #dbeafe;
+            text-decoration: underline;
         }
 
         .flash-message {
@@ -93,113 +144,156 @@
             background: rgba(248, 113, 113, 0.1);
             border: 1px solid rgba(248, 113, 113, 0.3);
             color: #fecaca;
-            border-radius: 0.85rem;
+            border-radius: 0.125rem;
             padding: 0.7rem 1rem;
             margin-bottom: 1rem;
         }
 
         .form-group {
-            margin-bottom: 1.1rem;
+            margin-bottom: 1.25rem;
         }
 
         label {
             display: block;
-            margin-bottom: 0.35rem;
-            font-size: 0.9rem;
-            color: #cbd5f5;
+            margin-bottom: 0.5rem;
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: #e2e8f0;
         }
 
         .input-field {
             width: 100%;
-            padding: 0.85rem 1rem;
-            border-radius: 0.9rem;
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            background: rgba(15, 23, 42, 0.9);
+            padding: 0.9rem 1rem;
+            border-radius: 0.125rem;
+            border: 1px solid rgba(148, 163, 184, 0.26);
+            background: rgba(2, 6, 23, 0.58);
             color: #f8fbff;
             font-size: 16px;
-            box-sizing: border-box;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .input-field::placeholder {
+            color: #64748b;
+        }
+
+        .input-field:hover {
+            border-color: rgba(148, 163, 184, 0.5);
         }
 
         .input-field:focus {
             outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5);
+            border-color: #60a5fa;
+            background: rgba(2, 6, 23, 0.82);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
         }
 
         .form-actions {
             display: flex;
-            justify-content: center;
-            gap: 1.5rem;
-            font-size: 0.9rem;
-            margin-top: 1rem;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            font-size: 0.84rem;
+            margin-top: 0.85rem;
         }
 
         .form-actions a {
             color: #93c5fd;
             text-decoration: none;
-            transition: color 0.2s;
+            transition: color 0.2s ease;
         }
 
         .form-actions a:hover {
-            color: #bfdbfe;
+            color: #dbeafe;
             text-decoration: underline;
         }
 
         .submit-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.65rem;
             width: 100%;
-            border: none;
-            border-radius: 0.9rem;
+            min-height: 3.1rem;
+            border: 1px solid rgba(147, 197, 253, 0.42);
+            border-radius: 0.125rem;
             padding: 0.9rem 1rem;
-            background: linear-gradient(120deg, #3b82f6, #6366f1);
+            background: linear-gradient(110deg, #1d4ed8, #2563eb 55%, #3b82f6);
             color: #fff;
-            font-weight: 600;
-            font-size: 1rem;
+            font-weight: 700;
+            font-size: 0.95rem;
             cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            box-sizing: border-box;
+            box-shadow: 0 8px 22px rgba(37, 99, 235, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
         }
 
         .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 18px 30px rgba(59, 130, 246, 0.45);
+            transform: translateY(-1px);
+            filter: brightness(1.08);
+            box-shadow: 0 12px 28px rgba(37, 99, 235, 0.34);
+        }
+
+        .submit-btn:focus-visible {
+            outline: 2px solid #93c5fd;
+            outline-offset: 3px;
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
         }
 
         .policy-banner {
             margin-top: 1.5rem;
-            background: rgba(37, 99, 235, 0.15);
-            border: 1px solid rgba(37, 99, 235, 0.4);
-            border-radius: 1rem;
-            padding: 0.85rem 1rem;
-            font-size: 0.85rem;
-            color: #dbeafe;
+            background: rgba(30, 64, 175, 0.12);
+            border: 1px solid rgba(96, 165, 250, 0.22);
+            border-radius: 0.125rem;
+            padding: 0.9rem 1rem;
+            font-size: 0.8rem;
+            line-height: 1.55;
+            color: #cbd5e1;
             display: flex;
-            gap: 0.6rem;
+            align-items: flex-start;
+            gap: 0.7rem;
+        }
+
+        .policy-banner i {
+            margin-top: 0.15rem;
+            color: #60a5fa;
         }
 
         @media (max-width: 640px) {
-            body {
-                padding: 1.25rem 0.75rem;
-            }
             .auth-shell {
-                padding: 1.25rem 0.25rem 2.25rem;
+                min-height: calc(100svh - 4rem);
+                padding: 1.25rem 1rem 2rem;
             }
+
+            .form-panel {
+                padding: 1.5rem 1.25rem;
+            }
+
             .form-actions {
-                flex-direction: column;
-                gap: 0.75rem;
-                align-items: center;
+                gap: 0.5rem 1rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
             }
         }
     </style>
 </head>
 <body>
+    {% include 'partials/top_nav.html' %}
     <div class="auth-shell">
         <section class="form-panel">
-            <div style="text-align:center;margin-bottom:1.5rem;">
-                <img src="{{ url_for('static', filename='images/Luneslogo.png') }}" alt="Lunes" style="width:64px;height:64px;border-radius:16px;">
+            <div class="brand-mark">
+                <img src="{{ url_for('static', filename='images/Luneslogo.png') }}" alt="Lunes Hosting LLC">
             </div>
             <header class="panel-header">
-                <h2>Sign in</h2>
-                <p>Need an account? <a href="{{ url_for('user.register_user') }}" style="color:#93c5fd;text-decoration:none;">Create one in seconds.</a></p>
+                <p class="panel-eyebrow">Lunes Hosting LLC</p>
+                <h2>Welcome back</h2>
+                <p>Sign in to manage your services and account.</p>
             </header>
 
             {% include 'partials/flash_messages.html' %}
@@ -223,7 +317,10 @@
       
                 {% endif %}
 
-          <button type="submit" class="submit-btn">Continue to dashboard</button>
+                <button type="submit" class="submit-btn">
+                    Continue to dashboard
+                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </button>
             </form>
 
             <div class="policy-banner">

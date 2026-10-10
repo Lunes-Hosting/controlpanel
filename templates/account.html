@@ -20,7 +20,7 @@
 
     {% if not verified %}
     <!-- Email Verification Warning -->
-    <div class="bg-yellow-950 text-white px-4 py-2 rounded-md mb-6 flex items-center gap-2 text-black max-w-5xl mx-auto">
+    <div class="bg-yellow-950 text-white px-4 py-2 rounded-sm mb-6 flex items-center gap-2 text-black max-w-5xl mx-auto">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
         </svg>
@@ -28,7 +28,7 @@
     </div>
     {% elif suspended %}
     <!-- Account Suspended Warning -->
-    <div class="bg-yellow-950 text-white px-4 py-2 rounded-md mb-6 flex items-center gap-2 text-black max-w-5xl mx-auto">
+    <div class="bg-yellow-950 text-white px-4 py-2 rounded-sm mb-6 flex items-center gap-2 text-black max-w-5xl mx-auto">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
         </svg>
@@ -43,9 +43,12 @@
 
             <!-- Account Information -->
 
-            <div class="gap-4 py-3 flex items-center justify-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 after:ms-6 dark:text-white dark:after:border-neutral-700">
-                <i class="fa-solid fa-house fa-2xl text-blue-400 m-0 p-0"></i>
-                <h1 class="font-semibold text-2xl m-0 p-0">Manage Account</h1>
+            <div class="flex items-center gap-3 section-heading mb-6">
+                <i class="fa-solid fa-house fa-2xl text-blue-400"></i>
+                <div>
+                    <p class="text-sm uppercase tracking-wider text-blue-300/80">Account</p>
+                    <h1 class="text-2xl font-semibold">Manage Account</h1>
+                </div>
             </div>
 
             <section class="hero-panel">
@@ -53,22 +56,14 @@
                     <div class="hero-left">
                         <div class="profile-header">
                             <img class="profile-avatar" src="https://gravatar.com/avatar/{{ hash }}" alt="User avatar">
-                            <div>
-                                <p class="eyebrow">Account Control Center</p>
+                            <div class="profile-copy">
+                                <!--<p class="eyebrow">Account Control Center</p>  -->
                                 <h1 class="hero-title">Welcome back, {{ username }}.</h1>
                                 <p class="hero-subtitle">{{ email }}</p>
                             </div>
                         </div>
 
                         <div class="hero-badges">
-                            <span class="badge-chip">
-                                <i class="fa-solid fa-server"></i>
-                                {{ server_count }} servers online
-                            </span>
-                            <span class="badge-chip">
-                                <i class="fa-solid fa-sack-dollar"></i>
-                                {{ formatted_credits }} credits available
-                            </span>
                             <span class="badge-chip status">
                                 <i class="fa-solid fa-shield-check"></i>
                                 {% if suspended %}
@@ -81,19 +76,6 @@
                             </span>
                         </div>
 
-                        <div class="hero-metrics">
-                            <article>
-                                <p>Monthly Usage</p>
-                                <h3>{{ monthly_usage }}</h3>
-                                <small>Across all running services</small>
-                            </article>
-                            <article>
-                                <p>Server Credits</p>
-                                <h3>{{ formatted_credits }}</h3>
-                                <small>Charged hourly per plan</small>
-                            </article>
-                        </div>
-
                         <div class="hero-actions">
                             <a href="{{ url_for('tickets.tickets_index') }}" class="action-btn primary">
                                 <i class="fa-solid fa-ticket"></i>
@@ -103,14 +85,6 @@
                                 <i class="fa-solid fa-store"></i>
                                 Buy Credits
                             </a>
-                            
-                            {% if is_admin %}
-                            <a href="{{ url_for('admin.admin_index') }}" class="action-btn admin-btn">
-                                <i class="fa-solid fa-shield-cat"></i>
-                                Admin
-                            </a>
-                            {% endif %}
-                            
                             <a href="{{ url_for('user.logout') }}" class="action-btn ghost">
                                 <i class="fa-solid fa-right-from-bracket"></i>
                                 Log Out
@@ -131,38 +105,37 @@
                             <h2>{{ formatted_credits }} <small>credits</small></h2>
                             {% set credit_percent = server_count * 12 %}
                             {% set credit_width = 100 if credit_percent > 100 else credit_percent %}
-                            <div class="credit-meter">
+                            <div class="credit-meter-heading">
+                                <span>Credit meter</span>
+                                <span class="credit-meter-ratio">{{ credit_width }}% / 100%</span>
+                            </div>
+                            <div class="credit-meter" role="progressbar" aria-label="Server capacity" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ credit_width }}">
                                 <div class="credit-progress" style="--progress-width: {{ credit_width }};"></div>
                             </div>
-                            <div class="credit-footer">
-                                <span><i class="fa-solid fa-clock"></i> Hourly billing enabled</span>
-                                <span><i class="fa-solid fa-bolt"></i> Auto-suspend when empty</span>
-                            </div>
+                            <p class="credit-meter-caption">Credit meter: server count shown as a percentage of a 100% capacity indicator.</p>
                         </div>
 
-                        <div class="status-card">
-                            <div class="status-row">
+                        <div class="hero-stats">
+                            <article class="hero-stat">
                                 <div>
-                                    <p class="status-label">Servers Active</p>
-                                    <h4>{{ server_count }}</h4>
+                                    <p>Servers</p>
+                                    <h3>{{ server_count }}</h3>
                                 </div>
                                 <i class="fa-solid fa-signal"></i>
-                            </div>
-                            <div class="status-row">
+                            </article>
+                            <article class="hero-stat">
                                 <div>
-                                    <p class="status-label">Monthly Usage</p>
-                                    <h4>{{ monthly_usage }}</h4>
+                                    <p>Credit Monthly Usage</p>
+                                    <h3>{{ monthly_usage }}</h3>
                                 </div>
                                 <i class="fa-solid fa-chart-line"></i>
-                            </div>
-                            <div class="status-info">
-                            </div>
+                            </article>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <section class="insights-grid">
+            <!--<section class="insights-grid">
                 <article class="insight-card">
                     <header>
                         <span class="indicator success"></span>
@@ -203,12 +176,12 @@
                     <h3>Auto-suspend Safety</h3>
                     <p>Servers are suspended when credits hit zero and may resume automatically if you add more credits while servers still exist.</p>
                 </article>
-            </section>
+            </section> -->
 
             <!-- Servers Section -->
             {% if verified and not suspended %}
             <section class="panel-section" aria-labelledby="servers-heading">
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 section-heading rounded-2xl border border-white/5 bg-gradient-to-r from-slate-900/60 to-slate-900/20 px-4 sm:px-6 py-4 mb-6">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 section-heading mb-6">
                     <div class="flex items-center gap-3">
                         <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
                         <div>
@@ -222,7 +195,7 @@
                     </a>
                 </div>
 
-                <div class="panel-card rounded-2xl overflow-hidden border border-white/5">
+                <div class="panel-card rounded-sm overflow-hidden border border-white/5">
                     {% if servers %}
                     <div class="server-grid gap-6 p-6">
                         {% for server in servers %}
@@ -262,22 +235,28 @@
             </section>
             {% elif not verified %}
             <section class="panel-section" aria-labelledby="servers-heading">
-                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading rounded-2xl border border-white/5 bg-gradient-to-r from-slate-900/60 to-slate-900/20 px-4 sm:px-6 py-4 mb-6">
+                <div class="flex items-center gap-3 section-heading mb-6">
                     <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
-                    <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
+                    <div>
+                        <p class="text-sm uppercase tracking-wider text-blue-300/80">Infrastructure</p>
+                        <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
+                    </div>
                 </div>
-                <div class="panel-card text-center rounded-2xl border border-white/5">
+                <div class="panel-card text-center rounded-sm border border-white/5">
                     <h3 class="text-xl font-semibold mb-2">Please verify your email to access the servers section.</h3>
                     <p class="text-gray-400 text-sm">Once verified, you can provision servers and monitor usage from here.</p>
                 </div>
             </section>
             {% elif suspended %}
             <section class="panel-section" aria-labelledby="servers-heading">
-                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading rounded-2xl border border-white/5 bg-gradient-to-r from-slate-900/60 to-slate-900/20 px-4 sm:px-6 py-4 mb-6">
+                <div class="flex items-center gap-3 section-heading mb-6">
                     <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
-                    <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
+                    <div>
+                        <p class="text-sm uppercase tracking-wider text-blue-300/80">Infrastructure</p>
+                        <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
+                    </div>
                 </div>
-                <div class="panel-card text-center rounded-2xl border border-white/5">
+                <div class="panel-card text-center rounded-sm border border-white/5">
                     <h3 class="text-xl font-semibold mb-2">Your account is suspended. Please contact support to unsuspend your account.</h3>
                     <p class="text-gray-400 text-sm">Open a ticket or reach the Discord team and we'll help you get back online.</p>
                 </div>
@@ -297,7 +276,7 @@
                     <span class="badge-live">Instant Delivery</span>
                 </div>
 
-                <div class="panel-card grid gap-10 lg:grid-cols-2 rounded-3xl border border-white/10 overflow-hidden bg-gradient-to-r from-slate-950/80 to-slate-900/40">
+                <div class="panel-card grid gap-10 lg:grid-cols-2 rounded-sm border border-white/10 overflow-hidden bg-gradient-to-r from-slate-950/80 to-slate-900/40">
                     <div class="space-y-6 px-4 sm:px-6 py-6">
                         <div class="space-y-1">
                             <p class="text-sm uppercase tracking-[0.3em] text-slate-400">Billing credits</p>
@@ -312,7 +291,8 @@
                             <input id="labels-range-input" step="1" type="range" value="0" min="0" max="{{ products|length - 1 if products else 0 }}" class="range-input">
                             <div class="range-markers">
                                 {% for product in products %}
-                                <span>{{ "{:,.0f}".format(product['price'] | float) }}</span>
+                                {% set marker_position = (loop.index0 / (products|length - 1) * 100) if products|length > 1 else 0 %}
+                                <span style="left: {{ marker_position }}%;">{{ "{:,.0f}".format(product['price'] | float) }}</span>
                                 {% endfor %}
                             </div>
                         </div>
@@ -391,7 +371,7 @@
                     </a>
                 </div>
 
-                <div class="panel-card rounded-3xl border border-white/10 overflow-hidden bg-gradient-to-r from-slate-950/80 to-slate-900/40 p-6">
+                <div class="panel-card rounded-sm border border-white/10 overflow-hidden bg-gradient-to-r from-slate-950/80 to-slate-900/40 p-6">
                     <div class="space-y-2 mb-6">
                         <p class="text-sm text-gray-400">Choose a monthly credit pack. Credits are automatically added after Stripe payment completes.</p>
                         <p class="text-sm text-gray-400">If payment fails, we will email you and cancel the subscription.</p>
@@ -488,14 +468,17 @@
 
             <!-- Other Section -->
             <section class="panel-section" aria-labelledby="other-heading">
-                <div class="flex flex-row items-center justify-center text-nowrap gap-4 section-heading rounded-2xl border border-white/5 bg-gradient-to-r from-slate-900/60 to-slate-900/20 px-4 sm:px-6 py-4 mb-6">
+                <div class="flex items-center gap-3 section-heading mb-6">
                     <i class="fa-solid fa-barcode fa-2xl text-blue-400"></i>
-                    <h1 id="other-heading" class="text-2xl font-semibold">Community & Policies</h1>
+                    <div>
+                        <p class="text-sm uppercase tracking-wider text-blue-300/80">Community</p>
+                        <h1 id="other-heading" class="text-2xl font-semibold">Community & Policies</h1>
+                    </div>
                 </div>
 
-                <div class="panel-card flex flex-col lg:flex-row gap-8 items-center lg:items-stretch rounded-2xl border border-white/5 p-6">
+                <div class="panel-card flex flex-col lg:flex-row gap-8 items-center lg:items-stretch rounded-sm border border-white/5 p-6">
                     <div class="flex flex-col items-center text-center gap-4">
-                        <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" rel="preload" class="h-auto w-32 rounded-lg" width="128" height="128">
+                        <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" rel="preload" class="h-auto w-32 rounded-sm" width="128" height="128">
                         <p class="text-2xl font-bold">Lunes Hosting</p>
                         <p class="text-sm text-gray-400">Reliable cloud infrastructure backed by real people.</p>
                     </div>
@@ -550,7 +533,7 @@
             position: fixed;
             width: 420px;
             height: 420px;
-            border-radius: 9999px;
+            border-radius: 0.125rem;
             filter: blur(180px);
             opacity: 0.35;
             z-index: 0;
@@ -600,11 +583,11 @@
 
         .hero-panel {
             margin-top: 1.5rem;
-            border-radius: 1.75rem;
+            border-radius: 0.125rem;
             padding: 2rem;
-            background: radial-gradient(circle at top right, rgba(96, 165, 250, 0.35), rgba(15, 23, 42, 0.9));
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            box-shadow: 0 30px 80px rgba(15, 23, 42, 0.7);
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.35);
         }
         .hero-grid {
             display: grid;
@@ -613,19 +596,24 @@
             align-items: stretch;
         }
         .profile-header {
-            display: flex;
-            gap: 1.5rem;
-            align-items: center;
+            display: grid;
+            grid-template-columns: minmax(4rem, 5rem) minmax(0, 1fr);
+            gap: 1rem;
+            align-items: stretch;
         }
         .profile-avatar {
-            width: 96px;
-            height: 96px;
-            border-radius: 999px;
-            border: 3px solid rgba(96, 165, 250, 0.8);
-            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+            width: 100%;
+            object-fit: cover;
+            border-radius: 0.125rem;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            aspect-ratio: 1 / 1;
+        }
+        .profile-copy {
+            min-width: 0;
+            align-self: center;
         }
         .hero-title {
-            font-size: clamp(1.8rem, 3vw, 2.4rem);
+            font-size: clamp(1.25rem, 2vw, 1.6rem);
             font-weight: 700;
         }
         .hero-subtitle {
@@ -641,16 +629,16 @@
             display: flex;
             flex-wrap: wrap;
             gap: 0.75rem;
-            margin: 1.5rem 0;
+            margin: 1.25rem 0;
         }
         .badge-chip {
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
             padding: 0.4rem 1rem;
-            border-radius: 999px;
-            background: rgba(15, 23, 42, 0.7);
-            border: 1px solid rgba(148, 163, 184, 0.3);
+            border-radius: 0.125rem;
+            background: rgba(15, 23, 42, 0.55);
+            border: 1px solid rgba(148, 163, 184, 0.22);
             font-size: 0.85rem;
             color: rgba(226, 232, 240, 0.9);
         }
@@ -658,40 +646,14 @@
             border-color: rgba(16, 185, 129, 0.4);
             color: #6ee7b7;
         }
-        .hero-metrics {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 1rem;
-        }
-        .hero-metrics article {
-            padding: 1.25rem;
-            border-radius: 1rem;
-            background: rgba(15, 23, 42, 0.7);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            height: 100%;
-        }
-        .hero-metrics article p {
-            text-transform: uppercase;
-            font-size: 0.7rem;
-            letter-spacing: 0.2em;
-            color: rgba(148, 163, 184, 0.7);
-        }
-        .hero-metrics article h3 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-top: 0.5rem;
-        }
-        .hero-metrics article small {
-            color: rgba(148, 163, 184, 0.8);
-        }
         .hero-actions {
             margin-top: 1.5rem;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.8rem;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
         }
         .action-btn {
-            border-radius: 999px;
+            border-radius: 0.125rem;
             padding: 0.65rem 1.35rem;
             font-weight: 600;
             display: inline-flex;
@@ -700,6 +662,53 @@
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             border: 1px solid transparent;
         }
+        .hero-actions .action-btn {
+            min-height: 2.75rem;
+            width: 100%;
+            justify-content: center;
+            padding: 0.65rem 0.75rem;
+            border-radius: 0.125rem;
+            text-align: center;
+            color: #f8fafc;
+            font-size: 0.9rem;
+            line-height: 1.25;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(2, 6, 23, 0.2);
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, filter 0.18s ease;
+        }
+        .hero-actions .action-btn i {
+            width: 1.1rem;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        .hero-actions .action-btn.primary {
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            border-color: rgba(147, 197, 253, 0.35);
+        }
+        .hero-actions .action-btn.secondary {
+            background: linear-gradient(135deg, #047857, #059669);
+            border-color: rgba(110, 231, 183, 0.3);
+        }
+        .hero-actions .action-btn.ghost {
+            background: rgba(30, 41, 59, 0.72);
+            border-color: rgba(148, 163, 184, 0.3);
+        }
+        .hero-actions .action-btn.danger {
+            background: rgba(127, 29, 29, 0.35);
+            border-color: rgba(248, 113, 113, 0.4);
+        }
+        .hero-actions .action-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.08);
+            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.32);
+        }
+        .hero-actions .action-btn:active {
+            transform: translateY(0);
+        }
+        .hero-actions .action-btn:focus-visible {
+            outline: 2px solid #93c5fd;
+            outline-offset: 3px;
+        }
         .action-btn.primary {
             background: linear-gradient(135deg, #2563eb, #60a5fa);
             box-shadow: 0 12px 30px rgba(37, 99, 235, 0.35);
@@ -707,10 +716,6 @@
         .action-btn.secondary {
             background: linear-gradient(135deg, #059669, #34d399);
             box-shadow: 0 12px 30px rgba(16, 185, 129, 0.35);
-        }
-        .action-btn.admin-btn {
-            background: linear-gradient(135deg, #a855f7, #d946ef);
-            box-shadow: 0 12px 30px rgba(168, 85, 247, 0.35);
         }
         .action-btn.ghost {
             border-color: rgba(148, 163, 184, 0.4);
@@ -726,14 +731,14 @@
 
         .hero-right {
             display: grid;
-            gap: 1.5rem;
+            align-content: start;
+            gap: 0.75rem;
         }
         .credit-card {
-            border-radius: 1.5rem;
-            padding: 1.75rem;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.65), rgba(15, 23, 42, 0.9));
-            border: 1px solid rgba(147, 197, 253, 0.4);
-            box-shadow: 0 20px 40px rgba(30, 64, 175, 0.5);
+            border-radius: 0.125rem;
+            padding: 1.5rem;
+            background: rgba(30, 41, 59, 0.72);
+            border: 1px solid rgba(148, 163, 184, 0.22);
         }
         .credit-header {
             display: flex;
@@ -750,52 +755,74 @@
             font-size: 1rem;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.4em;
+            letter-spacing: 0.15em;
         }
         .credit-meter {
             width: 100%;
-            height: 10px;
-            border-radius: 999px;
-            background: rgba(15, 23, 42, 0.4);
+            height: 0.5rem;
             overflow: hidden;
-            margin-bottom: 0.75rem;
+            border-radius: 0.125rem;
+            background: rgba(15, 23, 42, 0.7);
+        }
+        .credit-meter-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.45rem;
+            color: rgba(203, 213, 225, 0.8);
+            font-size: 0.7rem;
+            line-height: 1.4;
+        }
+        .credit-meter-ratio {
+            color: #e2e8f0;
+            font-size: 0.72rem;
+            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .credit-meter-caption {
+            margin: 0.5rem 0 0;
+            color: rgba(148, 163, 184, 0.8);
+            font-size: 0.7rem;
+            line-height: 1.4;
         }
         .credit-progress {
+            width: calc(var(--progress-width, 0) * 1%);
             height: 100%;
-            border-radius: 999px;
-            background: linear-gradient(90deg, #22d3ee, #a855f7);
-            width: calc(var(--progress-width, 65) * 1%);
+            border-radius: 0.125rem;
+            background: linear-gradient(90deg, #22d3ee, #60a5fa);
             transition: width 0.3s ease;
         }
-        .credit-footer {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            color: rgba(226, 232, 240, 0.85);
-            flex-wrap: wrap;
-            gap: 0.5rem;
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
         }
-        .status-card {
-            border-radius: 1.25rem;
-            padding: 1.5rem;
-            background: rgba(15, 23, 42, 0.85);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-        }
-        .status-row {
+        .hero-stat {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            gap: 0.5rem;
+            min-width: 0;
+            padding: 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 0.125rem;
+            background: rgba(15, 23, 42, 0.55);
         }
-        .status-label {
-            text-transform: uppercase;
-            letter-spacing: 0.2em;
-            font-size: 0.7rem;
-            color: rgba(148, 163, 184, 0.7);
+        .hero-stat p {
+            margin: 0;
+            color: rgba(148, 163, 184, 0.8);
+            font-size: 0.75rem;
         }
-        .status-info {
-            font-size: 0.9rem;
-            color: rgba(148, 163, 184, 0.9);
+        .hero-stat h3 {
+            margin: 0.25rem 0 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+            overflow-wrap: anywhere;
+        }
+        .hero-stat i {
+            color: rgba(147, 197, 253, 0.9);
         }
 
         .insights-grid {
@@ -806,7 +833,7 @@
         }
         .insight-card {
             padding: 1.5rem;
-            border-radius: 1.25rem;
+            border-radius: 0.125rem;
             background: rgba(15, 23, 42, 0.75);
             border: 1px solid rgba(148, 163, 184, 0.2);
             box-shadow: 0 12px 30px rgba(15, 23, 42, 0.6);
@@ -832,7 +859,7 @@
         .indicator {
             width: 0.6rem;
             height: 0.6rem;
-            border-radius: 999px;
+            border-radius: 0.125rem;
         }
         .indicator.success { background: #22c55e; }
         .indicator.info { background: #3b82f6; }
@@ -843,7 +870,7 @@
             display: flex;
             gap: 1rem;
             padding: 1.25rem;
-            border-radius: 1rem;
+            border-radius: 0.125rem;
             background: rgba(15, 23, 42, 0.9);
             border: 1px solid rgba(255, 255, 255, 0.05);
             box-shadow: 0 15px 35px -12px rgba(0, 0, 0, 0.6);
@@ -851,7 +878,7 @@
         .stat-icon {
             width: 3rem;
             height: 3rem;
-            border-radius: 999px;
+            border-radius: 0.125rem;
             display: grid;
             place-items: center;
             font-size: 1.25rem;
@@ -879,7 +906,7 @@
             align-items: center;
             gap: 0.5rem;
             padding: 0.75rem 1.5rem;
-            border-radius: 999px;
+            border-radius: 0.125rem;
             background: linear-gradient(135deg, #2563eb, #3b82f6);
             font-weight: 600;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -904,7 +931,7 @@
             width: 100%;
             min-width: 0;
             padding: 1.5rem;
-            border-radius: 1.25rem;
+            border-radius: 0.125rem;
             background: rgba(15, 23, 42, 0.95);
             border: 1px solid rgba(59, 130, 246, 0.25);
             transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
@@ -939,7 +966,7 @@
         }
         .server-status {
             padding: 0.35rem 0.85rem;
-            border-radius: 999px;
+            border-radius: 0.125rem;
             font-size: 0.75rem;
             flex-shrink: 0;
             background: rgba(16, 185, 129, 0.15);
@@ -954,7 +981,7 @@
         .server-pill {
             font-size: 0.75rem;
             padding: 0.45rem 0.75rem;
-            border-radius: 0.75rem;
+            border-radius: 0.125rem;
             background: rgba(15, 23, 42, 0.7);
             border: 1px solid rgba(148, 163, 184, 0.2);
             display: inline-flex;
@@ -976,7 +1003,7 @@
         }
         .empty-state {
             padding: 2rem;
-            border-radius: 1rem;
+            border-radius: 0.125rem;
             border: 1px dashed rgba(148, 163, 184, 0.4);
             display: flex;
             flex-direction: column;
@@ -991,7 +1018,7 @@
         .badge-live {
             font-size: 0.75rem;
             padding: 0.25rem 0.75rem;
-            border-radius: 999px;
+            border-radius: 0.125rem;
             border: 1px solid rgba(16, 185, 129, 0.5);
             color: #6ee7b7;
             text-transform: uppercase;
@@ -1000,7 +1027,7 @@
 
         .slider-shell {
             background: rgba(15, 23, 42, 0.7);
-            border-radius: 1rem;
+            border-radius: 0.125rem;
             padding: 1.5rem;
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
@@ -1009,7 +1036,8 @@
             appearance: none;
             -webkit-appearance: none;
             height: 6px;
-            border-radius: 999px;
+            display: block;
+            border-radius: 0.125rem;
             background: linear-gradient(90deg, #22c55e, #3b82f6);
             outline: none;
             margin: 1rem 0;
@@ -1019,17 +1047,33 @@
             -webkit-appearance: none;
             width: 20px;
             height: 20px;
-            border-radius: 999px;
+            border-radius: 0.125rem;
+            background: #fff;
+            border: 3px solid #3b82f6;
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+        }
+        .range-input::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 0.125rem;
             background: #fff;
             border: 3px solid #3b82f6;
             box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
         }
         .range-markers {
-            display: flex;
-            justify-content: space-between;
+            position: relative;
+            height: 1rem;
+            margin-inline: 10px;
             font-size: 0.65rem;
             text-transform: uppercase;
             color: rgba(148, 163, 184, 0.7);
+        }
+        .range-markers span {
+            position: absolute;
+            top: 0;
+            transform: translateX(-50%);
+            text-align: center;
+            white-space: nowrap;
         }
         .feature-list {
             display: grid;
@@ -1047,7 +1091,7 @@
         }
 
         .store-preview {
-            border-radius: 1.5rem;
+            border-radius: 0.125rem;
             background: radial-gradient(circle at top, rgba(96, 165, 250, 0.35), rgba(15, 23, 42, 0.95));
             border: 1px solid rgba(96, 165, 250, 0.4);
             padding: 2rem;
@@ -1060,7 +1104,7 @@
             font-weight: 800;
         }
         .credit-badge {
-            border-radius: 1rem;
+            border-radius: 0.125rem;
             padding: 1rem;
             background: rgba(15, 23, 42, 0.8);
             border: 1px dashed rgba(96, 165, 250, 0.5);
@@ -1079,7 +1123,7 @@
         }
         .bundle-card {
             padding: 1.25rem;
-            border-radius: 1rem;
+            border-radius: 0.125rem;
             border: 1px solid rgba(34, 197, 94, 0.3);
             background: rgba(15, 23, 42, 0.8);
             display: flex;
@@ -1117,7 +1161,7 @@
             display: flex;
             gap: 1rem;
             padding: 1.25rem;
-            border-radius: 1rem;
+            border-radius: 0.125rem;
             border: 1px solid rgba(71, 85, 105, 0.7);
             background: rgba(15, 23, 42, 0.7);
             transition: transform 0.2s ease, border-color 0.2s ease;
@@ -1149,7 +1193,7 @@
             border: 1px solid rgba(59, 130, 246, 0.4);
             width: 90%;
             max-width: 520px;
-            border-radius: 16px;
+            border-radius: 0.125rem;
             box-shadow: 0 25px 60px rgba(15, 23, 42, 0.9);
         }
 
@@ -1174,43 +1218,27 @@
             .hero-panel {
                 padding: 1.5rem;
                 margin-top: 1rem;
-                border-radius: 1.5rem;
+                border-radius: 0.125rem;
             }
             .profile-header {
-                flex-direction: column;
-                align-items: flex-start;
                 gap: 1rem;
             }
             .hero-badges {
                 flex-direction: column;
                 align-items: flex-start;
             }
-            .hero-actions {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .hero-actions .action-btn {
-                justify-content: center;
-                width: 100%;
-            }
-
-            .hero-metrics {
-                grid-template-columns: 1fr;
+            .hero-actions,
+            .hero-stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
             /* Increased Font Sizes for Mobile Readability */
-            .eyebrow, .hero-metrics article p, .status-label {
+            .eyebrow {
                 font-size: 0.8rem; /* Bumped from 0.7rem */
-            }
-            .hero-metrics article h3 {
-                font-size: 1.4rem;
-            }
-            .hero-metrics article small {
-                font-size: 0.85rem;
             }
             
             /* Box Layout Fixes */
-            .hero-metrics article, .insight-card, .status-card {
+            .insight-card {
                 padding: 1.25rem;
             }
 
@@ -1254,9 +1282,9 @@
                 <p class="text-gray-300">This action is irreversible. All your servers and data will be permanently deleted.</p>
             </div>
             <div class="flex justify-end gap-2">
-                <button onclick="closeDeleteModal()" style="cursor: pointer;" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors duration-200">Cancel</button>
+                <button onclick="closeDeleteModal()" style="cursor: pointer;" class="bg-gray-500 text-white px-4 py-2 rounded-sm hover:bg-gray-600 transition-colors duration-200">Cancel</button>
     
-                <a href="{{ url_for('user.delete_account') }}" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors duration-200">Delete</a>
+                <a href="{{ url_for('user.delete_account') }}" class="bg-red-500 text-white px-4 py-2 rounded-sm hover:bg-red-600 transition-colors duration-200">Delete</a>
             </div>
         </div>
     </div>

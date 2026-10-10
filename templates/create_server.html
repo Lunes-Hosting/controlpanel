@@ -17,7 +17,7 @@
         body {
             margin: 0;
             min-height: 100vh;
-            background: radial-gradient(circle at top, #020617 0%, #020617 40%, #020617 100%);
+            background: #020617;
             color: #f8fbff;
             font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
             position: relative;
@@ -55,34 +55,137 @@
         .page-shell {
             position: relative;
             z-index: 1;
-            max-width: 1100px;
+            max-width: 1024px;
             margin: 0 auto;
-            padding: clamp(1.5rem, 4vw, 3rem);
+            padding: clamp(1.25rem, 4vw, 2.5rem);
         }
 
         .step-panel {
-            background: rgba(15, 23, 42, 0.95);
-            border-radius: 1.5rem;
-            border: 1px solid rgba(59, 130, 246, 0.35);
-            box-shadow: 0 30px 70px rgba(15, 23, 42, 0.85);
+            background: rgba(15, 23, 42, 0.92);
+            border-radius: 0.125rem;
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.4);
         }
 
-        .highlighted {
-            border: 2px solid rgb(59 130 246 / var(--tw-border-opacity, 1));
-            background-color: rgb(59 130 246 / var(--tw-border-opacity, 1));
-            color: white;
+        .creation-steps {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+            padding: 0;
+            list-style: none;
+            color: rgba(148, 163, 184, 0.75);
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .creation-steps .step {
+            padding: 0.55rem 0.85rem;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 0.125rem;
+            background: rgba(15, 23, 42, 0.7);
+        }
+        .creation-steps .step.underline {
+            border-color: rgba(96, 165, 250, 0.55);
+            background: rgba(30, 64, 175, 0.28);
+            color: #bfdbfe;
+        }
+        .creation-steps .fa-right-long {
+            color: rgba(148, 163, 184, 0.45);
+            font-size: 0.75rem;
+        }
+        .form-control {
+            width: 100%;
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            border-radius: 0.125rem;
+            background: rgba(15, 23, 42, 0.8);
+            color: #f8fafc;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+        .form-control:focus {
+            border-color: rgba(96, 165, 250, 0.85);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        .form-control option {
+            background: #0f172a;
+            color: #f8fafc;
+        }
+        .plan-card {
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 0.125rem;
+            background: rgba(15, 23, 42, 0.72);
+            box-shadow: 0 8px 20px rgba(2, 6, 23, 0.18);
+            transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        .plan-card:hover {
+            border-color: rgba(96, 165, 250, 0.6);
+            background: rgba(30, 41, 59, 0.88);
+            box-shadow: 0 12px 28px rgba(2, 6, 23, 0.32);
+        }
+        .plan-card.highlighted {
+            border: 1px solid rgba(96, 165, 250, 0.9);
+            background: rgba(30, 64, 175, 0.28);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.16);
+            color: #f8fafc;
+        }
+        .create-action {
+            display: inline-flex;
+            min-height: 2.75rem;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border: 1px solid rgba(147, 197, 253, 0.35);
+            border-radius: 0.125rem;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            color: #f8fafc;
+            font-weight: 600;
+            transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
+        }
+        .create-action:hover:not(:disabled) {
+            transform: translateY(-1px);
+            filter: brightness(1.08);
+            box-shadow: 0 8px 18px rgba(37, 99, 235, 0.28);
+        }
+        .create-action:focus-visible {
+            outline: 2px solid #93c5fd;
+            outline-offset: 3px;
+        }
+
+        .create-action:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+        }
+        .create-action.secondary {
+            border-color: rgba(148, 163, 184, 0.28);
+            background: rgba(30, 41, 59, 0.82);
+        }
+        .step-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
         }
 
         @media (max-width: 640px) {
             .page-shell {
                 padding: 1.25rem 1rem 2.25rem;
             }
-            .step-panel {
-                border-radius: 1.25rem;
+            .creation-steps {
+                gap: 0.4rem;
+                font-size: 0.75rem;
             }
-            ul.flex {
-                flex-direction: column;
-                gap: 0.5rem;
+            .creation-steps .step {
+                padding: 0.5rem;
+                text-align: center;
+            }
+            .step-panel {
+                padding: 1.25rem !important;
+            }
+            .plan-card {
+                padding: 1rem;
+            }
+            .creation-steps .fa-right-long {
+                font-size: 0.65rem;
             }
         }
     </style>
@@ -92,26 +195,15 @@
     <div class="background-blob blob-one"></div>
     <div class="background-blob blob-two"></div>
     <div class="noise-overlay"></div>
-    <nav class="sticky w-full bg-gradient-to-t from-gray-900/0 to-blue-900/100 top-0 z-50 backdrop-blur-xs">
-        <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-row items-center justify-between h-16">
-                <a href="/" class="group flex items-center space-x-3">
-                    <div class="relative"><img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" rel="preload" class="h-auto w-10 rounded-lg" width="32" height="32"></div>
-                    <div>
-                        <h2 class="text-xl font-bold text-white">Lunes</h2>
-                    </div>
-                </a>
-            </div>
-        </div>
-    </nav>
+    {% include 'partials/top_nav.html' %}
 
     {% include 'partials/flash_messages.html' %}
 
     <!-- Multi-Step Form -->
     <div class="page-shell max-w-5xl mx-auto p-4 sm:p-6">
         <!-- Steps Indicator -->
-        <ul class="flex justify-center items-center gap-4 mb-8">
-            <li class="step step-info underline" id="step-1-text">Server Creation</li>
+        <ul class="creation-steps">
+            <li class="step underline" id="step-1-text">Server Creation</li>
             <i class="fa-solid fa-right-long"></i>
             <li class="step" id="step-2-text">Choose Plan</li>
             <i class="fa-solid fa-right-long"></i>
@@ -121,8 +213,14 @@
         <!-- Step 1: Server Details -->
         <form action="{{ url_for('servers.create_server_submit') }}" method="post">
             <div id="step-1" class="step-panel my-4 p-8">
-                <h1 class="text-3xl sm:text-4xl font-bold text-center mb-6">Create Server</h1>
-                <p class="text-center text-gray-400 mb-8">Create a server and start hosting!</p>
+                <div class="mb-8 flex items-center gap-3 border-b border-white/10 pb-5">
+                    <i class="fa-solid fa-server text-2xl text-blue-400" aria-hidden="true"></i>
+                    <div>
+                        <p class="text-sm uppercase tracking-wider text-blue-300/80">Infrastructure</p>
+                        <h1 class="text-2xl font-semibold">Create Server</h1>
+                        <p class="mt-1 text-sm text-slate-400">Configure your server and select a hosting plan.</p>
+                    </div>
+                </div>
 
                 <!-- Server Name -->
                 <div class="mb-6">
@@ -132,7 +230,7 @@
                         name="name" 
                         id="name" 
                         required 
-                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="form-control px-4 py-2"
                     >
                 </div>
 
@@ -143,7 +241,7 @@
                         name="node_id" 
                         id="node_id" 
                         required 
-                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="form-control px-4 py-2"
                     >
                         <option value="" disabled selected>Select Node</option>
                         {% for node in nodes %}
@@ -159,7 +257,7 @@
                         name="egg_id" 
                         id="egg_id" 
                         {% if environment %}disabled{% else %}required{% endif %}
-                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 {% if environment %}opacity-60 cursor-not-allowed{% endif %}"
+                        class="form-control px-4 py-2 {% if environment %}opacity-60 cursor-not-allowed{% endif %}"
                     >
                         {% if not environment %}
                             <option value="" disabled selected>Select Software</option>
@@ -185,24 +283,30 @@
                 <button 
                     type="button" 
                     id="next-step" 
-                    class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors duration-200"
+                    class="create-action w-full px-4 py-2"
                 >
                     Next
                 </button>
-                <div class="bg-red-500 text-white px-4 py-2 rounded-md mt-4 hidden" id="error-message"></div>
+                <div class="mt-4 hidden border border-red-400/30 bg-red-950/60 px-4 py-2 text-red-100" id="error-message" style="border-radius: 0.125rem;"></div>
             </div>
 
             <!-- Step 2: Choose Plan -->
             <div id="step-2" class="hidden step-panel my-4 p-8">
-                <h1 class="text-3xl sm:text-4xl font-bold text-center mb-6">Choose Plan</h1>
-                <p class="text-center text-gray-400 mb-8">Select a plan that suits your needs.</p>
+                <div class="mb-8 flex items-center gap-3 border-b border-white/10 pb-5">
+                    <i class="fa-solid fa-box-open text-2xl text-blue-400" aria-hidden="true"></i>
+                    <div>
+                        <p class="text-sm uppercase tracking-wider text-blue-300/80">Infrastructure</p>
+                        <h1 class="text-2xl font-semibold">Choose Plan</h1>
+                        <p class="mt-1 text-sm text-slate-400">Select a plan that suits your needs.</p>
+                    </div>
+                </div>
 
                 <!-- Plan Cards -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                     {% for product in products %}
                         {% if not product.get('is_addon', False) %}
                         <div 
-                            class="bg-gray-700 p-4 rounded-md shadow-lg cursor-pointer plan-card hover:shadow-xl transition-shadow"
+                            class="p-4 cursor-pointer plan-card"
                             data-plan-id="{{ product['id'] }}"
                         >
                             <h2 class="text-xl font-semibold mb-2">{{ product['name'] }}</h2>
@@ -229,13 +333,19 @@
                 <input type="hidden" name="plan" id="selected-plan" required>
 
                 <!-- Submit Button -->
-                <button 
-                    type="submit" 
-                    class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors duration-200"
-                    disabled
-                >
-                    Submit
-                </button>
+                <div class="step-actions">
+                    <button type="button" id="back-step" class="create-action secondary w-full px-4 py-2">
+                        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                        Back
+                    </button>
+                    <button
+                        type="submit"
+                        class="create-action w-full px-4 py-2"
+                        disabled
+                    >
+                        Submit
+                    </button>
+                </div>
             </div>
         </form>
     </div>
@@ -247,6 +357,7 @@
         const step1 = document.getElementById('step-1');
         const step2 = document.getElementById('step-2');
         const nextStepBtn = document.getElementById('next-step');
+        const backStepBtn = document.getElementById('back-step');
         const planCards = document.querySelectorAll('.plan-card');
         const selectedPlanInput = document.getElementById('selected-plan');
         const nameInput = document.getElementById('name');
@@ -304,6 +415,13 @@
                 step1text.classList.remove('underline');
                 step2text.classList.add('underline');
             }
+        });
+
+        backStepBtn.addEventListener('click', () => {
+            step2.classList.add('hidden');
+            step1.classList.remove('hidden');
+            step2text.classList.remove('underline');
+            step1text.classList.add('underline');
         });
 
         // Plan Card Selection

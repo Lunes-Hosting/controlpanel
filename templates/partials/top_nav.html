@@ -1,12 +1,19 @@
 <nav class="sticky w-full bg-gradient-to-t from-slate-950/40 via-slate-950/70 to-blue-900/70 top-0 z-50 backdrop-blur-md border-b border-white/5">
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-row items-center justify-between h-16">
-            <a href="/" class="group flex items-center space-x-3">
-                <div class="relative"><img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" rel="preload" class="h-auto w-10 rounded-lg" width="32" height="32"></div>
-                <div>
-                    <h2 class="text-xl font-bold text-white">Lunes</h2>
+            <a href="/" class="group flex items-center gap-3">
+                <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="" class="h-10 w-10 object-contain" width="40" height="40">
+                <div class="leading-tight">
+                    <h2 class="text-md font-bold tracking-tight text-white sm:text-lg">Lunes Hosting LLC</h2>
+                    <p class="mt-1 text-xs font-medium tracking-wide text-slate-300">Control Panel</p>
                 </div>
             </a>
+            {% if is_admin %}
+            <a href="{{ url_for('admin.admin_index') }}" class="inline-flex items-center gap-2 rounded-sm border border-white/10 px-3 py-2 text-sm font-semibold text-white transition-colors hover:border-blue-400/50 hover:bg-white/5">
+                <i class="fa-solid fa-shield-cat" aria-hidden="true"></i>
+                Admin Panel
+            </a>
+            {% endif %}
         </div>
     </div>
 </nav>

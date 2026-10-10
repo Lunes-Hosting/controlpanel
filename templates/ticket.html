@@ -7,6 +7,7 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
     <style>
         :root {
@@ -48,36 +49,82 @@
         .page-shell {
             position: relative;
             z-index: 1;
-            max-width: 1050px;
+            max-width: 1024px;
             margin: 0 auto;
-            padding: clamp(1.5rem, 5vw, 3rem);
+            padding: 1.5rem clamp(1rem, 3vw, 2rem) 3rem;
             display: flex;
             flex-direction: column;
-            gap: 1.75rem;
+            gap: 1rem;
         }
 
-        nav {
+        .ticket-toolbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 1rem;
         }
 
-        nav a {
+        .ticket-toolbar a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
             text-decoration: none;
-            color: inherit;
+            color: #93c5fd;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: color 0.2s ease;
+        }
+
+        .ticket-toolbar a:hover {
+            color: #dbeafe;
+        }
+
+        .section-heading {
             display: flex;
             align-items: center;
-            gap: 0.65rem;
+            gap: 0.75rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .section-heading > i {
+            color: #60a5fa;
+            font-size: 1.4rem;
+        }
+
+        .section-heading p {
+            margin: 0 0 0.2rem;
+            color: rgba(147, 197, 253, 0.8);
+            font-size: 0.72rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .section-heading h1 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 650;
+            letter-spacing: -0.03em;
         }
 
         .ticket-head {
-            border-radius: 1.5rem;
-            padding: clamp(1.5rem, 4vw, 2.4rem);
-            background: rgba(3, 6, 23, 0.9);
-            border: 1px solid rgba(96, 165, 250, 0.3);
-            box-shadow: 0 35px 70px rgba(2, 6, 23, 0.65);
+            border-radius: 0.125rem;
+            padding: clamp(1.25rem, 3vw, 1.75rem);
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(8, 15, 32, 0.96));
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.25);
             display: grid;
             gap: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ticket-head::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #3b82f6 28%, #22d3ee 72%, transparent);
         }
 
         .ticket-head .meta {
@@ -87,10 +134,16 @@
             align-items: center;
         }
 
-        .ticket-head img {
-            width: 58px;
-            height: 58px;
-            border-radius: 16px;
+        .avatar-icon {
+            width: 52px;
+            height: 52px;
+            display: grid;
+            place-items: center;
+            border-radius: 0.125rem;
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            background: rgba(37, 99, 235, 0.14);
+            color: #93c5fd;
+            font-size: 1.2rem;
         }
 
         .ticket-head h1 {
@@ -107,9 +160,10 @@
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
-            padding: 0.35rem 0.85rem;
-            border-radius: 999px;
-            font-size: 0.85rem;
+            padding: 0.45rem 0.7rem;
+            border-radius: 0.125rem;
+            font-size: 0.75rem;
+            font-weight: 600;
         }
 
         .status-open {
@@ -125,34 +179,43 @@
         }
 
         .conversation {
-            border-radius: 1.5rem;
-            padding: clamp(1.5rem, 3vw, 2.25rem);
-            background: rgba(4, 8, 21, 0.92);
-            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 0.125rem;
+            padding: clamp(1.25rem, 3vw, 1.75rem);
+            background: rgba(15, 23, 42, 0.78);
+            border: 1px solid rgba(148, 163, 184, 0.18);
             display: flex;
             flex-direction: column;
-            gap: 1.15rem;
+            gap: 1.25rem;
+        }
+
+        .conversation-heading {
+            margin: 0;
+            padding-bottom: 0.85rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+            font-size: 1rem;
+            font-weight: 650;
         }
 
         .message {
             display: flex;
             flex-direction: column;
             gap: 0.4rem;
-            padding: 1rem 1.2rem;
-            border-radius: 1rem;
-            max-width: 520px;
+            padding: 0.9rem 1rem;
+            border-radius: 0.125rem;
+            max-width: min(680px, 92%);
+            overflow-wrap: anywhere;
         }
 
         .message.user {
             margin-left: auto;
-            background: linear-gradient(120deg, rgba(59, 130, 246, 0.25), rgba(99, 102, 241, 0.25));
-            border: 1px solid rgba(99, 102, 241, 0.35);
+            background: linear-gradient(120deg, rgba(37, 99, 235, 0.2), rgba(30, 64, 175, 0.18));
+            border: 1px solid rgba(96, 165, 250, 0.3);
         }
 
         .message.other {
             margin-right: auto;
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(148, 163, 184, 0.25);
+            background: rgba(2, 6, 23, 0.48);
+            border: 1px solid rgba(148, 163, 184, 0.18);
         }
 
         .message h3 {
@@ -177,22 +240,22 @@
         }
 
         .composer {
-            border-radius: 1.5rem;
-            padding: clamp(1.4rem, 3vw, 2rem);
-            background: rgba(3, 6, 23, 0.9);
-            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 0.125rem;
+            padding: clamp(1.25rem, 3vw, 1.75rem);
+            background: rgba(15, 23, 42, 0.78);
+            border: 1px solid rgba(148, 163, 184, 0.18);
             display: flex;
             flex-direction: column;
             gap: 1rem;
-            text-align: center;
+            text-align: left;
         }
 
         .composer form {
             display: flex;
             flex-direction: column;
             gap: 1rem;
-            max-width: 560px;
-            margin: 0 auto;
+            width: 100%;
+            margin: 0;
         }
 
         .composer label {
@@ -200,29 +263,39 @@
             color: #cbd5f5;
         }
 
-        .composer input {
-            border-radius: 1rem;
-            border: 1px solid rgba(148, 163, 184, 0.3);
-            background: rgba(10, 16, 32, 0.95);
+        .composer input,
+        .composer textarea {
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 0.125rem;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            background: rgba(2, 6, 23, 0.58);
             color: #fff;
             padding: 0.85rem 1rem;
             font-size: 0.95rem;
+            font: inherit;
         }
 
-        .composer input:focus {
+        .composer textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .composer input:focus,
+        .composer textarea:focus {
             outline: none;
             border-color: #3b82f6;
             box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5);
         }
 
         .composer button {
-            align-self: center;
-            border: none;
-            border-radius: 999px;
-            padding: 0.85rem 1.6rem;
+            align-self: flex-start;
+            border: 1px solid rgba(147, 197, 253, 0.42);
+            border-radius: 0.125rem;
+            padding: 0.8rem 1.1rem;
             font-size: 0.95rem;
             font-weight: 600;
-            background: linear-gradient(120deg, #3b82f6, #6366f1);
+            background: linear-gradient(110deg, #1d4ed8, #2563eb 55%, #3b82f6);
             color: #fff;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -230,26 +303,39 @@
 
         .composer button:hover {
             transform: translateY(-1px);
-            box-shadow: 0 15px 25px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 10px 24px rgba(37, 99, 235, 0.32);
+        }
+
+        .composer button:focus-visible,
+        .status-form button:focus-visible,
+        .ticket-toolbar a:focus-visible {
+            outline: 2px solid #93c5fd;
+            outline-offset: 3px;
         }
 
         .status-form button {
             width: 100%;
-            border: none;
-            border-radius: 1rem;
-            padding: 0.9rem;
-            font-size: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 0.125rem;
+            padding: 0.85rem;
+            font-size: 0.9rem;
             font-weight: 600;
             color: #fff;
             cursor: pointer;
+            transition: filter 0.2s ease, transform 0.2s ease;
+        }
+
+        .status-form button:hover {
+            filter: brightness(1.08);
+            transform: translateY(-1px);
         }
 
         .status-form .close-btn {
-            background: linear-gradient(120deg, #ef4444, #f97316);
+            background: linear-gradient(110deg, #b91c1c, #dc2626);
         }
 
         .status-form .open-btn {
-            background: linear-gradient(120deg, #22c55e, #16a34a);
+            background: linear-gradient(110deg, #047857, #059669);
         }
 
         #loading-overlay {
@@ -283,27 +369,43 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
+
+        @media (max-width: 640px) {
+            .ticket-toolbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .ticket-head .meta {
+                align-items: flex-start;
+            }
+
+            .message {
+                max-width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
+    {% include 'partials/top_nav.html' %}
     <div class="page-shell">
-        <nav>
-            <a href="/">
-                <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Lunes" width="40" height="40" style="border-radius:12px;">
+        <div class="ticket-toolbar">
+            <div class="section-heading">
+                <i class="fa-solid fa-ticket" aria-hidden="true"></i>
                 <div>
-                    <p style="margin:0;font-size:0.85rem;color:#94a3b8;">Support Center</p>
-                    <strong style="font-size:1.2rem;">Ticket #{{ '%04d' | format(info['id']) }}</strong>
+                    <p>Support</p>
+                    <h1>Ticket #{{ '%04d' | format(info['id']) }}</h1>
                 </div>
-            </a>
-            <a href="{{ url_for('tickets.tickets_index') }}" style="font-size:0.9rem;color:#9db4d6;display:flex;align-items:center;gap:0.4rem;">
+            </div>
+            <a href="{{ url_for('tickets.tickets_index') }}">
                 <i class="fa-solid fa-arrow-left"></i>
                 Back to tickets
             </a>
-        </nav>
+        </div>
 
         <section class="ticket-head">
             <div class="meta">
-                <img src="https://gravatar.com/avatar/{{ hash }}" alt="Avatar">
+                <div class="avatar-icon" aria-hidden="true"><i class="fa-solid fa-user"></i></div>
                 <div>
                     <p style="font-size:0.9rem;color:#9db4d6;margin-bottom:0.2rem;">Opened by</p>
                     <h1>{{ info['author'] }}</h1>
@@ -323,6 +425,7 @@
         </section>
 
         <section class="conversation">
+            <h2 class="conversation-heading">Conversation</h2>
             {% for message in messages %}
                 <div>
                     <div class="message {% if message['author'] == info['author'] %}user{% else %}other{% endif %}">
@@ -337,7 +440,7 @@
         <section class="composer">
             <form id="add-message-form" action="{{ url_for('tickets.add_message_submit', ticket_id=info['id']) }}" method="post">
                 <label for="message">Add reply</label>
-                <input type="text" id="message" name="message" placeholder="Draft your message" required>
+                <input type="text" id="message" name="message" placeholder="Write your reply..." required>
                 <button type="submit">
                     <i class="fa-solid fa-paper-plane"></i>
                     <span style="margin-left:0.4rem;">Send reply</span>

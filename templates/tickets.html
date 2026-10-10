@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Tickets</title>
-    <link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
@@ -23,55 +23,91 @@
             overflow-x: hidden;
         }
 
-        .background-blob {
+        body::before,
+        body::after {
+            content: "";
             position: fixed;
             width: 420px;
             height: 420px;
-            border-radius: 9999px;
-            filter: blur(180px);
-            opacity: 0.35;
-            z-index: 0;
-        }
-        .blob-one {
-            top: -120px;
-            left: -80px;
-            background: #3b82f6;
-        }
-        .blob-two {
-            bottom: -160px;
-            right: -120px;
-            background: #14b8a6;
-        }
-        .noise-overlay {
-            position: fixed;
-            inset: 0;
-            background-image: url('https://www.transparenttextures.com/patterns/asfalt-light.png');
-            opacity: 0.06;
+            border-radius: 50%;
             pointer-events: none;
+            filter: blur(7px);
             z-index: 0;
+        }
+
+        body::before {
+            top: -120px;
+            right: -60px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.25), transparent 70%);
+        }
+
+        body::after {
+            bottom: -160px;
+            left: -100px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.25), transparent 70%);
         }
 
         .page-shell {
             position: relative;
             z-index: 1;
-            max-width: 1100px;
+            max-width: 1024px;
             margin: 0 auto;
-            padding: clamp(1.5rem, 5vw, 3rem);
+            padding: 1.5rem clamp(1rem, 3vw, 2rem) 3rem;
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .section-heading > i {
+            color: #60a5fa;
+            font-size: 1.4rem;
+        }
+
+        .section-heading p {
+            margin: 0 0 0.2rem;
+            color: rgba(147, 197, 253, 0.8);
+            font-size: 0.72rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .section-heading h1 {
+            margin: 0;
+            font-size: clamp(1.4rem, 3vw, 1.8rem);
+            font-weight: 650;
+            letter-spacing: -0.03em;
         }
 
         .hero {
             display: grid;
-            gap: 1.5rem;
-            padding: clamp(1.5rem, 4vw, 2.5rem);
-            border-radius: 1.5rem;
-            background: rgba(4, 7, 21, 0.85);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            box-shadow: 0 35px 70px rgba(2, 6, 23, 0.65);
+            gap: 1.25rem;
+            padding: clamp(1.25rem, 3vw, 1.75rem);
+            border-radius: 0.125rem;
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(8, 15, 32, 0.96));
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #3b82f6 28%, #22d3ee 72%, transparent);
         }
 
         .hero h1 {
-            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-size: clamp(1.15rem, 2.5vw, 1.45rem);
             margin: 0;
+            font-weight: 650;
         }
 
         .hero p {
@@ -81,39 +117,41 @@
 
         .hero-metrics {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.75rem;
         }
 
         .metric-card {
-            border-radius: 1rem;
-            padding: 1rem;
-            border: 1px solid rgba(148, 163, 184, 0.25);
-            background: rgba(15, 23, 42, 0.85);
+            border-radius: 0.125rem;
+            padding: 0.85rem 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            background: rgba(2, 6, 23, 0.38);
         }
 
         .metric-card strong {
             display: block;
-            font-size: 1.75rem;
+            font-size: 1.2rem;
+            margin-top: 0.2rem;
         }
 
         .content-grid {
-            margin-top: 2rem;
+            margin-top: 1rem;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+            gap: 1rem;
         }
 
         .panel {
-            border-radius: 1.5rem;
-            padding: clamp(1.5rem, 3vw, 2.25rem);
-            background: rgba(3, 6, 23, 0.9);
-            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 0.125rem;
+            padding: clamp(1.25rem, 3vw, 1.75rem);
+            background: rgba(15, 23, 42, 0.78);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            min-width: 0;
         }
 
         .panel h2 {
             margin: 0 0 0.35rem;
-            font-size: 1.35rem;
+            font-size: 1.1rem;
         }
 
         .panel p {
@@ -135,9 +173,10 @@
         input,
         textarea {
             width: 100%;
-            border-radius: 0.9rem;
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            background: rgba(15, 23, 42, 0.9);
+            box-sizing: border-box;
+            border-radius: 0.125rem;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            background: rgba(2, 6, 23, 0.58);
             color: #fff;
             font-size: 0.95rem;
             padding: 0.85rem 1rem;
@@ -159,9 +198,9 @@
             width: 100%;
             margin-top: 1.25rem;
             border: none;
-            border-radius: 0.9rem;
+            border-radius: 0.125rem;
             padding: 0.95rem 1rem;
-            background: linear-gradient(120deg, #3b82f6, #6366f1);
+            background: linear-gradient(110deg, #1d4ed8, #2563eb 55%, #3b82f6);
             color: #fff;
             font-weight: 600;
             font-size: 1rem;
@@ -183,9 +222,9 @@
         .ticket-card {
             text-decoration: none;
             padding: 1.25rem;
-            border-radius: 1.1rem;
-            border: 1px solid rgba(59, 130, 246, 0.25);
-            background: rgba(8, 12, 30, 0.95);
+            border-radius: 0.125rem;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            background: rgba(2, 6, 23, 0.38);
             display: grid;
             gap: 0.4rem;
             color: inherit;
@@ -204,8 +243,11 @@
 
         .ticket-card p {
             margin: 0;
-            color: #a5b4fc;
+            color: #9db4d6;
             font-size: 0.9rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .ticket-meta {
@@ -217,7 +259,11 @@
         }
 
     .flash-wrapper {
-        margin-top: 1rem;
+        position: relative;
+        z-index: 55;
+        max-width: 1024px;
+        margin: 0 auto;
+        padding: 1rem clamp(1rem, 3vw, 2rem) 0;
     }
 
     .flash-message {
@@ -225,13 +271,67 @@
         gap: 0.6rem;
         align-items: center;
         padding: 0.9rem 1.1rem;
-        border-radius: 1rem;
+        border-radius: 0.125rem;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        background: rgba(15, 23, 42, 0.96);
+    }
+
+    .ticket-card:focus-visible,
+    .submit-btn:focus-visible {
+        outline: 2px solid #93c5fd;
+        outline-offset: 3px;
+    }
+
+    #loading-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    #loading-overlay.active {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .spinner {
+        width: 56px;
+        height: 56px;
+        border: 4px solid rgba(59, 130, 246, 0.2);
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 760px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
     }
     </style>
 </head>
 <body>
+    {% include 'partials/top_nav.html' %}
     {% include 'partials/flash_messages.html' %}
     <div class="page-shell">
+        <div class="section-heading">
+            <i class="fa-solid fa-headset" aria-hidden="true"></i>
+            <div>
+                <p>Support Center</p>
+                <h1>Your support tickets</h1>
+            </div>
+        </div>
         <section class="hero">
             <div>
                 <h1>Raise a ticket, get help quickly.</h1>
@@ -258,7 +358,7 @@
                 <h2>Create a ticket</h2>
                 <p>Explain the issue and we’ll route it to the right engineer.</p>
 
-                <form action="{{ url_for('tickets.create_ticket_submit') }}" method="post" style="margin-top:1rem;">
+                <form class="ticket-create-form" action="{{ url_for('tickets.create_ticket_submit') }}" method="post" style="margin-top:1rem;">
                     <div class="form-group">
                         <label for="title">Title</label>
                         <input type="text" id="title" name="title" placeholder="Node 03 keeps restarting" required>
@@ -301,19 +401,19 @@
         </div>
     </div>
 
-    <div id="loading-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:999;visibility:hidden;opacity:0;transition:opacity 0.2s ease;">
-        <div style="width:70px;height:70px;border:4px solid rgba(59,130,246,0.2);border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;"></div>
+    <div id="loading-overlay" aria-hidden="true">
+        <div class="spinner" role="status" aria-label="Sending ticket"></div>
     </div>
 
     <script>
-        const form = document.querySelector('form');
+        const form = document.querySelector('.ticket-create-form');
         const overlay = document.getElementById('loading-overlay');
         const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
 
         if (form && overlay && submitBtn) {
             form.addEventListener('submit', () => {
-                overlay.style.visibility = 'visible';
-                overlay.style.opacity = '1';
+                overlay.classList.add('active');
+                overlay.setAttribute('aria-hidden', 'false');
                 submitBtn.disabled = true;
                 submitBtn.style.opacity = '0.7';
                 submitBtn.style.cursor = 'not-allowed';
@@ -327,14 +427,5 @@
             }
         });
     </script>
-    <script>
-        function spin() {}
-    </script>
-    <style>
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-    </style>
 </body>
 </html>
