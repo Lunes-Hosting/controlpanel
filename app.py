@@ -48,8 +48,6 @@ if ENABLE_BOT and not DEBUG_FRONTEND_MODE:
         'discord_bot.cogs.statistics',
         'discord_bot.cogs.users',
         'discord_bot.cogs.funstuff',
-        'discord_bot.cogs.blackjack',
-        'discord_bot.cogs.coinflip',
         'discord_bot.cogs.bump_rewards',
     ]
 
@@ -216,7 +214,7 @@ def index():
     """Main route - redirects to login if not authenticated."""
 
 if not DEBUG_FRONTEND_MODE:
-    extensions = ['discord_bot.cogs.statistics', 'discord_bot.cogs.users', 'discord_bot.cogs.linking', 'discord_bot.cogs.blackjack', 'discord_bot.cogs.coinflip', 'discord_bot.cogs.bump_rewards']
+    extensions = ['discord_bot.cogs.statistics', 'discord_bot.cogs.users', 'discord_bot.cogs.linking', 'discord_bot.cogs.bump_rewards']
 
     for extension in extensions:
         print(f'Loading {extension}')
