@@ -146,6 +146,9 @@ def login_user():
         ip = _get_client_ip(request)
         try:
             response = login(email, password, ip)
+            if response in ("suspended", "alt_suspended"):
+                flash("Your account has been suspended for breaking our TOS. If you believe this is a mistake, please contact support on Discord.")
+                return redirect(url_for('user.login_user'))
             if response is None:
                 flash("Incorrect information. Please ensure you have an account.")
                 return redirect(url_for('user.login_user'))
@@ -463,8 +466,26 @@ def register_user():
             webhook_log(f"Signup device lookup unavailable: {exc}", database_log=True)
             matches = {'exact': None, 'profile': None}
         if matches['exact']:
+            main_acc = DatabaseManager.execute_query(
+                "SELECT id, name, email, ip FROM users WHERE id = %s",
+                (matches['exact'],),
+            )
+            main_email = main_acc[2] if main_acc else "Unknown"
+            main_ip = main_acc[3] if main_acc else "Unknown"
+            main_name = main_acc[1] if main_acc else "Unknown"
             webhook_log(
-                f"Signup rejected: device already used by account ID {matches['exact']}",
+                f"Signup blocked (Alt Detected):\n\n"
+                f"Blocked Alt Account:\n"
+                f"- Full Email: {email}\n"
+                f"- Signup IP: {ip}\n"
+                f"- Username: {name}\n\n"
+                f"Matched Main Account:\n"
+                f"- ID: {matches['exact']}\n"
+                f"- Username: {main_name}\n"
+                f"- Full Email: {main_email}\n"
+                f"- Main Known IP: {main_ip}\n"
+                f"- Reason: Device token/storage match",
+                status=2,
                 database_log=True,
             )
             return render_template(
@@ -496,6 +517,12 @@ def register_user():
             webhook_log(f"Could not record signup device for account ID {user_id}: {exc}",
                         database_log=True)
 
+        from managers.alt_detection import record_user_ip
+        try:
+            record_user_ip(user_id, ip)
+        except Exception as exc:
+            pass
+
         verification_token = generate_verification_token()
         cache.set(verification_token, email, timeout=TOKEN_EXPIRATION_TIME)
 
@@ -526,12 +553,27 @@ def register_user():
             # Safely hand this request from Flask's thread to the Discord bot.
             from discord_bot.account_approval import queue_account_review
             if user_id:
+                main_account_info = None
+                if profile_review and matches.get('profile'):
+                    main_acc = DatabaseManager.execute_query(
+                        "SELECT id, name, email, ip FROM users WHERE id = %s",
+                        (matches['profile'],),
+                    )
+                    if main_acc:
+                        main_account_info = {
+                            "id": main_acc[0],
+                            "name": main_acc[1],
+                            "email": main_acc[2],
+                            "ip": main_acc[3],
+                        }
                 queue_account_review(
                     user_id=user_id,
                     name=name,
-                    email_domain=email.rsplit('@', 1)[-1].lower(),
+                    email=email,
                     reason=(f"Browser profile matches account ID {matches['profile']}"
                             if profile_review else "Non-Gmail email domain"),
+                    alt_ip=ip,
+                    main_account_info=main_account_info,
                 )
             flash(
                 'A verification email has been sent. Your free account is also waiting '
