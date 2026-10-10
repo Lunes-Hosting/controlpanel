@@ -83,6 +83,22 @@ def is_older_account(a_created, a_id: int, b_created, b_id: int) -> bool:
     return int(a_id) < int(b_id)
 
 
+def get_client_ip(req) -> str:
+    """Best-effort real client IP behind Cloudflare/Proxies.
+    Order: CF-Connecting-IP -> X-Forwarded-For (first) -> remote_addr.
+    """
+    if req is None:
+        return ""
+    ip = req.headers.get("CF-Connecting-IP")
+    if not ip:
+        xff = req.headers.get("X-Forwarded-For")
+        if xff:
+            ip = xff.split(",")[0].strip()
+    if not ip:
+        ip = getattr(req, "remote_addr", "") or ""
+    return str(ip).strip()
+
+
 def check_login_ip(
     user_id: int,
     email: str,
@@ -90,8 +106,9 @@ def check_login_ip(
     role: str,
     created_at,
     ip: str,
+    action: str = "login",
 ) -> Dict[str, Any]:
-    """Check if the logging-in user's IP has been historically used by other accounts.
+    """Check if the user's IP has been historically used by other accounts.
     
     If an older account (main) used this IP, the current account is an alt and is suspended.
     If the current account is older (main), any newer accounts sharing this IP are suspended.
@@ -129,6 +146,19 @@ def check_login_ip(
         if other_role in ("admin", "support"):
             continue
 
+        if action == "server_creation":
+            action_title = "server creation"
+            action_reason = "Alt account attempted to create server from IP historically used by main account."
+            main_action_reason = "Main account created server; newer alt account sharing this IP was suspended."
+        elif action == "live_session":
+            action_title = "live session"
+            action_reason = "Alt account connected to active session from IP historically used by main account."
+            main_action_reason = "Main account connected to session; newer alt account sharing this IP was suspended."
+        else:
+            action_title = "login"
+            action_reason = "Alt account logged in from IP historically used by main account."
+            main_action_reason = "Main account logged in; newer alt account sharing this IP was suspended."
+
         if is_older_account(other_created, other_id, created_at, user_id):
             # Other account is older -> OTHER is MAIN, CURRENT is ALT.
             # Suspend the current account.
@@ -141,12 +171,12 @@ def check_login_ip(
                 print(f"Failed to suspend alt user {user_id}: {exc}")
 
             webhook_log(
-                f"Alt account detected and suspended on login:\n\n"
+                f"Alt account detected and suspended on {action_title}:\n\n"
                 f"Suspended Alt Account:\n"
                 f"- ID: {user_id}\n"
                 f"- Username: {name}\n"
                 f"- Full Email: {email}\n"
-                f"- Login IP: {clean_ip}\n"
+                f"- Current IP: {clean_ip}\n"
                 f"- Registered: {created_at}\n\n"
                 f"Active Main Account:\n"
                 f"- ID: {other_id}\n"
@@ -154,7 +184,7 @@ def check_login_ip(
                 f"- Full Email: {other_email}\n"
                 f"- Main Known IP: {other_ip or clean_ip}\n"
                 f"- Registered: {other_created}\n\n"
-                f"Reason: Alt account logged in from IP historically used by main account.",
+                f"Reason: {action_reason}",
                 status=2,
                 database_log=True,
             )
@@ -182,7 +212,7 @@ def check_login_ip(
                     print(f"Failed to suspend alt user {other_id}: {exc}")
 
                 webhook_log(
-                    f"Alt account detected and suspended on login:\n\n"
+                    f"Alt account detected and suspended on {action_title}:\n\n"
                     f"Suspended Alt Account:\n"
                     f"- ID: {other_id}\n"
                     f"- Username: {other_name}\n"
@@ -193,9 +223,9 @@ def check_login_ip(
                     f"- ID: {user_id}\n"
                     f"- Username: {name}\n"
                     f"- Full Email: {email}\n"
-                    f"- Login IP: {clean_ip}\n"
+                    f"- Current IP: {clean_ip}\n"
                     f"- Registered: {created_at}\n\n"
-                    f"Reason: Main account logged in; newer alt account sharing this IP was suspended.",
+                    f"Reason: {main_action_reason}",
                     status=2,
                     database_log=True,
                 )

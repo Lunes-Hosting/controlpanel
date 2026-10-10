@@ -326,6 +326,34 @@ def create_server():
     if not verified:
         return redirect(url_for('user.index'))
 
+    # Check if user is suspended or alt detected on current connection IP
+    user_row = DatabaseManager.execute_query(
+        "SELECT id, name, role, created_at, suspended FROM users WHERE email = %s",
+        (session['email'],)
+    )
+    if user_row:
+        user_id, name, role, created_at, suspended = user_row[0], user_row[1], user_row[2], user_row[3], user_row[4]
+        if suspended:
+            session.clear()
+            flash("Your account has been suspended for breaking our TOS, if you believe this is a mistake you can submit a ticket on our discord.")
+            return redirect(url_for('user.login_user'))
+
+        from managers.alt_detection import check_login_ip, get_client_ip
+        client_ip = get_client_ip(request)
+        ip_check = check_login_ip(
+            user_id=int(user_id),
+            email=session['email'],
+            name=name,
+            role=role,
+            created_at=created_at,
+            ip=client_ip,
+            action="server_creation",
+        )
+        if not ip_check.get("allowed", True):
+            session.clear()
+            flash("Your account has been suspended for breaking our TOS, if you believe this is a mistake you can submit a ticket on our discord.")
+            return redirect(url_for('user.login_user'))
+
     if check_if_user_suspended(str(get_ptero_id(session['email'])[0])):
         return redirect(url_for('user.index'))
 
@@ -459,6 +487,34 @@ def create_server_submit():
     """
     Handle server creation form submission.
     """
+    # Check if user is suspended or alt detected on current connection IP
+    user_row = DatabaseManager.execute_query(
+        "SELECT id, name, role, created_at, suspended FROM users WHERE email = %s",
+        (session['email'],)
+    )
+    if user_row:
+        user_id, name, role, created_at, suspended = user_row[0], user_row[1], user_row[2], user_row[3], user_row[4]
+        if suspended:
+            session.clear()
+            flash("Your account has been suspended for breaking our TOS, if you believe this is a mistake you can submit a ticket on our discord.")
+            return redirect(url_for('user.login_user'))
+
+        from managers.alt_detection import check_login_ip, get_client_ip
+        client_ip = get_client_ip(request)
+        ip_check = check_login_ip(
+            user_id=int(user_id),
+            email=session['email'],
+            name=name,
+            role=role,
+            created_at=created_at,
+            ip=client_ip,
+            action="server_creation",
+        )
+        if not ip_check.get("allowed", True):
+            session.clear()
+            flash("Your account has been suspended for breaking our TOS, if you believe this is a mistake you can submit a ticket on our discord.")
+            return redirect(url_for('user.login_user'))
+
     if not _has_server_creation_approval(session['email']):
         flash(SERVER_APPROVAL_MESSAGE)
         return redirect(url_for('user.index'))

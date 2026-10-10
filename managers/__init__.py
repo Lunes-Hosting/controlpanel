@@ -30,7 +30,7 @@ from .authentication import *
 from .maintenance import *
 from .logging import *
 from .utils import *
-from .alt_detection import check_login_ip, record_user_ip
+from .alt_detection import check_login_ip, record_user_ip, get_client_ip
 
 # Export constants
 from .utils import HEADERS
@@ -40,6 +40,7 @@ __all__ = [
     'DatabaseManager',
     'check_login_ip',
     'record_user_ip',
+    'get_client_ip',
     # User Manager
     'get_ptero_id', 
     'get_id', 
