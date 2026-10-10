@@ -144,6 +144,22 @@ def login(email: str, password: str, ip: str):
         hashed_password = result[9]
         # Verify password
         if bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8')):
+            # Check if user is already suspended
+            if result[15]:
+                return "suspended"
+
+            from .alt_detection import check_login_ip
+            ip_check = check_login_ip(
+                user_id=result[0],
+                email=email,
+                name=result[1],
+                role=result[2],
+                created_at=result[11],
+                ip=ip,
+            )
+            if not ip_check.get("allowed", True):
+                return "alt_suspended"
+
             # Update last seen and IP
             update_last_seen(email)
             update_ip(email, ip)
