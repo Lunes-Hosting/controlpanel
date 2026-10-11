@@ -456,6 +456,15 @@ def register_user():
             flash("Please fill in all registration fields.")
             return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
+        # Check if an account with this email already exists before scanning alt signals
+        existing_user = DatabaseManager.execute_query(
+            "SELECT id FROM users WHERE email = %s",
+            (email,)
+        )
+        if existing_user:
+            flash("An account with this email address already exists. Please log in.")
+            return redirect(url_for('user.login_user'))
+
         # Enrollment starts with this release. Existing users are not scanned,
         # changed, or subjected to a new login-time check.
         signals = collect_signals(data)
@@ -471,7 +480,11 @@ def register_user():
                 "SELECT id, name, email, ip FROM users WHERE id = %s",
                 (matches['exact'],),
             )
-            main_email = main_acc[2] if main_acc else "Unknown"
+            main_email = (main_acc[2] if main_acc else "Unknown").strip().lower()
+            if main_email == email:
+                flash("An account with this email address already exists. Please log in.")
+                return redirect(url_for('user.login_user'))
+
             main_ip = main_acc[3] if main_acc else "Unknown"
             main_name = main_acc[1] if main_acc else "Unknown"
             webhook_log(
