@@ -268,7 +268,7 @@ def check_login_ip(
     created_at,
     ip: str,
 ) -> Dict[str, Any]:
-     """Check if the logging-in user's IP has been historically used by other accounts.
+    """Check if the logging-in user's IP has been historically used by other accounts.
     
     If an older account (main) used this IP, the current account is an alt and is suspended.
     If the current account is older (main), any newer accounts sharing this IP are suspended.
