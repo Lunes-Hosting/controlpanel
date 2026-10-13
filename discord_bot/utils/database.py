@@ -25,19 +25,39 @@ class UserDB():
             return "Error fetching user info"
         
 
-    def suspend_user(email):
+    def suspend_user(email, actor="discord"):
         try:
             send_email(email, "Account Suspended", "Your account has been suspended.", current_app._get_current_object())
             DatabaseManager.execute_query("UPDATE users SET suspended = 1 WHERE email = %s",(email,))
+            row = DatabaseManager.execute_query("SELECT id FROM users WHERE email = %s", (email,))
+            if row:
+                from managers.alt_detection import log_alt_action
+                log_alt_action(int(row[0]), "ban", actor=actor, source="discord")
             return "User suspended"
         except Exception as e:
             logger.error(f"Error suspending user: {str(e)}")
             return "Error suspending user"
         
-    def unsuspend_user(email):
+    def get_unban_history(email):
+        """Earlier unbans for this account as a readable line, or None if there are none."""
+        try:
+            row = DatabaseManager.execute_query("SELECT id FROM users WHERE email = %s", (email,))
+            if not row:
+                return None
+            from managers.alt_detection import unban_history, describe_unban_history
+            return describe_unban_history(unban_history([int(row[0])])) or None
+        except Exception as e:
+            logger.error(f"Error fetching unban history: {str(e)}")
+            return None
+
+    def unsuspend_user(email, actor="discord"):
         try:
             send_email(email, "Account Unsuspended", "Your account has been unsuspended.", current_app._get_current_object())
             DatabaseManager.execute_query("UPDATE users SET suspended = 0 WHERE email = %s",(email,))
+            row = DatabaseManager.execute_query("SELECT id FROM users WHERE email = %s", (email,))
+            if row:
+                from managers.alt_detection import exempt_user
+                exempt_user(int(row[0]), actor=actor, source="discord")
             return "User unsuspended"
         except Exception as e:
             logger.error(f"Error unsuspending user: {str(e)}")
