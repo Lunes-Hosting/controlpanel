@@ -5,6 +5,17 @@ from managers.database_manager import DatabaseManager
 from ..utils.database import UserDB
 from ..utils.logger import logger
 
+
+def _find_account(email):
+    email = (email or "").strip()
+    if "@" not in email:
+        return email, None, "That doesn't look like an email address. Please enter the account's email, not the username."
+    row = DatabaseManager.execute_query("SELECT suspended FROM users WHERE email = %s", (email,))
+    if not row:
+        return email, None, f"No account found with the email `{email}`. Please double-check it."
+    return email, bool(row[0]), None
+
+
 class Users(commands.Cog):
     def __init__(self, bot, flask_app=None):
         self.bot = bot
@@ -79,6 +90,13 @@ class Users(commands.Cog):
                 await ctx.respond("You do not have permission to use this command.", ephemeral=True)
                 return
             try:
+                email, is_suspended, problem = _find_account(email)
+                if problem:
+                    await ctx.respond(problem, ephemeral=True)
+                    return
+                if is_suspended:
+                    await ctx.respond(f"`{email}` is already suspended.", ephemeral=True)
+                    return
                 UserDB.suspend_user(email, actor=f"{ctx.author} ({ctx.author.id})")
                 embed = discord.Embed(title="User Suspended", color=discord.Color.red())
                 embed.add_field(name="Email:", value=str(email), inline=False)
@@ -98,7 +116,33 @@ class Users(commands.Cog):
             if not (ctx.author.guild_permissions.administrator or discord.utils.get(ctx.author.roles, id=1364999900135165993)):
                 await ctx.respond("You do not have permission to use this command.", ephemeral=True)
                 return
+            email = (email or "").strip()
+            if "@" not in email:
+                await ctx.respond(
+                    "That doesn't look like an email address. Please enter the account's email, not the username.",
+                    ephemeral=True,
+                )
+                return
             try:
+                user_row = DatabaseManager.execute_query(
+                    "SELECT role FROM users WHERE email = %s",
+                    (email,)
+                )
+                if not user_row:
+                    await ctx.respond(
+                        f"No account found with the email `{email}`. Please double-check it.",
+                        ephemeral=True,
+                    )
+                    return
+                if user_row[0] in ("admin", "support"):
+                    await ctx.respond(
+                        f"`{email}` is a staff account ({user_row[0]}). Not changing it to client.",
+                        ephemeral=True,
+                    )
+                    return
+                if user_row[0] == "client":
+                    await ctx.respond(f"`{email}` is already a client.", ephemeral=True)
+                    return
                 DatabaseManager.execute_query(
                     "UPDATE users SET role = 'client' WHERE email = %s",
                     (email,)
@@ -127,6 +171,13 @@ class Users(commands.Cog):
                 await ctx.respond("You do not have permission to use this command.", ephemeral=True)
                 return
             try:
+                email, is_suspended, problem = _find_account(email)
+                if problem:
+                    await ctx.respond(problem, ephemeral=True)
+                    return
+                if not is_suspended:
+                    await ctx.respond(f"`{email}` isn't suspended, so there's nothing to unsuspend.", ephemeral=True)
+                    return
                 previous_unbans = UserDB.get_unban_history(email)
                 UserDB.unsuspend_user(email, actor=f"{ctx.author} ({ctx.author.id})")
                 embed = discord.Embed(title="User Unsuspended", color=discord.Color.green())
