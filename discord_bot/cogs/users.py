@@ -90,7 +90,7 @@ class Users(commands.Cog):
                 logger.error(f'Error with discord command "/suspend": {str(e)}')
 
     @slash_command(name="giveclient", description="Make a user a client.")
-    async def suspend_command(self, ctx, email: discord.Option(str, "User's email")): # type: ignore
+    async def giveclient_command(self, ctx, email: discord.Option(str, "User's email")): # type: ignore
         if self.flask_app is None:
             await ctx.respond("Error: Flask app not initialized", ephemeral=True)
             return
@@ -100,7 +100,7 @@ class Users(commands.Cog):
                 return
             try:
                 DatabaseManager.execute_query(
-                    "UPDATE users SET role = client WHERE email = %s",
+                    "UPDATE users SET role = 'client' WHERE email = %s",
                     (email,)
                 )
                 # Get new role
@@ -108,7 +108,7 @@ class Users(commands.Cog):
                     "SELECT role FROM users WHERE email = %s",
                     (email,)
                 )
-                embed = discord.Embed(title="User Suspended", color=discord.Color.red())
+                embed = discord.Embed(title="Client Role Given", color=discord.Color.green())
                 embed.add_field(name="Email:", value=str(email), inline=False)
                 await ctx.respond(embed=embed, ephemeral=True)
                 logger.info(f"Client role given to {email}. Current role: {new_role}")
