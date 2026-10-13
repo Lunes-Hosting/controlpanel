@@ -441,7 +441,6 @@ def admin_delete_user(user_id):
         (db_user[5],)
     )
     
-    # Log the action
     webhook_log(
         f"Admin {session['email']} deleted user {db_user[3]} (ID: {db_user[5]})",
         "admin", database_log=True
@@ -505,11 +504,22 @@ def admin_toggle_suspension(user_id):
         (new_status, user_id)
     )
     
+    from managers.alt_detection import (
+        exempt_user, log_alt_action, unban_history, describe_unban_history,
+    )
+    history_note = ""
+    if new_status == 0:
+        history_note = describe_unban_history(unban_history([int(user_id)]))
+        exempt_user(int(user_id), actor=session['email'], source="admin")
+    else:
+        log_alt_action(int(user_id), "ban", actor=session['email'], source="admin")
+
     action = "suspended" if new_status == 1 else "unsuspended"
     webhook_log(
-        f"Admin {session['email']} {action} user {db_user[3]} (ID: {db_user[5]})",
+        f"Admin {session['email']} {action} user {db_user[3]} (ID: {db_user[5]})"
+        + (f" | {history_note}" if history_note else ""),
         "admin", database_log=True
     )
     
-    flash(f"User {db_user[3]} has been {action}", "success")
+    flash(f"User {db_user[3]} has been {action}" + (f" ({history_note})" if history_note else ""), "success")
     return redirect(url_for('admin.users'))
