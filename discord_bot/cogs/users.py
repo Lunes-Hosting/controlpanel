@@ -79,7 +79,7 @@ class Users(commands.Cog):
                 await ctx.respond("You do not have permission to use this command.", ephemeral=True)
                 return
             try:
-                UserDB.suspend_user(email)
+                UserDB.suspend_user(email, actor=f"{ctx.author} ({ctx.author.id})")
                 embed = discord.Embed(title="User Suspended", color=discord.Color.red())
                 embed.add_field(name="Email:", value=str(email), inline=False)
                 await ctx.respond(embed=embed, ephemeral=True)
@@ -127,9 +127,12 @@ class Users(commands.Cog):
                 await ctx.respond("You do not have permission to use this command.", ephemeral=True)
                 return
             try:
-                UserDB.unsuspend_user(email)
+                previous_unbans = UserDB.get_unban_history(email)
+                UserDB.unsuspend_user(email, actor=f"{ctx.author} ({ctx.author.id})")
                 embed = discord.Embed(title="User Unsuspended", color=discord.Color.green())
                 embed.add_field(name="Email:", value=str(email), inline=False)
+                if previous_unbans:
+                    embed.add_field(name="Heads up:", value=previous_unbans, inline=False)
                 await ctx.respond(embed=embed, ephemeral=True)
                 logger.info(f"Unsuspended user {email}")
                 return
