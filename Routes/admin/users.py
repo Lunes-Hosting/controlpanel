@@ -441,12 +441,13 @@ def admin_delete_user(user_id):
         (db_user[5],)
     )
     
+    # Log the action
     webhook_log(
-        f"Admin {session['email']} deleted user {db_user[3]} (ID: {db_user[5]})",
+        f"Admin {session['email']} deleted user {db_user[1]} (ID: {db_user[0]})",
         "admin", database_log=True
     )
     
-    flash(f"User {db_user[3]} has been deleted", "success")
+    flash(f"User {db_user[1]} has been deleted", "success")
     return redirect(url_for('admin.users'))
 
 
@@ -516,10 +517,10 @@ def admin_toggle_suspension(user_id):
 
     action = "suspended" if new_status == 1 else "unsuspended"
     webhook_log(
-        f"Admin {session['email']} {action} user {db_user[3]} (ID: {db_user[5]})"
+        f"Admin {session['email']} {action} user {db_user[1]} (ID: {db_user[0]})"
         + (f" | {history_note}" if history_note else ""),
         "admin", database_log=True
     )
     
-    flash(f"User {db_user[3]} has been {action}" + (f" ({history_note})" if history_note else ""), "success")
+    flash(f"User {db_user[1]} has been {action}" + (f" ({history_note})" if history_note else ""), "success")
     return redirect(url_for('admin.users'))
