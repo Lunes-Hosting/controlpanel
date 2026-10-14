@@ -354,8 +354,10 @@
             {% include 'partials/flash_messages.html' %}
 
             <form action="{{ url_for('user.register_user') }}" method="POST">
+                {% if alt_detection_enabled %}
                 <input type="hidden" name="signup_storage" id="signup_storage">
                 <input type="hidden" name="signup_fingerprint" id="signup_fingerprint">
+                {% endif %}
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input type="text" id="username" name="username" placeholder="Lunes" value="{{ default_username }}" class="input-field" required>
@@ -385,6 +387,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             {% if not alt_detected %}
+            {% if alt_detection_enabled %}
             // A first-party ID survives a cleared cookie. No third-party service is used.
             try {
                 let id = localStorage.getItem('lunes_signup_device');
@@ -423,6 +426,7 @@
                 };
                 document.getElementById('signup_fingerprint').value = JSON.stringify(profile);
             } catch (_) { /* Fingerprinting is optional; do not break signup. */ }
+            {% endif %}
 
             const flashes = document.querySelectorAll('.flash-message');
             if (flashes.length) {

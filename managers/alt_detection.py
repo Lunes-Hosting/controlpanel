@@ -6,6 +6,7 @@ import threading
 from typing import Optional, Dict, Any, List, Tuple
 from managers.database_manager import DatabaseManager
 from managers.logging import webhook_log
+from managers.alt_settings import alt_detection_enabled
 
 _schema_lock = threading.Lock()
 _schema_ready = False
@@ -111,7 +112,7 @@ def is_global_ip(ip: str) -> bool:
 
 def record_user_ip(user_id: int, ip: str) -> None:
     """Record or refresh an IP address associated with a user account."""
-    if not user_id or not ip:
+    if not alt_detection_enabled() or not user_id or not ip:
         return
     ensure_alt_schema()
     clean_ip = str(ip).strip()
@@ -275,6 +276,9 @@ def check_login_ip(
     Staff roles ('admin', 'support') are never banned.
     Non-global IPs (localhost, private subnets) are ignored.
     """
+    if not alt_detection_enabled():
+        return {"allowed": True}
+
     clean_ip = str(ip).strip() if ip else ""
     record_user_ip(user_id, clean_ip)
 

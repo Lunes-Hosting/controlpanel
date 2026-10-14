@@ -1,4 +1,9 @@
 #db variables
+# Copy this file to config.py and set False to disable all automatic alt checks,
+# shared-IP signup blocking, device tracking, and fingerprint-based review.
+ALT_DETECTION_ENABLED = False
+# When detection is enabled, False warns on login IP matches instead of suspending.
+ALT_ENFORCE = False
 HOST=
 USER=
 PASSWORD=

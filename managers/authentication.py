@@ -23,6 +23,7 @@ from flask import session, redirect, url_for, current_app, render_template, requ
 from urllib.parse import quote
 from managers.email_manager import send_email
 from security import safe_requests
+from managers.alt_settings import alt_detection_enabled
 
 
 # API authentication headers
@@ -205,7 +206,7 @@ def register(email: str, password: str, name: str, ip: str, needs_review: bool =
     
     Process:
     1. Validates email and name
-    2. Checks if IP already registered
+    2. Checks if IP already registered when alt detection is enabled
     3. Creates user in Pterodactyl
     4. Creates user in local database with:
         - Hashed password
@@ -239,7 +240,6 @@ def register(email: str, password: str, name: str, ip: str, needs_review: bool =
         if "+" in email or any(banned in email for banned in banned_emails):
             webhook_log(f"Failed to register email {email} with IP {ip} due to email blacklist", database_log=True)
 
-            session['suspended'] = True
             return "Temporary emails are not allowed! Contact panel@lunes.host if this is a mistake"
     except Exception as e:
         print(f"Error checking blocked emails: {str(e)}")
@@ -247,9 +247,10 @@ def register(email: str, password: str, name: str, ip: str, needs_review: bool =
     webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered", database_log=True)
     
     # Check if IP is already registered
-    results = DatabaseManager.execute_query("SELECT * FROM users WHERE ip = %s", (ip,))
-    if results is not None:
-        return "IP is already registered"
+    if alt_detection_enabled():
+        results = DatabaseManager.execute_query("SELECT * FROM users WHERE ip = %s", (ip,))
+        if results is not None:
+            return "IP is already registered"
 
     # Create user in Pterodactyl
     body = {

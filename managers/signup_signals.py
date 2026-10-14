@@ -15,6 +15,7 @@ from hashlib import sha256
 from flask import current_app, g, request
 
 from managers.database_manager import DatabaseManager
+from managers.alt_settings import alt_detection_enabled
 
 
 COOKIE_NAME = "signup_device"
@@ -56,6 +57,8 @@ def _digest(kind, value):
 
 def device_token():
     """Return a validated cookie or issue a new one for this request."""
+    if not alt_detection_enabled():
+        return None
     token = request.cookies.get(COOKIE_NAME, "")
     if not _TOKEN_PATTERN.fullmatch(token):
         token = secrets.token_urlsafe(32)
@@ -64,6 +67,8 @@ def device_token():
 
 
 def set_device_cookie(response):
+    if not alt_detection_enabled():
+        return response
     token = getattr(g, "new_signup_device", None)
     if token:
         response.set_cookie(
@@ -76,6 +81,8 @@ def set_device_cookie(response):
 
 def collect_signals(form):
     """Validate bounded browser input; never store its raw values."""
+    if not alt_detection_enabled():
+        return None
     token = device_token()
     storage = form.get("signup_storage", "")
     storage_hash = _digest("storage", storage) if _STORAGE_PATTERN.fullmatch(storage) else None
@@ -110,6 +117,8 @@ def collect_signals(form):
 
 def find_matches(signals):
     """Return exact and profile matches among accounts enrolled since launch."""
+    if not alt_detection_enabled():
+        return {"exact": None, "profile": None}
     ensure_schema()
     exact = DatabaseManager.execute_query(
         "SELECT user_id FROM signup_devices WHERE device_hash = %s LIMIT 1",
@@ -131,6 +140,8 @@ def find_matches(signals):
 
 
 def record_signup(user_id, signals):
+    if not alt_detection_enabled():
+        return
     ensure_schema()
     DatabaseManager.execute_query(
         "INSERT INTO signup_devices (user_id, device_hash, storage_hash, fingerprint_hash) "
