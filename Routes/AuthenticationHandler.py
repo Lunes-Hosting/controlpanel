@@ -58,6 +58,7 @@ from managers.authentication import login_required, login, register, requires_ma
 from managers.signup_signals import (collect_signals, device_token, find_matches,
                                      record_signup, set_device_cookie)
 from managers.signup_location import connection_details
+from managers.alt_settings import alt_detection_enabled
 from managers.email_manager import send_email, generate_verification_token, send_verification_email, generate_reset_token, send_reset_email
 from managers.user_manager import account_get_information, get_id, get_name, instantly_delete_user, get_ptero_id
 from managers.server_manager import improve_list_servers, delete_server as manager_delete_server
@@ -75,6 +76,11 @@ user = Blueprint('user', __name__)
 TOKEN_EXPIRATION_TIME = 1800  # 30 minutes
 
 pterocache = PteroCache()
+
+
+@user.context_processor
+def _alt_detection_context():
+    return {"alt_detection_enabled": alt_detection_enabled()}
 
 
 @user.after_request
@@ -497,7 +503,7 @@ def register_user():
         if 'suspended' not in session:
             session['suspended'] = False
 
-        if session['suspended']:
+        if alt_detection_enabled() and session['suspended']:
             flash("Failed to register! If this is an error, please contact support. panel@lunes.host")
             webhook_log(f"Failed to register email {email} ip: {ip} due to alt suspended account")
             return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)

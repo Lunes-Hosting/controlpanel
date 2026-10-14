@@ -33,6 +33,23 @@ The project is designed to enhance the user experience when working with Pteroda
 
 # Getting Started
 
+### Alternate-account detection
+
+Set `ALT_DETECTION_ENABLED = False` in `config.py` to disable automatic
+IP-based login suspensions, shared-IP signup blocking, device-token/storage
+matching, fingerprint-based review, and collection of signup tracking signals.
+Set it to `True` to enable those checks. Restart the application after changing
+the configuration. See `configexample.py` for the settings.
+
+When enabled, `ALT_ENFORCE` separately controls login IP enforcement:
+`False` reports possible matches for review; `True` automatically suspends alts.
+Configurations without `ALT_DETECTION_ENABLED` default to detection disabled,
+even if `ALT_ENFORCE` was previously enabled.
+Disabling detection does not lift existing suspensions or change manual staff
+suspensions, email restrictions, or other account approval rules.
+Automatic server suspension still applies when credits are insufficient and
+when a free-tier server's owner has not logged in for more than 15 days.
+
 
 
 ### Prerequisites
