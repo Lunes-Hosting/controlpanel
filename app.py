@@ -122,8 +122,14 @@ def rate_limit_key():
     - Different users on the same IP (NAT) are still somewhat separated
       by their session component.
     """
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    ip = ip.split(',')[0].strip() if ip else request.remote_addr
+    # Grabbing Cloudflare's verified IP first so bad actors can't spoof their way past your rate limits.
+    ip = request.headers.get('CF-Connecting-IP')
+    if not ip:
+        xff = request.headers.get('X-Forwarded-For')
+        if xff:
+            ip = xff.split(',')[0].strip()
+    if not ip:
+        ip = request.remote_addr
     
     session_id = session.get('random_id', 'anonymous')
     return f"{ip}:{session_id}"

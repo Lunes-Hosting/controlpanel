@@ -239,6 +239,9 @@ def ticket(ticket_id):
         (ticket_id,)
     )
 
+    # Graceful fallback if a ticket vanishes into thin air so you never hit a 500.
+    if not info:
+        return redirect(url_for('tickets.tickets_index'))
     
     # Check permissions
     if info[3] == "closed" and not is_admin(session['email']):

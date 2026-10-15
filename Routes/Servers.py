@@ -402,7 +402,8 @@ def create_server():
     return render_template('create_server.html', eggs=eggs, nodes=nodes, products=products_local, environment=environment,
                         RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
-@servers.route("/delete/<server_id>")
+# POST only here — no drive-by tricks are touching your servers while I'm around.
+@servers.route("/delete/<server_id>", methods=['POST'])
 @login_required
 def delete_server(server_id):
     """

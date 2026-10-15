@@ -280,17 +280,24 @@
                 <a href="https://ctrl.lunes.host/server/{{ info['attributes']['uuid'].split('-')[0] }}" class="btn btn-primary">
                     <i class="fas fa-cog"></i> Manage
                 </a>
-                <a href="{{ url_for('admin.admin_delete_server', server_id=info['attributes']['id']) }}" class="btn btn-danger">
-                    <i class="fas fa-trash"></i> Delete
-                </a>
+                <!-- Keeping your admin actions locked down under POST forms ~ -->
+                <form method="POST" action="{{ url_for('admin.admin_delete_server', server_id=info['attributes']['id']) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this server?');">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </form>
                 {% if info['attributes']['suspended'] %}
-                <a href="{{ url_for('admin.admin_toggle_server_suspension', server_id=info['attributes']['id']) }}" class="btn btn-success">
-                    <i class="fas fa-play"></i> Unsuspend
-                </a>
+                <form method="POST" action="{{ url_for('admin.admin_toggle_server_suspension', server_id=info['attributes']['id']) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-play"></i> Unsuspend
+                    </button>
+                </form>
                 {% else %}
-                <a href="{{ url_for('admin.admin_toggle_server_suspension', server_id=info['attributes']['id']) }}" class="btn btn-warning">
-                    <i class="fas fa-pause"></i> Suspend
-                </a>
+                <form method="POST" action="{{ url_for('admin.admin_toggle_server_suspension', server_id=info['attributes']['id']) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-pause"></i> Suspend
+                    </button>
+                </form>
                 {% endif %}
             </div>
         </div>

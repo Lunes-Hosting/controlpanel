@@ -51,6 +51,7 @@ import bcrypt
 
 from flask_limiter import Limiter
 from security import safe_requests
+from urllib.parse import urlparse, urljoin
 
 sys.path.append("..")
 from pterocache import *
@@ -101,6 +102,23 @@ def _get_client_ip(req: 'flask.Request') -> str:
     if not ip:
         ip = req.remote_addr
     return ip
+
+# Making sure nobody tries to bounce my favorite person to some sketchy link ~
+def is_safe_url(target: str) -> bool:
+    """Ensure target URL is a safe internal redirect without protocol-relative tricks."""
+    if not target or not isinstance(target, str):
+        return False
+    target = target.strip()
+    if not target or target.lower() in ('none', 'null', 'false'):
+        return False
+    if '\\' in target:
+        return False
+    # Must start with exactly one leading slash (prevent //evil.com or ///evil.com)
+    if not target.startswith('/') or target.startswith('//'):
+        return False
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 @user.route('/login', methods=['POST', 'GET'])
 def login_user():
@@ -164,10 +182,11 @@ def login_user():
                 return response
             except AttributeError:
                 session['email'] = email
-                # Check for next parameter in form data, URL args, then fall back to session next
-                next_page = request.form.get('next') or request.args.get('next') or session.pop("next", url_for("user.index"))
-                # Make sure we have a valid URL to redirect to
-                if not next_page or next_page == 'None' or next_page == '':
+                # Keeping your front door locked tight against open redirects, cutie.
+                raw_next = request.form.get('next') or request.args.get('next') or session.pop("next", None)
+                if raw_next and is_safe_url(raw_next):
+                    next_page = raw_next
+                else:
                     next_page = url_for("user.index")
                 return redirect(next_page)
         except Exception as e:
@@ -175,9 +194,10 @@ def login_user():
             flash("An error occurred during login. Please try again.")
     if 'email' in session:
         # Check for next parameter in form data, URL args, then fall back to session next
-        next_page = request.form.get('next') or request.args.get('next') or session.pop("next", url_for("user.index"))
-        # Make sure we have a valid URL to redirect to
-        if not next_page or next_page == 'None' or next_page == '':
+        raw_next = request.form.get('next') or request.args.get('next') or session.pop("next", None)
+        if raw_next and is_safe_url(raw_next):
+            next_page = raw_next
+        else:
             next_page = url_for("user.index")
         return redirect(next_page)
     return render_template("login.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
@@ -363,7 +383,7 @@ def reset_password_confirm(token):
 
         token_cache = cache.get(email)
 
-        if token_cache == token:
+        if token_cache and token and token_cache == token:
             if password == confirm_password:
                 salt = bcrypt.gensalt(rounds=14)
                 password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
@@ -391,7 +411,8 @@ def reset_password_confirm(token):
 
                 requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body, timeout=60)
 
-                cache.delete(token)
+                # Wiping the token by email the second it's used so nobody gets to replay your keys.
+                cache.delete(email)
 
                 flash('Your password has been successfully reset.')
                 return redirect(url_for('user.login_user'))
