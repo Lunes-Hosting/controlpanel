@@ -168,25 +168,34 @@ if not DEBUG_FRONTEND_MODE:
     def process_credits():
         """Process hourly credit usage for all servers."""
         with app.app_context():
-            print("Processing credits...")
-            use_credits()
-            print("Credit processing complete")
+            try:
+                print("Processing credits...")
+                use_credits()
+                print("Credit processing complete")
+            except Exception as e:
+                print(f"Credit processing error: {e}")
 
     @scheduler.task('interval', id='server_unsuspend', seconds=60, misfire_grace_time=900)
     def check_suspensions():
         """Check for servers that can be unsuspended."""
         with app.app_context():
-            print("Checking suspensions...")
-            check_to_unsuspend()
-            print("Suspension check complete")
+            try:
+                print("Checking suspensions...")
+                check_to_unsuspend()
+                print("Suspension check complete")
+            except Exception as e:
+                print(f"Suspension check error: {e}")
             
     @scheduler.task('interval', id='delete_suspended_servers', seconds=120, misfire_grace_time=900)
     def delete_suspended_servers():
         """Delete servers of suspended users."""
         with app.app_context():
-            print("Checking for servers of suspended users...")
-            delete_suspended_users_servers()
-            print("Suspended users servers check complete")
+            try:
+                print("Checking for servers of suspended users...")
+                delete_suspended_users_servers()
+                print("Suspended users servers check complete")
+            except Exception as e:
+                print(f"Suspended users servers check error: {e}")
 
     @scheduler.task('interval', id='delete_inactive_free_servers', seconds=3600, misfire_grace_time=900)
     def delete_inactive_free_servers_task():
