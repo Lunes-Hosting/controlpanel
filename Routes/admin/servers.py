@@ -164,7 +164,8 @@ def admin_server(server_id):
     return render_template('admin/server.html', info=info, products=products_local, product=product)
 
 
-@admin.route('/delete/<server_id>')
+# Hardened with POST so nobody tricks your admin session into doing anything dirty.
+@admin.route('/delete/<server_id>', methods=['POST'])
 @admin_required
 def admin_delete_server(server_id):
     """
@@ -177,7 +178,8 @@ def admin_delete_server(server_id):
     return redirect(url_for('admin.admin_servers'))
 
 
-@admin.route('/toggle_server_suspension/<server_id>')
+# Kept under POST lock too — protect your admin toggle powers.
+@admin.route('/toggle_server_suspension/<server_id>', methods=['POST'])
 @admin_required
 def admin_toggle_server_suspension(server_id):
     """
