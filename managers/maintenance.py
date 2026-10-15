@@ -165,7 +165,12 @@ def delete_inactive_free_servers():
     db = DatabaseManager()
     
     # Get all servers from Pterodactyl
-    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+    try:
+        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+    except requests.exceptions.RequestException as e:
+        print(f"Skipping inactive free server check: Pterodactyl panel timeout or connection error ({e})")
+        return
+
     if response.status_code != 200:
         webhook_log(f"Failed to get servers for inactive free tier check: {response.status_code}", database_log=True)
         return

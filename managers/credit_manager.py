@@ -24,6 +24,7 @@ from .user_manager import check_if_user_suspended
 from security import safe_requests
 from flask import current_app
 import datetime
+import requests
 
 # API authentication headers
 HEADERS = {
@@ -159,7 +160,13 @@ def use_credits():
         None
     """
     # Get all servers from Pterodactyl
-    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+    try:
+        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+    except requests.exceptions.RequestException as e:
+        print(f"Skipping credit processing: Pterodactyl panel timeout or connection error ({e})")
+        webhook_log(f"Skipping credit processing: Pterodactyl connection error ({e})", database_log=True)
+        return
+
     if response.status_code != 200:
         webhook_log(f"Failed to get servers for credit processing: {response.status_code}", database_log=True)
         return
@@ -236,7 +243,12 @@ def check_to_unsuspend():
         None
     """
     # Get all servers from Pterodactyl
-    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+    try:
+        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+    except requests.exceptions.RequestException as e:
+        print(f"Skipping suspension check: Pterodactyl panel timeout or connection error ({e})")
+        return
+
     if response.status_code != 200:
         threading.Thread(target=webhook_log, args=(f"Failed to get servers for unsuspension check: {response.status_code}", 2)).start()
         return
@@ -261,7 +273,12 @@ def check_to_unsuspend():
     # Process each user's suspended servers
     for user_id, suspended_servers in user_suspended_servers.items():
         # Get user email from Pterodactyl
-        user_response = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60)
+        try:
+            user_response = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60)
+        except requests.exceptions.RequestException as e:
+            print(f"Skipping user {user_id} during unsuspension check: {e}")
+            continue
+
         if user_response.status_code != 200:
             threading.Thread(target=webhook_log, args=(f"Failed to get user {user_id} for unsuspension check: {user_response.status_code}", 2)).start()
             continue
@@ -333,7 +350,12 @@ def delete_suspended_users_servers():
         None
     """
     # Get all servers from Pterodactyl
-    response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+    try:
+        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+    except requests.exceptions.RequestException as e:
+        print(f"Skipping suspended users check: Pterodactyl panel timeout or connection error ({e})")
+        return
+
     if response.status_code != 200:
         threading.Thread(target=webhook_log, args=(f"Failed to get servers for suspension check: {response.status_code}", 2)).start()
         return
