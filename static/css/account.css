@@ -82,6 +82,8 @@
         }
         .profile-avatar {
             width: 100%;
+            height: auto;
+            align-self: start;
             object-fit: cover;
             border-radius: 0.125rem;
             border: 1px solid rgba(148, 163, 184, 0.3);
@@ -267,11 +269,13 @@
             line-height: 1.4;
         }
         .credit-progress {
-            width: calc(var(--progress-width, 0) * 1%);
+            width: 100%;
+            transform: scaleX(calc(var(--progress-width, 0) * 0.01));
+            transform-origin: left;
             height: 100%;
             border-radius: 0.125rem;
             background: linear-gradient(90deg, #22d3ee, #60a5fa);
-            transition: width 0.3s ease;
+            transition: transform 0.3s ease;
         }
         .hero-stats {
             display: grid;
@@ -715,7 +719,7 @@
             .eyebrow {
                 font-size: 0.8rem; /* Bumped from 0.7rem */
             }
-            
+
             /* Box Layout Fixes */
             .insight-card {
                 padding: 1.25rem;

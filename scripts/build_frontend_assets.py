@@ -58,7 +58,7 @@ def build_utilities():
 def subset_font(source, destination, family, style, unicodes):
     from fontTools import subset
     from fontTools.ttLib import TTFont
-    font = TTFont(source)
+    font = TTFont(source, recalcTimestamp=False)
     options = subset.Options()
     options.flavor = 'woff2'
     options.name_IDs = ['*']

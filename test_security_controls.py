@@ -140,7 +140,7 @@ class QuotaTests(unittest.TestCase):
         self.ns.update(
             display_cache=SimpleNamespace(clear=Mock()),
             servers=SimpleNamespace(route=lambda *a, **kw: lambda f: f), login_required=lambda f: f,
-            request=request, session=session, flash=flash, redirect=lambda x: x, url_for=lambda *a: '/',
+            request=request, session=session, flash=flash, redirect=lambda x: x, url_for=lambda *a, **kw: '/servers/' + str(kw['server_id']) if a[0] == 'servers.server' else '/',
             get_user_verification_status=lambda _: True, _has_server_creation_approval=lambda _: True,
             get_ptero_id=lambda _: (7,), improve_list_servers=lambda _: {'attributes': {'relationships': {'servers': {'data': list(self.owned)}}}},
             DatabaseManager=database, requests=SimpleNamespace(post=post),
@@ -152,6 +152,10 @@ class QuotaTests(unittest.TestCase):
             remove_credits=Mock(return_value=None), check_if_user_suspended=lambda _: False, webhook_log=Mock(),
         )
         load_functions('Routes/Servers.py', self.ns, {'create_server_submit'})
+
+    def test_successful_creation_opens_created_server(self):
+        destination=self.submit()
+        self.assertEqual(destination,'/servers/2')
 
     def submit(self):
         with self.app.test_request_context('/', method='POST', data={'name': 'Test', 'node_id': '1', 'egg_id': '1', 'plan': '1'}):

@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="Manage your Lunes Hosting account, game servers, credits, and support tickets.">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Account Page</title>
     {% with asset_bundle='dashboard.css' %}{% include 'partials/compiled_assets.html' %}{% endwith %}
@@ -57,7 +58,7 @@
                             <img width="80" height="80" decoding="async" loading="lazy" class="profile-avatar" src="https://gravatar.com/avatar/{{ hash }}" alt="User avatar">
                             <div class="profile-copy">
                                 
-                                <h1 class="hero-title">Welcome back, {{ username }}.</h1>
+                                <h2 class="hero-title">Welcome back, {{ username }}.</h2>
                                 <p class="hero-subtitle">{{ email }}</p>
                             </div>
                         </div>
@@ -143,7 +144,7 @@
                         <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
                         <div>
                             <p class="text-sm uppercase tracking-wider text-blue-300/80">Infrastructure</p>
-                            <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
+                            <h2 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h2>
                         </div>
                     </div>
                     <a href="/servers/create" class="btn-primary">
@@ -163,7 +164,7 @@
                     <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
                     <div>
                         <p class="text-sm uppercase tracking-wider text-blue-300/80">Infrastructure</p>
-                        <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
+                        <h2 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h2>
                     </div>
                 </div>
                 <div class="panel-card text-center rounded-sm border border-white/5">
@@ -177,7 +178,7 @@
                     <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
                     <div>
                         <p class="text-sm uppercase tracking-wider text-blue-300/80">Infrastructure</p>
-                        <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
+                        <h2 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h2>
                     </div>
                 </div>
                 <div class="panel-card text-center rounded-sm border border-white/5">
@@ -193,7 +194,7 @@
                         <i class="fa-solid fa-store fa-2xl text-green-400"></i>
                         <div>
                             <p class="text-sm uppercase tracking-wider text-emerald-300/80">Billing</p>
-                            <h1 id="store-heading" class="text-2xl font-semibold">Store</h1>
+                            <h2 id="store-heading" class="text-2xl font-semibold">Store</h2>
                         </div>
                     </div>
                     <span class="badge-live">Instant Delivery</span>
@@ -268,7 +269,7 @@
                         <a class="bundle-card {% if not product.get('price_link') %}disabled{% endif %}" href="{{ bundle_url }}">
                             <div>
                                 <p class="bundle-label">{{ loop.index }}. {{ product.get('nickname', 'Credit Pack') }}</p>
-                                <h4 class="bundle-value">{{ "%.0f"|format(product['price'] | float) }} Credits</h4>
+                                <h3 class="bundle-value">{{ "%.0f"|format(product['price'] | float) }} Credits</h3>
                                 <p class="bundle-price">${{ "%.2f"|format((product['price'] | float) / 100) }}</p>
                             </div>
                             <i class="fa-solid fa-arrow-right"></i>
@@ -285,7 +286,7 @@
                         <i class="fa-solid fa-repeat fa-2xl text-blue-400"></i>
                         <div>
                             <p class="text-sm uppercase tracking-wider text-blue-300/80">Billing</p>
-                            <h1 id="subscription-store-heading" class="text-2xl font-semibold">Subscription Credits</h1>
+                            <h2 id="subscription-store-heading" class="text-2xl font-semibold">Subscription Credits</h2>
                         </div>
                     </div>
                     <a href="{{ url_for('store.billing_portal') }}" class="action-btn secondary">
@@ -306,7 +307,7 @@
                                 <a class="bundle-card" href="{{ url_for('store.create_subscription_checkout_session', price_link=price_link) }}">
                                     <div>
                                         <p class="bundle-label">Monthly Pack</p>
-                                        <h4 class="bundle-value">{{ credits }} Credits</h4>
+                                        <h3 class="bundle-value">{{ credits }} Credits</h3>
                                         <p class="bundle-price">Billed monthly</p>
                                     </div>
                                     <i class="fa-solid fa-arrow-right"></i>
@@ -328,7 +329,7 @@
                     <i class="fa-solid fa-barcode fa-2xl text-blue-400"></i>
                     <div>
                         <p class="text-sm uppercase tracking-wider text-blue-300/80">Community</p>
-                        <h1 id="other-heading" class="text-2xl font-semibold">Community & Policies</h1>
+                        <h2 id="other-heading" class="text-2xl font-semibold">Community & Policies</h2>
                     </div>
                 </div>
 

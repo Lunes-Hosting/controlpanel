@@ -676,7 +676,11 @@ def create_server_submit():
     else:
         # Retain the slot until inventory confirms the created server. Exceptions
         # and unknown responses deliberately leave a pending reservation.
-        finish_server_creation(creation_request_id, (res.get('attributes') or {}).get('id'))
+        created_server_id = (res.get('attributes') or {}).get('id')
+        finish_server_creation(creation_request_id, created_server_id)
+        if isinstance(created_server_id, int) and created_server_id > 0:
+            webhook_log(f"Server was just created: ```{res}```", database_log=True)
+            return redirect(url_for('servers.server', server_id=created_server_id))
     webhook_log(f"Server was just created: ```{res}```", database_log=True)
     return redirect(url_for('user.index'))
 
