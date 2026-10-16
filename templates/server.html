@@ -266,13 +266,15 @@
         }
 
         .plan-select-wrapper::after {
-            content: '\f107';
-            font-family: 'Font Awesome 6 Free';
-            font-weight: 900;
+            content: '';
+            width: 0.5rem;
+            height: 0.5rem;
+            border: solid currentColor;
+            border-width: 0 2px 2px 0;
             position: absolute;
             right: 1rem;
             top: 50%;
-            transform: translateY(-50%);
+            transform: translateY(-75%) rotate(45deg);
             color: #94a3b8;
             pointer-events: none;
         }
