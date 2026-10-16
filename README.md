@@ -22,6 +22,7 @@
   * [Prerequisites](#prerequisites)
   * [Installation](#installation)
   * [Customization](#customization)
+  * [Compiling Frontend Assets](#compiling-frontend-assets)
 * [License](#license)
 * [Authors](#authors)
 
@@ -61,6 +62,19 @@ python app.py
 
 ### Customization
 Our design leverages the [DaisyUI](https://daisyui.com) CSS framework, enabling seamless theme customization. The default theme is "SynthWave." If you wish to modify the theme, please consult the [DaisyUI Themes](https://daisyui.com/docs/themes/) documentation. You can easily switch themes by using the `data-theme` attribute within the `<body>` element of your pages.
+
+### Compiling Frontend Assets
+
+Compiled assets are included in the repo. Normal deployment only requires pulling the changes and restarting; Node.js is not needed on your hosting server.
+
+To rebuild after changing templates, frontend JavaScript, or CSS, install Node.js with npm and run these commands from the repo folder:
+
+```sh
+python -m pip install "fonttools[woff]" tinycss2
+python scripts/build_frontend_assets.py
+```
+
+The script downloads its pinned build tools and source fonts, then generates CSS bundles, font subsets, and compressed `.gz` files in `static/`. Internet access is required for the first build. Commit the generated files along with your source changes.
 
 ### Creating A Pull Request
 
