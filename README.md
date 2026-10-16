@@ -141,6 +141,53 @@ when a free-tier server's owner has not logged in for more than 15 days.
 
 
 
+### Performance and login protection
+
+The update works with the existing `config.py`: pull the changes and restart.
+No proxy settings, Redis setup, or separate migration command is required.
+
+Database connections are reused in a pool per process. Optional `DATABASE_POOL_SIZE = 10`
+in `config.py` controls its size (1–32); budget connections for every web worker
+and any separate bot process. Activity timestamps are written at most once per
+minute per account, and repeated role lookups are reused only within a request.
+The admin user list loads suspension reasons with a join instead of one query
+per suspended account.
+
+Dashboard and admin inventory lists use a bounded, per-worker 10-second cache
+that combines simultaneous cache misses. Local create/delete/suspend/unsuspend/
+transfer operations clear it in that worker; other workers and changes made
+directly in Pterodactyl appear within 10 seconds. Ownership, creation quotas,
+balances, verification, account suspension and password/session checks always
+use fresh data. Node/egg catalog instances now share one cache per process.
+
+Startup automatically adds missing indexes for Pterodactyl/Discord account
+lookups, activity scans, ticket lists/comments and Discord channel mappings.
+Existing equivalent indexes are skipped. If database permissions prevent the
+optional indexes, startup logs the issue and continues. The first restart can
+take longer while indexes are built. Fresh installs already include them in
+`controlpanel_template.sql`.
+
+Malformed login fields, duplicate credential fields, oversized bodies and missing
+CAPTCHA tokens are rejected before account queries or password hashing. Login
+POST requests are limited to 20/minute and 120/hour per account and connection
+address. A separate connection limit of 300/minute and 3000/hour bounds attempts
+that rotate account names. Failed credentials
+no longer trigger database log writes or Discord webhooks. CAPTCHA calls time
+out after 5 seconds and fail closed. Page views no longer consume the restrictive
+blueprint mutation limits; payment webhooks are exempt from those mutation limits.
+
+Existing Cloudflare/forwarded-IP headers continue to work without configuration.
+Login protection separately uses the actual connection address, so rotating
+headers or cookies does not reset those login limits. Accounts sharing a proxy
+have separate account limits and share the more generous connection limit.
+These limits do not suspend accounts.
+
+`RATELIMIT_STORAGE_URI = 'memory://'` is per process and resets on restart. For
+limits shared across multiple workers, install the optional `redis` Python package
+and configure a shared Redis URL in that setting. Flask-Limiter's `Retry-After`
+headers tell blocked clients when to retry. Protect the public endpoint at your
+reverse proxy as well; app-level limits cannot absorb a network flood.
+
 ### Prerequisites
 
 * Python (3.11 Preferred)

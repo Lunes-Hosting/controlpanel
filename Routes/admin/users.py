@@ -90,7 +90,8 @@ def users():
     per_page = 100
     
     # Prepare base queries
-    base_query = "SELECT name, credits, role, email, suspended, id, pterodactyl_id FROM users"
+    base_query = ("SELECT u.name, u.credits, u.role, u.email, u.suspended, u.id, u.pterodactyl_id, s.reason "
+                  "FROM users u LEFT JOIN user_suspensions s ON s.user_id=u.id")
     count_query = "SELECT COUNT(*) FROM users"
     
     # Prepare search and pagination parameters
@@ -98,12 +99,12 @@ def users():
     
     # Apply search if term exists
     if search_term:
-        base_query += " WHERE (name LIKE %s OR email LIKE %s OR CAST(id AS CHAR) LIKE %s)"
+        base_query += " WHERE (u.name LIKE %s OR u.email LIKE %s OR CAST(u.id AS CHAR) LIKE %s)"
         count_query += " WHERE (name LIKE %s OR email LIKE %s OR CAST(id AS CHAR) LIKE %s)"
         search_params = [f'%{search_term}%', f'%{search_term}%', f'%{search_term}%']
     
     # Add pagination
-    base_query += " LIMIT %s OFFSET %s"
+    base_query += " ORDER BY u.id DESC LIMIT %s OFFSET %s"
     
     # Prepare final parameters
     if search_term:
@@ -133,7 +134,7 @@ def users():
                 "role": user[2], 
                 "email": user[3], 
                 "suspended": user[4],
-                "suspension_reason": get_user_suspension(user[5]) if user[4] else "",
+                "suspension_reason": (user[7] or "Legacy suspension — reason not recorded") if user[4] else "",
                 "id": user[5], 
                 "panel_id": user[6]
             })

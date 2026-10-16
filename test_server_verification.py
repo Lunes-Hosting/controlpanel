@@ -31,6 +31,7 @@ class ServerVerificationTests(unittest.TestCase):
         database = Mock()
         database.execute_query.side_effect = [('client',), (None,), ('client',)]
         self.ns.update(
+            display_cache=SimpleNamespace(clear=Mock()),
             servers=Blueprint('servers', __name__), flash=flash,
             serialized_server_creation=lambda f: f,
             pending_server_creations=lambda *a: 0,

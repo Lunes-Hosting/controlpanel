@@ -6,8 +6,23 @@ import requests
 from security import safe_requests
 
 class PteroCache():
+    _instance = None
+    _instance_lock = threading.Lock()
+
+    def __new__(cls):
+        with cls._instance_lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+            return cls._instance
     
     def __init__(self) -> None:
+        with self._instance_lock:
+            if getattr(self, '_initialized', False):
+                return
+            self._initialize()
+            self._initialized = True
+
+    def _initialize(self):
         self.HEADERS = {"Authorization": f"Bearer {PTERODACTYL_ADMIN_KEY}",
            'Accept': 'application/json',
            'Content-Type': 'application/json'}

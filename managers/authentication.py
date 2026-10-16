@@ -14,6 +14,7 @@ from threadedreturn import ThreadWithReturnValue
 import bcrypt
 import requests
 import threading
+import logging
 from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 from managers.database_manager import DatabaseManager
 from .logging import webhook_log
@@ -145,7 +146,11 @@ def login(email: str, password: str, ip: str):
         # Get hashed password from database
         hashed_password = result[9]
         # Verify password
-        if bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8')):
+        try:
+            matched = bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
+        except (ValueError, TypeError):
+            matched = False
+        if matched:
             # Check if user is already suspended
             if result[15]:
                 return "suspended"
@@ -197,7 +202,9 @@ def login(email: str, password: str, ip: str):
             return result
     
     # Log failed login attempt
-    webhook_log(f"Failed login attempt for {email} from {ip}", 1, database_log=True)
+    # Failed attempts must not amplify traffic into DB writes and Discord HTTP
+    # calls. Web-server access logs already record requests; omit credentials.
+    logging.getLogger(__name__).debug("Login credentials rejected")
     
     return None
 

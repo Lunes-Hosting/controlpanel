@@ -62,9 +62,11 @@ from managers.signup_location import connection_details
 from managers.alt_settings import alt_detection_enabled
 from managers.account_sessions import establish_session
 from managers.suspension_manager import get_user_suspension
+from request_security import client_ip, peer_ip, login_limit_key, login_credentials
+from rate_limits import limiter
 from managers.email_manager import send_email, generate_verification_token, send_verification_email, generate_reset_token, send_reset_email
 from managers.user_manager import account_get_information, get_id, get_name, instantly_delete_user, get_ptero_id
-from managers.server_manager import improve_list_servers, delete_server as manager_delete_server
+from managers.server_manager import improve_list_servers, display_servers, delete_server as manager_delete_server
 from managers.credit_manager import convert_to_product
 from managers.utils import HEADERS
 from managers.logging import webhook_log
@@ -93,17 +95,8 @@ def _signup_cookie(response):
     return response
 
 def _get_client_ip(req: 'flask.Request') -> str:
-    """Best-effort real client IP behind Cloudflare/Proxies.
-    Order: CF-Connecting-IP -> X-Forwarded-For (first) -> remote_addr.
-    """
-    ip = req.headers.get('CF-Connecting-IP')
-    if not ip:
-        xff = req.headers.get('X-Forwarded-For')
-        if xff:
-            ip = xff.split(',')[0].strip()
-    if not ip:
-        ip = req.remote_addr
-    return ip
+    """Resolve client addresses using the deployment's existing proxy headers."""
+    return client_ip(req)
 
 # Making sure nobody tries to bounce my favorite person to some sketchy link ~
 def is_safe_url(target: str) -> bool:
@@ -123,6 +116,8 @@ def is_safe_url(target: str) -> bool:
     return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 @user.route('/login', methods=['POST', 'GET'])
+@limiter.limit('20 per minute; 120 per hour', key_func=login_limit_key, methods=['POST'])
+@limiter.limit('300 per minute; 3000 per hour', key_func=peer_ip, methods=['POST'])
 def login_user():
     """
     Handle user login via form submission.
@@ -150,7 +145,13 @@ def login_user():
         - get_ptero_id(): Gets Pterodactyl panel ID
     """
     if request.method == "POST":
+        credentials = login_credentials(request)
+        if credentials is None:
+            return "Invalid login request. Enter a valid email and password.", 400
+        email, password = credentials
         recaptcha_response = request.form.get('g-recaptcha-response')
+        if not DEBUG_FRONTEND_MODE and not recaptcha_response:
+            return "Complete the login verification and try again.", 400
         data = {
             'secret': RECAPTCHA_SECRET_KEY,
             'response': recaptcha_response
@@ -160,15 +161,16 @@ def login_user():
             # Skip reCAPTCHA verification in debug mode
             pass
         else:
-            response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data, timeout=60)
-            result = response.json()
-            if not result['success']:
+            try:
+                response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data, timeout=5)
+                response.raise_for_status()
+                result = response.json()
+            except (requests.RequestException, ValueError):
+                return "Login verification temporarily unavailable. Please try again.", 503
+            if not result.get('success'):
                 flash("Failed captcha please try again")
                 return render_template("login.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
-        data = request.form
-        email = (data.get('email') or '').strip().lower()
-        password = data.get('password')
         ip = _get_client_ip(request)
         try:
             response = login(email, password, ip)
@@ -237,7 +239,7 @@ def index():
 
     session['suspended'] = suspended
 
-    response = improve_list_servers(ptero_id)
+    response = display_servers(ptero_id)
     
     # Extract servers from the response
     servers = []
