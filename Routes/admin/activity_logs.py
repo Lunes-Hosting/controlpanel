@@ -28,7 +28,10 @@ from flask import render_template, request, session, redirect, url_for, flash, j
 from managers.authentication import admin_required
 from Routes.admin import admin
 from managers.database_manager import DatabaseManager
+from display_cache import DisplayCache
 import json
+
+log_count_cache = DisplayCache(max_entries=64)
 
 @admin.route("/activity_logs")
 @admin_required
@@ -62,12 +65,12 @@ def activity_logs():
     """
 
     # Get query parameters
-    page = int(request.args.get('page', 1))
+    page = max(1, request.args.get('page', 1, type=int))
     search_term = request.args.get('search', '').strip()
-    per_page = 100
+    per_page = 20
     
     # Prepare base queries
-    base_query = "SELECT id, create_time, content FROM activity_logs"
+    base_query = "SELECT id, create_time FROM activity_logs"
     count_query = "SELECT COUNT(*) FROM activity_logs"
     
     # Prepare search and pagination parameters
@@ -80,22 +83,26 @@ def activity_logs():
         search_params = [f'%{search_term}%']
     
     # Add sorting and pagination
-    base_query += " ORDER BY create_time DESC LIMIT %s OFFSET %s"
+    base_query += " ORDER BY create_time DESC, id DESC LIMIT %s OFFSET %s"
     
-    # Prepare final parameters
-    if search_term:
-        # For count query, use search params
-        count_params = tuple(search_params)
-        # For main query, add pagination params
-        query_params = tuple(search_params + [per_page, (page - 1) * per_page])
-    else:
-        # No search, just use pagination params
-        count_params = tuple()
-        query_params = (per_page, (page - 1) * per_page)
-    
-    # Execute count query
-    total_logs_result = DatabaseManager.execute_query(count_query, count_params)
-    total_logs = total_logs_result[0] if total_logs_result else 0
+    count_params = tuple(search_params)
+
+    # Counts can scan large tables (especially substring searches); reuse them
+    # briefly while always fetching current entries for the visible page.
+    def load_count():
+        result = DatabaseManager.execute_query(count_query, count_params)
+        return result[0] if result else 0
+    total_logs = log_count_cache.get_or_load(('log-count', search_term), load_count, ttl=10)
+    total_pages = max(1, (total_logs + per_page - 1) // per_page)
+    page = min(page, total_pages)
+    query_params = tuple(search_params + [per_page, (page - 1) * per_page])
+
+    # Page through the small ordering index first, then retrieve LONGTEXT only
+    # for the selected entries. Deep pages no longer read every skipped body.
+    base_query = (
+        "SELECT l.id, l.create_time, l.content FROM activity_logs l JOIN (" + base_query +
+        ") page_rows ON page_rows.id=l.id ORDER BY page_rows.create_time DESC, page_rows.id DESC"
+    )
     
     # Execute logs query
     logs_from_db = DatabaseManager.execute_query(base_query, query_params, fetch_all=True)
@@ -110,6 +117,8 @@ def activity_logs():
             # Parse JSON content
             try:
                 content_json = json.loads(log[2])
+                if not isinstance(content_json, dict):
+                    raise ValueError("Log content is not an object")
                 # Format the content for display
                 status = content_json.get('status', 'Unknown')
                 message = content_json.get('message', '')
@@ -125,7 +134,7 @@ def activity_logs():
                     "is_ticket": is_ticket,
                     "raw_content": log[2]  
                 })
-            except json.JSONDecodeError:
+            except (ValueError, TypeError):
                 # Handle non-JSON content
                 formatted_logs.append({
                     "id": log_id,
@@ -136,6 +145,13 @@ def activity_logs():
                     "is_ticket": False,
                     "raw_content": log[2]
                 })
+            # The table is a preview; the details route retains the complete
+            # message. CSS truncation alone still transfers the entire body.
+            preview = str(formatted_logs[-1]['message'] or '')
+            formatted_logs[-1]['message'] = preview[:500] + ('…' if len(preview) > 500 else '')
+            formatted_logs[-1].pop('raw_content', None)
+
+    total_logs = max(total_logs, (page - 1) * per_page + len(formatted_logs))
     
     # Calculate total pages
     total_pages = max(1, (total_logs + per_page - 1) // per_page)
@@ -187,6 +203,8 @@ def view_log_details(log_id):
     # Parse JSON content
     try:
         content_json = json.loads(raw_content)
+        if not isinstance(content_json, dict):
+            raise ValueError("Log content is not an object")
         # Format the content for display
         status = content_json.get('status', 'Unknown')
         message = content_json.get('message', '')
@@ -200,7 +218,7 @@ def view_log_details(log_id):
             "non_embed_message": non_embed_message,
             "raw_content": raw_content
         }
-    except json.JSONDecodeError:
+    except (ValueError, TypeError):
         # Handle non-JSON content
         formatted_log = {
             "id": log_id,
