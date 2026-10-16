@@ -1,0 +1,49 @@
+{% if not verified %}
+                    <div class="empty-state"><p>Please verify your email to access your servers.</p></div>
+                    {% elif not servers_ready %}
+                    <div class="empty-state" role="status">
+                        <p>{{ 'Server inventory temporarily unavailable. Retrying…' if inventory_state.error else 'Loading servers…' }}</p>
+                    </div>
+                    {% elif servers %}
+                    <div class="server-grid gap-6 p-6">
+                        {% for server in servers %}
+                        {% set limits = server['attributes'].get('limits', {}) %}
+                        {% set feature = server['attributes'].get('feature_limits', {}) %}
+                        <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}" class="server-card">
+                            <div class="server-card__header">
+                                <div>
+                                    <p class="server-meta">ID · {{ server['attributes'].get('identifier', server['attributes']['id']) }}</p>
+                                    <h3 class="server-title">{{ server['attributes']['name'] }}</h3>
+                                </div>
+                                <span class="server-status">
+                                    {{ (server['attributes'].get('status') or 'active')|capitalize }}
+                                </span>
+                            </div>
+                            <div class="server-card__body">
+                                <span class="server-pill"><i class="fa-solid fa-microchip"></i>{% if limits.get('cpu') == 0 %}Unmetered{% else %}{{ limits.get('cpu', '—') }}%{% endif %} CPU</span>
+                                <span class="server-pill"><i class="fa-solid fa-memory"></i>{{ limits.get('memory', '—') }} MB RAM</span>
+                                <span class="server-pill"><i class="fa-solid fa-hard-drive"></i>{{ limits.get('disk', '—') }} MB Disk</span>
+                                <span class="server-pill"><i class="fa-solid fa-users"></i>{{ feature.get('databases', 'Unlimited') }} DB Slots</span>
+                            </div>
+                            <div class="server-card__footer">
+                                <p>Tap to open console & lifecycle controls.</p>
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fa-solid fa-box-open"></i>
+                        <p class="text-lg font-semibold">No servers yet</p>
+                        <p class="text-sm text-gray-400">Use the button above to deploy your first instance in seconds.</p>
+                    </div>
+                    {% endif %}
+
+{% if servers_ready and total_server_pages > 1 %}
+<nav class="flex items-center justify-between gap-4 px-6 pb-6 text-sm" aria-label="Your server pages">
+    {% if current_server_page > 1 %}<a class="action-btn secondary" href="{{ url_for('user.index', server_page=current_server_page-1) }}#servers-heading">Previous</a>{% else %}<span></span>{% endif %}
+    <span class="text-slate-400">Page {{ current_server_page }} of {{ total_server_pages }}</span>
+    {% if current_server_page < total_server_pages %}<a class="action-btn secondary" href="{{ url_for('user.index', server_page=current_server_page+1) }}#servers-heading">Next</a>{% else %}<span></span>{% endif %}
+</nav>
+{% endif %}

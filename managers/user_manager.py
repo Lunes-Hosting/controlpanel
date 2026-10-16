@@ -20,6 +20,9 @@ from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 from managers.database_manager import DatabaseManager
 from .logging import webhook_log
 from flask import g, has_request_context
+from display_cache import DisplayCache
+
+last_seen_updates = DisplayCache(max_entries=4096)
 
 # API authentication headers
 HEADERS = {
@@ -83,6 +86,9 @@ def account_get_information(email: str):
     Returns:
         tuple: (credits, pterodactyl_id, name, verified, suspended)
     """
+    cached = g.get('authenticated_account') if has_request_context() else None
+    if cached and cached[0] == email:
+        return cached[1]
     query = "SELECT credits, pterodactyl_id, name, email_verified_at, suspended FROM users WHERE email = %s"
     result = DatabaseManager.execute_query(query, (email,))
     
@@ -126,11 +132,15 @@ def update_last_seen(email: str, everyone: bool = False):
     if everyone:
         query = "UPDATE users SET last_seen = %s"
         DatabaseManager.execute_query(query, (datetime.datetime.now(),))
+        last_seen_updates.clear()
     else:
-        query = ("UPDATE users SET last_seen = %s WHERE email = %s "
-                 "AND (last_seen IS NULL OR last_seen < %s)")
-        now = datetime.datetime.now()
-        DatabaseManager.execute_query(query, (now, email, now - datetime.timedelta(seconds=60)))
+        def update():
+            query = ("UPDATE users SET last_seen = %s WHERE email = %s "
+                     "AND (last_seen IS NULL OR last_seen < %s)")
+            now = datetime.datetime.now()
+            DatabaseManager.execute_query(query, (now, email, now - datetime.timedelta(seconds=60)))
+            return True
+        last_seen_updates.get_or_load(email, update, ttl=60)
 
 def get_last_seen(email: str):
     """

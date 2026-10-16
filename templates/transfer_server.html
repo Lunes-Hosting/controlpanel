@@ -5,11 +5,11 @@
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       
       <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/create_server.css') }}">
-      <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
+      <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/Lunes.svg') }}">
       <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.9/dist/full.css" rel="stylesheet" type="text/css" />
-      <script src="https://cdn.tailwindcss.com"></script>
+      {% with asset_bundle='legacy-ui.css' %}{% include 'partials/compiled_assets.html' %}{% endwith %}
       <title>Lunes Host | Transfer Server</title>
-      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
+      <script defer src="{{ url_for('static', filename='js/deferred-ads.js') }}"></script>
       <style>
          body {
             color: white;

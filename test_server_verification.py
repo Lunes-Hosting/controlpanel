@@ -49,6 +49,7 @@ class ServerVerificationTests(unittest.TestCase):
             remove_credits=Mock(return_value=None), check_if_user_suspended=lambda _: False,
             add_credits=Mock(), webhook_log=Mock(),
         )
+        self.ns['servers'].add_url_rule('/<int:server_id>', endpoint='server', view_func=lambda server_id: 'Server')
         load_functions('Routes/Servers.py', self.ns, {'create_server_submit'})
         self.app.register_blueprint(self.ns['servers'], url_prefix='/servers')
         self.client = self.app.test_client()
@@ -73,7 +74,9 @@ class ServerVerificationTests(unittest.TestCase):
     def test_verified_post_can_create_server(self):
         self.login()
         self.ns['get_user_verification_status'].return_value = True
-        self.assertEqual(self.client.post('/servers/create/submit', data=self.form).status_code, 302)
+        response = self.client.post('/servers/create/submit', data=self.form)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, '/servers/1')
         self.assertEqual(self.ns['requests'].post.call_count, 2)
         self.assertTrue(self.ns['requests'].post.call_args.args[0].endswith('/api/application/servers'))
 

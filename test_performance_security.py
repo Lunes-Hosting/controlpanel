@@ -146,7 +146,7 @@ class DatabasePerformanceTests(unittest.TestCase):
     def test_role_cache_is_only_per_request_and_activity_updates_are_throttled(self):
         database = SimpleNamespace(execute_query=Mock(return_value=('admin',)))
         ns = load_functions('managers/user_manager.py', dict(
-            DatabaseManager=database, g=g, has_request_context=has_request_context, datetime=datetime),
+            DatabaseManager=database, g=g, has_request_context=has_request_context, datetime=datetime, last_seen_updates=DisplayCache()),
             {'get_role', 'is_admin', 'is_support', 'update_last_seen'})
         app = Flask(__name__)
         with app.test_request_context('/'):

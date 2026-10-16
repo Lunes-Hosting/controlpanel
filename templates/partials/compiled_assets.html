@@ -1,0 +1,3 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='css/' ~ (asset_bundle|default('legacy-ui.css'))) }}">
+<link rel="preload" href="{{ url_for('static', filename='fonts/lunes-sans.woff2') }}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{ url_for('static', filename='fonts/fa-solid-900.woff2') }}" as="font" type="font/woff2" crossorigin>
