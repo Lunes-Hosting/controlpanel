@@ -266,13 +266,15 @@
         }
 
         .plan-select-wrapper::after {
-            content: '\f107';
-            font-family: 'Font Awesome 6 Free';
-            font-weight: 900;
+            content: '';
+            width: 0.5rem;
+            height: 0.5rem;
+            border: solid currentColor;
+            border-width: 0 2px 2px 0;
             position: absolute;
             right: 1rem;
             top: 50%;
-            transform: translateY(-50%);
+            transform: translateY(-75%) rotate(45deg);
             color: #94a3b8;
             pointer-events: none;
         }
@@ -412,6 +414,7 @@
     <div class="noise-overlay"></div>
     <div class="relative z-10">
     {% include 'partials/top_nav.html' %}
+    <main id="main-content">
 
     <!-- Warning Banner for Free Servers -->
     {% if info['attributes']['limits']['memory'] == 128 %}
@@ -536,8 +539,8 @@
                     <p class="text-sm text-slate-400 mb-4">Swap plans without losing data. Changes take effect immediately after provisioning.</p>
                     <form action="{{ url_for('servers.update_server_submit', server_id=info['attributes']['id']) }}" method="post" class="space-y-4">
                         <div>
-                            <p class="block text-sm font-medium text-gray-300 mb-3">Select a Plan</p>
                             {% if products %}
+                                <label for="plan" class="block text-sm font-medium text-gray-300 mb-3">Select a Plan</label>
                                 {% set selected_plan = current_product or products[0] %}
                                 <div class="plan-select-wrapper">
                                     <select id="plan" name="plan" class="plan-select" required>
@@ -638,6 +641,8 @@
         {% endif %}
     </div>
 
+    </main>
+
     <!-- Transfer Modal -->
     <div id="transferModal" class="modal">
         <div class="modal-content">
@@ -663,7 +668,7 @@
         <div class="modal-content">
             <h3 class="text-xl font-bold mb-4">Delete Server</h3>
             <div class="mb-4">
-                <label for="nodeSelect" class="block text-sm font-medium text-gray-300 mb-2">HEADS UP:</label>
+                <p class="block text-sm font-medium text-gray-300 mb-2">HEADS UP:</p>
                 <p class="text-xl" >By deleting the server, all data on the server will be <span class="underline">permanently wiped.</span></p>
             </div>
             <div class="flex justify-end gap-2">
