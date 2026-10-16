@@ -28,7 +28,7 @@
                     <div>
                         <label for="num_servers" class="block text-sm text-gray-400 mb-1">Count</label>
                         <input type="number" id="num_servers" name="num_servers" class="w-full bg-[#0f1219] border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500" 
-                               min="1" max="{{ servers|length }}" required>
+                               min="1" max="{{ total_servers }}" required>
                     </div>
                     <div>
                         <label for="target_node" class="block text-sm text-gray-400 mb-1">Target Node</label>
@@ -51,7 +51,7 @@
         <!-- Server List -->
         <div class="lg:col-span-2">
             <div class="p-6 rounded-xl bg-[#1a202c]/50 border border-white/5">
-                <h3 class="text-lg font-semibold text-white mb-4">Hosted Servers ({{ servers|length }})</h3>
+                <h3 class="text-lg font-semibold text-white mb-4">Hosted Servers ({{ total_servers }})</h3>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -80,10 +80,23 @@
                                     <div>CPU: {{ server.attributes.limits.cpu }}%</div>
                                 </td>
                             </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="px-4 py-8 text-center text-gray-400">No servers hosted on this node.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                {% if total_pages > 1 %}
+                <nav class="flex items-center justify-between gap-4 mt-6 text-sm" aria-label="Hosted server pages">
+                    {% if current_page > 1 %}
+                    <a href="{{ url_for('admin.node', node_id=node.node_id, page=current_page-1) }}" class="inline-flex min-h-11 items-center px-3 py-2 rounded border border-white/10 text-gray-300 hover:bg-white/5">Previous</a>
+                    {% else %}<span></span>{% endif %}
+                    <span class="text-gray-400">Page {{ current_page }} of {{ total_pages }}</span>
+                    {% if current_page < total_pages %}
+                    <a href="{{ url_for('admin.node', node_id=node.node_id, page=current_page+1) }}" class="inline-flex min-h-11 items-center px-3 py-2 rounded border border-white/10 text-gray-300 hover:bg-white/5">Next</a>
+                    {% else %}<span></span>{% endif %}
+                </nav>
+                {% endif %}
             </div>
         </div>
     </div>

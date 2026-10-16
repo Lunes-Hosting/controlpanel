@@ -1,7 +1,34 @@
+/* Keep column sizes independent of the users on the current page. */
+.users-table {
+    width: 100%;
+    min-width: 54rem;
+    table-layout: fixed;
+}
+
+.users-column-id { width: 8%; }
+.users-column-name { width: 13%; }
+.users-column-email { width: 22%; }
+.users-column-role { width: 9%; }
+.users-column-credits { width: 9%; }
+.users-column-status { width: 21%; }
+.users-column-actions { width: 18%; }
+
+.users-table th,
+.users-table td {
+    padding-inline: .75rem;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+}
+
+.users-table td:nth-child(4) > span {
+    display: inline-block;
+    max-width: 100%;
+}
+
 /* The reason disclosure belongs to the same control family as table actions. */
 .user-suspension-reason {
-    width: 14rem;
-    max-width: calc(100vw - 6rem);
+    width: 100%;
+    max-width: 14rem;
     margin-top: .5rem;
     font-size: .75rem;
 }

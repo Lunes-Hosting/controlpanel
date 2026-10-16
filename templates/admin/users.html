@@ -20,7 +20,16 @@
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
+            <table class="users-table w-full text-left border-collapse">
+                <colgroup>
+                    <col class="users-column-id">
+                    <col class="users-column-name">
+                    <col class="users-column-email">
+                    <col class="users-column-role">
+                    <col class="users-column-credits">
+                    <col class="users-column-status">
+                    <col class="users-column-actions">
+                </colgroup>
                 <thead>
                     <tr class="border-b border-white/5 text-gray-400 text-sm uppercase tracking-wider">
                         <th class="px-4 py-3">ID</th>
@@ -59,7 +68,8 @@
                                         <span class="px-2 py-1 rounded text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20">Active</span>
                                     {% endif %}
                                 </td>
-                                <td class="px-4 py-3 flex items-center gap-2">
+                                <td class="px-4 py-3">
+                                    <div class="flex flex-wrap items-center gap-2">
                                     <a href="/admin/user/{{ user.id }}/servers" class="px-3 py-1 rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-colors text-xs font-medium">
                                         Servers
                                     </a>
@@ -71,6 +81,7 @@
                                         {{ 'Unsuspend' if user.suspended else 'Suspend' }}
                                     </button>
                                     </form>
+                                    </div>
                                 </td>
                             </tr>
                         {% endfor %}
