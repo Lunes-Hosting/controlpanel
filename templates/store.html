@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Store</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/Lunes.svg') }}">
+    {% with asset_bundle='legacy-ui.css' %}{% include 'partials/compiled_assets.html' %}{% endwith %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}"/>
 </head>
-<body class="bg-gray-900 text-white font-sans p-8" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
+<body class="bg-gray-900 text-white font-sans p-8" style="font-family: Lunes Sans,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
     {% include 'partials/top_nav.html' %}
     {% include 'partials/flash_messages.html' %}
 

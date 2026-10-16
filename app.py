@@ -44,6 +44,7 @@ from cacheext import cache
 from threading import Thread
 import datetime
 from scripts.add_performance_indexes import ensure_performance_indexes
+from web_performance import install_performance
 
 # Optional performance upgrades run automatically and never block startup on a
 # missing ALTER privilege. All settings continue to have backwards-compatible defaults.
@@ -92,6 +93,7 @@ if not app.config.get('PREFERRED_URL_SCHEME'):
 # Initialize extensions
 cache.init_app(app)
 Session(app)
+install_performance(app)
 mail = Mail(app)
 scheduler = APScheduler()
 scheduler.init_app(app)

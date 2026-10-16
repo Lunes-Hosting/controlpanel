@@ -13,7 +13,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock
 
-from flask import Flask, session, request, redirect, url_for, flash, current_app
+from flask import Flask, session, request, redirect, url_for, flash, current_app, g
 from mysql.connector import IntegrityError
 
 from test_credit_transactions import load_functions
@@ -28,9 +28,9 @@ class SessionTests(unittest.TestCase):
         self.account = [7, 'User', 'member', 10, 2, 101, None, 'user@example.com', None, 'hash-1']
         self.suspended = False
         self.ns = load_functions('managers/account_sessions.py', {
-            'hashlib': hashlib, 'hmac': hmac, 'session': session, 'current_app': current_app,
+            'hashlib': hashlib, 'hmac': hmac, 'session': session, 'current_app': current_app, 'g': g,
             'DatabaseManager': SimpleNamespace(execute_query=lambda *a: (
-                self.account[0], self.account[9], self.account[5], self.suspended)),
+                self.account[0], self.account[9], self.account[5], self.suspended, self.account[2], self.account[3], self.account[1], None)),
         })
 
     def test_login_discards_previous_identity_and_rotates_session(self):

@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verify Email</title>
-  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/Lunes.svg') }}">
+  {% with asset_bundle='legacy-ui.css' %}{% include 'partials/compiled_assets.html' %}{% endwith %}
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}"/>
 </head>
-<body class="text-white" style="background-size: 10px 10px;font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
+<body class="text-white" style="background-size: 10px 10px;font-family: Lunes Sans,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
   <div id="flash-messages relative">
     {% with messages = get_flashed_messages() %}
       {% if messages %}

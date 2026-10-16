@@ -7,7 +7,7 @@ import logging
 
 
 class StatsSnapshot:
-    def __init__(self, loader, ttl=60, retry_delay=15):
+    def __init__(self, loader, ttl=60, retry_delay=15, submit=None):
         self.loader = loader
         self.ttl = ttl
         self.retry_delay = retry_delay
@@ -17,6 +17,7 @@ class StatsSnapshot:
         self.retry_at = 0
         self.refreshing = False
         self.failed = False
+        self.submit = submit
 
     def get(self):
         with self.lock:
@@ -29,7 +30,10 @@ class StatsSnapshot:
                       'stale': stale, 'error': self.failed}
         if start:
             try:
-                Thread(target=self._refresh, daemon=True).start()
+                if self.submit:
+                    self.submit(self._refresh)
+                else:
+                    Thread(target=self._refresh, daemon=True).start()
             except RuntimeError:
                 self._failed()
                 result['error'] = True
