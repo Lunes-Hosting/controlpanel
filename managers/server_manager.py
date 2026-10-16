@@ -228,7 +228,34 @@ def get_server_information(server_id: int):
 def display_servers(pterodactyl_id=None):
     """Short-lived inventory for lists only; mutations use fresh API reads."""
     key = ('server-list', int(pterodactyl_id) if pterodactyl_id is not None else None)
-    return display_cache.get_or_load(key, lambda: improve_list_servers(pterodactyl_id, timeout=5), ttl=10)
+    def load():
+        try:
+            return improve_list_servers(pterodactyl_id, timeout=(5, 30))
+        except (requests.RequestException, ValueError):
+            return None
+    return display_cache.get_or_load(key, load, ttl=10)
+
+
+def display_server_page(page, per_page=20):
+    """Fetch only the visible admin page instead of every server in the panel."""
+    page = max(1, int(page))
+    per_page = max(1, min(100, int(per_page)))
+    def load():
+        try:
+            response = safe_requests.get(
+                f"{PTERODACTYL_URL}api/application/servers?page={page}&per_page={per_page}",
+                headers=HEADERS, timeout=(5, 30),
+            )
+            response.raise_for_status()
+            payload = response.json()
+            pagination = payload['meta']['pagination']
+            if not isinstance(payload['data'], list):
+                return None
+            return {'data': payload['data'], 'total': max(0, int(pagination['total'])),
+                    'total_pages': max(1, int(pagination['total_pages']))}
+        except (requests.RequestException, ValueError, KeyError, TypeError):
+            return None
+    return display_cache.get_or_load(('admin-server-page', page, per_page), load, ttl=10)
 
 def suspend_server(server_id: int, reason: str, source: str = "manual"):
     """Persist why a server is suspended; automatic checks cannot override staff."""
