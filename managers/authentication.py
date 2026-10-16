@@ -14,6 +14,7 @@ from threadedreturn import ThreadWithReturnValue
 import bcrypt
 import requests
 import threading
+import logging
 from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 from managers.database_manager import DatabaseManager
 from .logging import webhook_log
@@ -24,6 +25,7 @@ from urllib.parse import quote
 from managers.email_manager import send_email
 from security import safe_requests
 from managers.alt_settings import alt_detection_enabled
+from managers.account_sessions import session_is_valid
 
 
 # API authentication headers
@@ -56,7 +58,7 @@ def login_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'email' not in session:
+        if not session_is_valid():
             # Only pass the path portion of the URL for redirection after login
             next_url = request.path
             return redirect(url_for('user.login_user', next=next_url))
@@ -79,7 +81,7 @@ def admin_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'email' not in session:
+        if not session_is_valid():
             # Only pass the path portion of the URL for redirection after login
             next_url = request.path
             return redirect(url_for('user.login_user', next=next_url))
@@ -105,7 +107,7 @@ def support_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'email' not in session:
+        if not session_is_valid():
             # Only pass the path portion of the URL for redirection after login
             next_url = request.path
             return redirect(url_for('user.login_user', next=next_url))
@@ -144,7 +146,11 @@ def login(email: str, password: str, ip: str):
         # Get hashed password from database
         hashed_password = result[9]
         # Verify password
-        if bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8')):
+        try:
+            matched = bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
+        except (ValueError, TypeError):
+            matched = False
+        if matched:
             # Check if user is already suspended
             if result[15]:
                 return "suspended"
@@ -196,7 +202,9 @@ def login(email: str, password: str, ip: str):
             return result
     
     # Log failed login attempt
-    webhook_log(f"Failed login attempt for {email} from {ip}", 1, database_log=True)
+    # Failed attempts must not amplify traffic into DB writes and Discord HTTP
+    # calls. Web-server access logs already record requests; omit credentials.
+    logging.getLogger(__name__).debug("Login credentials rejected")
     
     return None
 

@@ -80,10 +80,10 @@ def admin_tickets_index():
     
     # Build query based on filter
     if ticket_filter == 'all':
-        query = "SELECT * FROM tickets"
+        query = "SELECT * FROM tickets ORDER BY created_at DESC, id DESC"
         params = ()
     else:
-        query = "SELECT * FROM tickets WHERE status = %s"
+        query = "SELECT * FROM tickets WHERE status = %s ORDER BY created_at DESC, id DESC"
         params = ('open',)
     
     # Get tickets based on filter

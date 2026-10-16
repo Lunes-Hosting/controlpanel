@@ -52,10 +52,9 @@ def suspend_panel_user(panel_id: int, apply: bool) -> Tuple[str, str]:
         return "already_suspended", email or f"panel_id:{panel_id}"
     if not apply:
         return "dry_run", email or f"panel_id:{panel_id}"
-    DatabaseManager.execute_query(
-        "UPDATE users SET suspended = 1 WHERE id = %s",
-        (user_id,),
-    )
+    from managers.suspension_manager import set_user_suspension
+    set_user_suspension(user_id, True, "Suspended by operator using the server-owner UUID script.",
+                        source="operator_script", actor="cli")
     return "suspended", email or f"panel_id:{panel_id}"
 
 

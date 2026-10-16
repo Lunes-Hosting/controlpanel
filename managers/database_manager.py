@@ -8,6 +8,11 @@ with existing codebase functionality.
 """
 
 import mysql.connector
+from mysql.connector.pooling import MySQLConnectionPool
+import os
+import threading
+import config
+from contextlib import contextmanager
 from typing import Optional, Union, Tuple, List, Any
 from .base_manager import BaseManager
 from config import DATABASE, HOST, PASSWORD, USER
@@ -18,6 +23,27 @@ class DatabaseManager(BaseManager):
     Designed to be compatible with existing database usage patterns.
     """
     
+    _pools = {}
+    _pool_lock = threading.Lock()
+
+    @classmethod
+    @contextmanager
+    def transaction(cls):
+        """Keep all operations on one connection and commit them together."""
+        connection, cursor = cls.get_connection()
+        try:
+            connection.start_transaction()
+            yield cursor
+            connection.commit()
+        except BaseException:
+            connection.rollback()
+            raise
+        finally:
+            try:
+                cursor.close()
+            finally:
+                connection.close()
+
     @classmethod
     def get_connection(cls, database: str = DATABASE) -> Tuple[mysql.connector.MySQLConnection, mysql.connector.cursor.MySQLCursor]:
         """
@@ -30,15 +56,27 @@ class DatabaseManager(BaseManager):
         Returns:
             tuple: (connection, cursor)
         """
-        connection = mysql.connector.connect(
-            host=HOST,
-            user=USER,
-            password=PASSWORD,
-            database=database,
-            charset='utf8mb4',
-            collation='utf8mb4_unicode_ci'
-        )
-        cursor = connection.cursor(buffered=True)
+        # Connections are returned by close(), including transaction callers.
+        # Separate pools per process prevent sharing sockets after a worker fork.
+        key = (os.getpid(), database)
+        with cls._pool_lock:
+            pool = cls._pools.get(key)
+            if pool is None:
+                pool = MySQLConnectionPool(
+                    pool_name=f"panel_{os.getpid()}_{len(cls._pools)}",
+                    pool_size=max(1, min(32, int(getattr(config, 'DATABASE_POOL_SIZE', 10)))),
+                    pool_reset_session=True,
+                    host=HOST, user=USER, password=PASSWORD, database=database,
+                    charset='utf8mb4', collation='utf8mb4_unicode_ci',
+                    connection_timeout=5,
+                )
+                cls._pools[key] = pool
+        connection = pool.get_connection()
+        try:
+            cursor = connection.cursor(buffered=True)
+        except BaseException:
+            connection.close()
+            raise
         return connection, cursor
 
     @classmethod
@@ -94,10 +132,12 @@ class DatabaseManager(BaseManager):
             raise
             
         finally:
-            if cursor:
-                cursor.close()
-            if connection:
-                connection.close()
+            try:
+                if cursor:
+                    cursor.close()
+            finally:
+                if connection:
+                    connection.close()
                 
     @classmethod
     def execute_many(
@@ -131,7 +171,9 @@ class DatabaseManager(BaseManager):
             raise
             
         finally:
-            if cursor:
-                cursor.close()
-            if connection:
-                connection.close()
+            try:
+                if cursor:
+                    cursor.close()
+            finally:
+                if connection:
+                    connection.close()

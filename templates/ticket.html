@@ -394,7 +394,7 @@
                 <i class="fa-solid fa-ticket" aria-hidden="true"></i>
                 <div>
                     <p>Support</p>
-                    <h1>Ticket #{{ '%04d' | format(info['id']) }}</h1>
+                    <h1 title="{{ info['id'] }}">Ticket #{{ (info['id']|string).split('-')[0] }}</h1>
                 </div>
             </div>
             <a href="{{ url_for('tickets.tickets_index') }}">

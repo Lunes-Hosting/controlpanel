@@ -128,11 +128,12 @@ DROP TABLE IF EXISTS `ticket_comments`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ticket_comments` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `ticket_id` int(10) unsigned NOT NULL,
+  `ticket_id` varchar(36) NOT NULL,
   `user_id` int(10) unsigned NOT NULL,
   `ticketcomment` text NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `comments_ticket_id_idx` (`ticket_id`,`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4913 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -144,10 +145,11 @@ DROP TABLE IF EXISTS `ticket_discord_channels`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ticket_discord_channels` (
-  `ticket_id` int(10) unsigned NOT NULL,
+  `ticket_id` varchar(36) NOT NULL,
   `channel_id` bigint(20) unsigned NOT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`ticket_id`)
+  PRIMARY KEY (`ticket_id`),
+  KEY `ticket_channel_id_idx` (`channel_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -159,15 +161,16 @@ DROP TABLE IF EXISTS `tickets`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tickets` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id` varchar(36) NOT NULL,
   `user_id` int(10) unsigned NOT NULL,
   `title` varchar(191) NOT NULL,
   `status` varchar(191) NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `reply_status` varchar(255) NOT NULL DEFAULT 'waiting' COMMENT 'responded OR waiting depending on who replyed last',
   `last_reply` timestamp NULL DEFAULT NULL COMMENT 'Timestamp of latest reply',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1824 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  PRIMARY KEY (`id`),
+  KEY `tickets_owner_status_created_idx` (`user_id`,`status`,`created_at`,`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -199,6 +202,9 @@ CREATE TABLE `users` (
   `discord_id` bigint(20) DEFAULT NULL COMMENT 'discord id',
   `show_email` tinyint(4) NOT NULL DEFAULT 0 COMMENT 'Shows Email on codehub',
   PRIMARY KEY (`id`),
+  KEY `users_pterodactyl_id_idx` (`pterodactyl_id`),
+  KEY `users_discord_id_idx` (`discord_id`),
+  KEY `users_last_seen_idx` (`last_seen`),
   UNIQUE KEY `users_email_unique` (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=42103 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;

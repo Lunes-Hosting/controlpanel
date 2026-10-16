@@ -1,4 +1,5 @@
 from managers.database_manager import DatabaseManager
+from managers.suspension_manager import set_user_suspension, require_reason, get_user_suspension
 from managers.email_manager import send_email
 from flask import current_app
 from ..utils.logger import logger
@@ -9,7 +10,7 @@ class UserDB():
             user_info = DatabaseManager.execute_query("SELECT credits, role, pterodactyl_id, id, suspended FROM users WHERE email = %s",(email,) )
             if not user_info:
                 return "Error: User not found"
-            return {"credits": user_info[0], "role": user_info[1], "pterodactyl_id": user_info[2], "id": user_info[3], "suspended": user_info[4]}
+            return {"credits": user_info[0], "role": user_info[1], "pterodactyl_id": user_info[2], "id": user_info[3], "suspended": user_info[4], "suspension_reason": get_user_suspension(user_info[3]) if user_info[4] else None}
         except Exception as e:
             logger.error(f"Error fetching user info: {str(e)}")
             return "Error fetching user info"
@@ -19,17 +20,19 @@ class UserDB():
             user_info = DatabaseManager.execute_query("SELECT credits, role, pterodactyl_id, id, suspended, email FROM users WHERE discord_id = %s",(discord_id,) )
             if not user_info:
                 return "Error: User not found"
-            return {"credits": user_info[0], "role": user_info[1], "pterodactyl_id": user_info[2], "id": user_info[3], "suspended": user_info[4], "email": user_info[5]}
+            return {"credits": user_info[0], "role": user_info[1], "pterodactyl_id": user_info[2], "id": user_info[3], "suspended": user_info[4], "email": user_info[5], "suspension_reason": get_user_suspension(user_info[3]) if user_info[4] else None}
         except Exception as e:
             logger.error(f"Error fetching user info: {str(e)}")
             return "Error fetching user info"
         
 
-    def suspend_user(email, actor="discord"):
+    def suspend_user(email, reason, actor="discord"):
         try:
-            send_email(email, "Account Suspended", "Your account has been suspended.", current_app._get_current_object())
-            DatabaseManager.execute_query("UPDATE users SET suspended = 1 WHERE email = %s",(email,))
+            reason = require_reason(reason)
             row = DatabaseManager.execute_query("SELECT id FROM users WHERE email = %s", (email,))
+            if not row:
+                return "User not found"
+            set_user_suspension(row[0], True, reason, source="discord", actor=actor)
             if row:
                 from managers.alt_detection import log_alt_action
                 log_alt_action(int(row[0]), "ban", actor=actor, source="discord")
@@ -53,8 +56,9 @@ class UserDB():
     def unsuspend_user(email, actor="discord"):
         try:
             send_email(email, "Account Unsuspended", "Your account has been unsuspended.", current_app._get_current_object())
-            DatabaseManager.execute_query("UPDATE users SET suspended = 0 WHERE email = %s",(email,))
             row = DatabaseManager.execute_query("SELECT id FROM users WHERE email = %s", (email,))
+            if row:
+                set_user_suspension(row[0], False)
             if row:
                 from managers.alt_detection import exempt_user
                 exempt_user(int(row[0]), actor=actor, source="discord")

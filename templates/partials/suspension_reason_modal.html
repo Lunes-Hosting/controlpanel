@@ -1,0 +1,81 @@
+<style>
+    .suspension-dialog { width: min(34rem, calc(100% - 2rem)); box-sizing: border-box; padding: 1.5rem; border: 1px solid #475569; border-radius: 12px; color: #f1f5f9; background: #161e2c; }
+    .suspension-dialog::backdrop { background: #000a; }
+    .suspension-dialog h2 { margin: 0 0 .75rem; font-size: 1.25rem; font-weight: 600; }
+    .suspension-dialog p { margin: 0 0 1.25rem; color: #cbd5e1; line-height: 1.5; }
+    .suspension-dialog label { display: block; margin-bottom: .5rem; font-weight: 600; }
+    .suspension-dialog textarea { width: 100%; min-height: 8rem; box-sizing: border-box; padding: .75rem; border: 1px solid #64748b; border-radius: 6px; background: #0f172a; color: #f1f5f9; font: inherit; resize: vertical; }
+    .suspension-dialog textarea::placeholder { color: #aab8cc; }
+    .suspension-dialog :focus-visible { outline: 2px solid #93c5fd; outline-offset: 3px; }
+    .suspension-dialog small { display: block; margin-top: .5rem; color: #cbd5e1; }
+    .suspension-dialog footer { display: flex; justify-content: flex-end; gap: .75rem; flex-wrap: wrap; margin-top: 1.5rem; }
+    .suspension-dialog button { min-height: 44px; padding: .5rem 1rem; border: 1px solid #64748b; border-radius: 6px; background: #253247; color: #f1f5f9; cursor: pointer; font: inherit; }
+    .suspension-dialog button[type=submit] { background: #a92727; border-color: #e28585; }
+    .suspension-dialog button:hover { filter: brightness(1.15); }
+    .suspension-dialog button:disabled { opacity: .65; cursor: wait; }
+</style>
+<dialog id="suspension-reason-dialog" class="suspension-dialog" aria-labelledby="suspension-dialog-title" aria-describedby="suspension-dialog-description">
+    <form id="suspension-reason-form">
+        <h2 id="suspension-dialog-title">Suspend account</h2>
+        <p id="suspension-dialog-description">Provide a reason for this suspension. It will be saved with the suspension record.</p>
+        <label for="suspension-reason-input">Suspension reason (required)</label>
+        <textarea id="suspension-reason-input" maxlength="1000" required autofocus aria-describedby="suspension-reason-help" placeholder="Explain why access is being suspended."></textarea>
+        <small id="suspension-reason-help">Enter 1–1000 characters. Spaces alone are not accepted.</small>
+        <footer>
+            <button type="button" id="suspension-reason-cancel">Cancel</button>
+            <button type="submit" id="suspension-reason-confirm">Suspend</button>
+        </footer>
+    </form>
+</dialog>
+<script>
+(() => {
+    const dialog = document.getElementById('suspension-reason-dialog');
+    const input = document.getElementById('suspension-reason-input');
+    const confirmButton = document.getElementById('suspension-reason-confirm');
+    let pendingForm = null;
+    let previousFocus = null;
+    document.addEventListener('submit', event => {
+        const form = event.target;
+        if (!form.matches('form[data-require-suspension-reason]')) return;
+        if (form.dataset.reasonApproved === 'true') {
+            delete form.dataset.reasonApproved;
+            return;
+        }
+        event.preventDefault();
+        pendingForm = form;
+        previousFocus = document.activeElement;
+        document.getElementById('suspension-dialog-title').textContent = `Suspend ${form.dataset.suspensionLabel || 'account'}`;
+        input.value = '';
+        input.setCustomValidity('');
+        confirmButton.disabled = false;
+        dialog.showModal();
+        input.focus();
+    });
+    input.addEventListener('input', () => input.setCustomValidity(''));
+    document.getElementById('suspension-reason-cancel').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('close', () => {
+        if (previousFocus) previousFocus.focus();
+    });
+    document.getElementById('suspension-reason-form').addEventListener('submit', event => {
+        event.preventDefault();
+        if (!input.value.trim()) {
+            input.setCustomValidity('Enter a suspension reason. Spaces alone are not accepted.');
+            input.reportValidity();
+            return;
+        }
+        if (!pendingForm || !input.reportValidity()) return;
+        let reason = pendingForm.querySelector('input[name="reason"]');
+        if (!reason) {
+            reason = document.createElement('input');
+            reason.type = 'hidden';
+            reason.name = 'reason';
+            pendingForm.appendChild(reason);
+        }
+        reason.value = input.value.trim();
+        pendingForm.dataset.reasonApproved = 'true';
+        confirmButton.disabled = true;
+        dialog.close();
+        pendingForm.requestSubmit();
+    });
+})();
+</script>

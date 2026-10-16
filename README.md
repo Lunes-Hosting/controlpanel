@@ -33,25 +33,6 @@ The project is designed to enhance the user experience when working with Pteroda
 
 # Getting Started
 
-### Alternate-account detection
-
-Set `ALT_DETECTION_ENABLED = False` in `config.py` to disable automatic
-IP-based login suspensions, shared-IP signup blocking, device-token/storage
-matching, fingerprint-based review, and collection of signup tracking signals.
-Set it to `True` to enable those checks. Restart the application after changing
-the configuration. See `configexample.py` for the settings.
-
-When enabled, `ALT_ENFORCE` separately controls login IP enforcement:
-`False` reports possible matches for review; `True` automatically suspends alts.
-Configurations without `ALT_DETECTION_ENABLED` default to detection disabled,
-even if `ALT_ENFORCE` was previously enabled.
-Disabling detection does not lift existing suspensions or change manual staff
-suspensions, email restrictions, or other account approval rules.
-Automatic server suspension still applies when credits are insufficient and
-when a free-tier server's owner has not logged in for more than 15 days.
-
-
-
 ### Prerequisites
 
 * Python (3.11 Preferred)
@@ -67,7 +48,7 @@ when a free-tier server's owner has not logged in for more than 15 days.
 git clone https://github.com/Lunes-Hosting/controlpanel
 ```
 
-3. 
+3.
 ```py
 pip install -r requirements.txt
 ```
@@ -84,9 +65,9 @@ Our design leverages the [DaisyUI](https://daisyui.com) CSS framework, enabling 
 ### Creating A Pull Request
 
 1. Fork the Project
-2. Create your Feature Branch 
-3. Commit your Changes 
-4. Push to the Branch 
+2. Create your Feature Branch
+3. Commit your Changes
+4. Push to the Branch
 5. Open a Pull Request
 
 ## License

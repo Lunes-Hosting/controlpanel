@@ -21,6 +21,7 @@ from .logging import webhook_log
 from .email_manager import send_email
 from .server_manager import suspend_server, unsuspend_server, delete_server
 from .user_manager import check_if_user_suspended
+from .suspension_manager import get_server_suspension
 from security import safe_requests
 from flask import current_app
 import datetime
@@ -33,80 +34,44 @@ HEADERS = {
     'Content-Type': 'application/json'
 }
 
+def _credit_amount(amount):
+    """Reject negative and non-finite amounts before changing a balance."""
+    import math
+    amount = float(amount)
+    if not math.isfinite(amount) or amount < 0:
+        raise ValueError("Credit amount must be finite and non-negative")
+    return amount
+
+
+def _add_credits_in_transaction(cursor, email, amount, set_client=True):
+    """Apply a credit using the caller's transaction; fail if no account exists."""
+    cursor.execute("SELECT id FROM users WHERE email = %s FOR UPDATE", (email,))
+    if cursor.fetchone() is None:
+        raise ValueError("Credit recipient does not exist")
+    cursor.execute("UPDATE users SET credits = credits + %s WHERE email = %s", (amount, email))
+    if set_client:
+        cursor.execute("UPDATE users SET role = 'client' WHERE email = %s", (email,))
+
+
 def add_credits(email: str, amount: int, set_client: bool = True):
-    """
-    Adds credits to a user's account.
-    
-    Process:
-    1. Gets current credits from database
-    2. Adds specified amount
-    3. Updates database
-    4. Optionally sets user role to 'client'
-    
-    Args:
-        email: User's email
-        amount: Number of credits to add
-        set_client: Whether to set user role to 'client'
-    
-    Returns:
-        None
-    """
-    # Get current credits
-    query = "SELECT credits FROM users WHERE email = %s"
-    result = DatabaseManager.execute_query(query, (email,))
-    
-    if result:
-        current_credits = float(result[0])
-        new_credits = current_credits + amount
-        
-        # Update credits
-        update_query = "UPDATE users SET credits = %s WHERE email = %s"
-        DatabaseManager.execute_query(update_query, (float(new_credits), email))
-        
-        # Optionally set role to client
-        if set_client:
-            role_query = "UPDATE users SET role = 'client' WHERE email = %s"
-            DatabaseManager.execute_query(role_query, (email,))
-            
-        webhook_log(f"Added {amount} credits to {email}. New balance: {new_credits}", database_log=True)
+    """Add credits atomically, including the optional client promotion."""
+    amount = _credit_amount(amount)
+    with DatabaseManager.transaction() as cursor:
+        _add_credits_in_transaction(cursor, email, amount, set_client)
+    webhook_log(f"Added {amount} credits to {email}", database_log=True)
+
 
 def remove_credits(email: str, amount: float):
-    """
-    Removes credits from a user's account.
-    
-    Process:
-    1. Gets current credits
-    2. If user has enough credits:
-        - Subtracts amount
-        - Updates database
-    3. If not enough credits:
-        - Returns "SUSPEND"
-    
-    Args:
-        email: User's email
-        amount: Number of credits to remove
-    
-    Returns:
-        "SUSPEND": If user doesn't have enough credits
-        None: If credits successfully removed
-    """
-    # Get current credits
-    query = "SELECT credits FROM users WHERE email = %s"
-    result = DatabaseManager.execute_query(query, (email,))
-    
-    if result:
-        current_credits = float(result[0])
-        if current_credits >= amount:
-            new_credits = current_credits - amount
-            
-            # Update credits
-            update_query = "UPDATE users SET credits = %s WHERE email = %s"
-            DatabaseManager.execute_query(update_query, (float(new_credits), email))
-            
-            return None
-        else:
+    """Lock the account until the affordability check and debit commit."""
+    amount = _credit_amount(amount)
+    with DatabaseManager.transaction() as cursor:
+        cursor.execute("SELECT credits FROM users WHERE email = %s FOR UPDATE", (email,))
+        result = cursor.fetchone()
+        if result is None or float(result[0]) < amount:
             return "SUSPEND"
+        cursor.execute("UPDATE users SET credits = credits - %s WHERE email = %s", (amount, email))
     return None
+
 
 def get_credits(email: str):
     """
@@ -194,10 +159,6 @@ def use_credits():
             
         user_email = user_response.json()['attributes']['email']
         
-        # Get current user credits
-        user_credits = float(get_credits(user_email))
-        remaining_credits = user_credits
-        
         # Process each server individually
         for server in servers:
             # Skip suspended servers
@@ -208,26 +169,15 @@ def use_credits():
             product = convert_to_product(server)
             hourly_cost = float(product['price'])/30.0/24.0
             
-            # Check if user has enough credits for this server
-            if remaining_credits >= hourly_cost:
-                # User can afford this server, deduct credits
-                remaining_credits -= hourly_cost
-            else:
+            # Debit against the live, locked balance, including concurrent purchases.
+            if remove_credits(user_email, hourly_cost) == "SUSPEND":
                 # User can't afford this server, suspend it
                 server_id = server['attributes']['id']
                 server_name = server['attributes']['name']
                 webhook_log(f"User {user_email} can't afford server {server_name} (ID: {server_id}). Suspending.", database_log=True)
-                ThreadWithReturnValue(target=send_email, args=(user_email, f"Server suspended", f"Your server: {server_name} has been suspended due to your account running out of credits. If your account balance remains the same in 4 days, your server will be deleted permanently.", current_app._get_current_object())).start()
-                threading.Thread(target=suspend_server, args=(server_id,)).start()
+                threading.Thread(target=suspend_server, args=(server_id, "Insufficient credits to pay for this server.", "billing")).start()
         
-        # Update user's credits with the remaining amount
-        if user_credits > 0:
-            # Calculate how many credits were used
-            credits_used = user_credits - remaining_credits
-            if credits_used > 0:
-                # Update database with new credit amount
-                update_query = "UPDATE users SET credits = %s WHERE email = %s"
-                DatabaseManager.execute_query(update_query, (float(remaining_credits), user_email))
+
 
 def check_to_unsuspend():
     """
@@ -283,6 +233,9 @@ def check_to_unsuspend():
             threading.Thread(target=webhook_log, args=(f"Failed to get user {user_id} for unsuspension check: {user_response.status_code}", 2)).start()
             continue
             
+        account_suspended = check_if_user_suspended(user_id)
+        if account_suspended is None or bool(account_suspended):
+            continue
         user_email = user_response.json()['attributes']['email']
         user_credits = float(get_credits(user_email))
         
@@ -294,7 +247,10 @@ def check_to_unsuspend():
         for server in sorted_servers:
             server_id = server['attributes']['id']
             server_name = server['attributes']['name']
-            
+            suspension = get_server_suspension(server_id)
+            if not suspension or not suspension["active"] or suspension["source"] not in ("billing", "inactivity"):
+                continue
+
             # Get product info based on server specs
             product = convert_to_product(server)
             hourly_cost = float(product['price'])/30.0/24.0
@@ -320,12 +276,12 @@ def check_to_unsuspend():
             if remaining_credits >= hourly_cost:
                 # User can afford this server, unsuspend it
                 webhook_log(f"Unsuspending server {server_name} (ID: {server_id}) for user {user_email} (has {remaining_credits:.2f} credits)", database_log=True)
-                threading.Thread(target=unsuspend_server, args=(server_id,)).start()
+                threading.Thread(target=unsuspend_server, args=(server_id,), kwargs={"automatic": True}).start()
                 
                 # Deduct credits for this server
                 remaining_credits -= hourly_cost
-            else:
-                # Check if server has been suspended for too long
+            elif suspension["source"] == "billing":
+                # Only billing suspensions use the billing deletion deadline.
                 try:
                     suspended_at = server['attributes']['updated_at']
                     suspension_time = datetime.datetime.strptime(suspended_at, "%Y-%m-%dT%H:%M:%S+00:00")

@@ -23,6 +23,11 @@ from .logging import webhook_log
 import time
 from security import safe_requests
 import secrets
+import datetime
+from .suspension_manager import require_reason
+from .suspension_notifications import (queue_suspension_email, clear_suspension_email_keys,
+                                       kick_suspension_email_delivery)
+from display_cache import display_cache
 
 # Initialize cache
 cache = PteroCache()
@@ -92,7 +97,7 @@ def get_autodeploy_info(project_id: int) -> list[dict]:
                 "startup": attributes['startup']}], environment
     return None
 
-def improve_list_servers(pterodactyl_id: int = None):
+def improve_list_servers(pterodactyl_id: int = None, timeout=60):
     """
     Example Response:
     {
@@ -167,12 +172,12 @@ def improve_list_servers(pterodactyl_id: int = None):
     }
     """
     if pterodactyl_id is None:
-        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=timeout)
         if response.status_code == 200:
             return response.json()
         return None
     else:
-        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{pterodactyl_id}?include=servers", headers=HEADERS, timeout=60)
+        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{pterodactyl_id}?include=servers", headers=HEADERS, timeout=timeout)
         if response.status_code == 200:
             return response.json()
         return None
@@ -219,40 +224,80 @@ def get_server_information(server_id: int):
         return response.json()
     return None
 
-def suspend_server(server_id: int):
-    """
-    Suspends a server through Pterodactyl API.
-    Typically called when user runs out of credits.
-    
-    Args:
-        server_id: Pterodactyl server ID
-    
-    Returns:
-        None
-    """
-    response = requests.post(f"{PTERODACTYL_URL}api/application/servers/{server_id}/suspend", headers=HEADERS, timeout=60)
+
+def display_servers(pterodactyl_id=None):
+    """Short-lived inventory for lists only; mutations use fresh API reads."""
+    key = ('server-list', int(pterodactyl_id) if pterodactyl_id is not None else None)
+    return display_cache.get_or_load(key, lambda: improve_list_servers(pterodactyl_id, timeout=5), ttl=10)
+
+def suspend_server(server_id: int, reason: str, source: str = "manual"):
+    """Persist why a server is suspended; automatic checks cannot override staff."""
+    reason = require_reason(reason)
+    info = get_server_information(int(server_id))
+    if not info:
+        raise ValueError("Server not found")
+    # Validate the notification recipient before changing the remote server.
+    # Otherwise a missing local owner would roll back the saved reason after
+    # Pterodactyl had already suspended the server.
+    owner = DatabaseManager.execute_query(
+        "SELECT email FROM users WHERE pterodactyl_id=%s", (info['attributes']['user'],)
+    )
+    if not owner:
+        raise ValueError("Server owner account not found")
+    if source == "manual":
+        # Persist staff intent before the remote call. A timeout or lost commit
+        # acknowledgement must never leave an old billing marker auto-resumable.
+        with DatabaseManager.transaction() as cursor:
+            cursor.execute(
+                "INSERT INTO server_suspensions (server_id, reason, source, active) VALUES (%s, %s, 'manual', 1) "
+                "ON DUPLICATE KEY UPDATE reason=VALUES(reason), source='manual', active=1",
+                (int(server_id), reason),
+            )
+    with DatabaseManager.transaction() as cursor:
+        cursor.execute("INSERT INTO server_suspensions (server_id) VALUES (%s) ON DUPLICATE KEY UPDATE server_id=VALUES(server_id)", (int(server_id),))
+        cursor.execute("SELECT source, active FROM server_suspensions WHERE server_id = %s FOR UPDATE", (int(server_id),))
+        previous = cursor.fetchone()
+        if source != "manual" and previous[1] and previous[0] not in ("billing", "inactivity"):
+            return 409
+        response = requests.post(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}/suspend", headers=HEADERS, timeout=60)
+        response.raise_for_status()
+        cursor.execute(
+            "UPDATE server_suspensions SET reason=%s, source=%s, active=1 WHERE server_id=%s",
+            (reason, source, int(server_id)),
+        )
+        queue_suspension_email(cursor, "server", server_id, owner[0], reason,
+                               label=info['attributes'].get('name'), source=source)
+    kick_suspension_email_delivery()
+    display_cache.clear()
     return response.status_code
 
-def unsuspend_server(server_id: int):
-    """
-    Un-suspends specific server id.
-    
-    Makes a POST request to /api/application/servers/{server_id}/unsuspend to unsuspend the server.
-    
-    Example Success: Returns 204 (No Content)
-    Example Error Response:
-    {
-        "errors": [
-            {
-                "code": "NotFound",
-                "status": "404",
-                "detail": "The requested resource was not found on this server."
-            }
-        ]
-    }
-    """
-    response = requests.post(f"{PTERODACTYL_URL}api/application/servers/{server_id}/unsuspend", headers=HEADERS, timeout=60)
+
+def unsuspend_server(server_id: int, automatic: bool = False):
+    """Automatically recover only billing or resolved inactivity suspensions."""
+    info = get_server_information(int(server_id)) if automatic else None
+    if automatic and not info:
+        return 409
+    with DatabaseManager.transaction() as cursor:
+        cursor.execute("INSERT INTO server_suspensions (server_id) VALUES (%s) ON DUPLICATE KEY UPDATE server_id=VALUES(server_id)", (int(server_id),))
+        cursor.execute("SELECT source, active FROM server_suspensions WHERE server_id = %s FOR UPDATE", (int(server_id),))
+        previous = cursor.fetchone()
+        if automatic:
+            if not previous[1] or previous[0] not in ("billing", "inactivity"):
+                return 409
+            cursor.execute("SELECT suspended, last_seen FROM users WHERE pterodactyl_id = %s FOR UPDATE", (info['attributes']['user'],))
+            account = cursor.fetchone()
+            if account is None or account[0]:
+                return 409
+            if previous[0] == "inactivity" and (not account[1] or
+                    datetime.datetime.now() - account[1] > datetime.timedelta(days=15)):
+                return 409
+        response = requests.post(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}/unsuspend", headers=HEADERS, timeout=60)
+        response.raise_for_status()
+        cursor.execute("UPDATE server_suspensions SET active=0 WHERE server_id=%s", (int(server_id),))
+        clear_suspension_email_keys(cursor, "server", server_id)
+    display_cache.clear()
     return response.status_code
+
 
 def get_node_allocation(node_id: int):
     """
@@ -354,6 +399,7 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
             print(f"Server transfer failed - Status: {response.status_code}, Response: {response.text}", 2)
         else:
             # Get the user who owns the server
+            display_cache.clear()
             user_id = server_info['attributes']['user']
             print(f"User {user_id} transferred server {server_id} to node {target_node_id}")
         
@@ -407,5 +453,8 @@ def delete_server(server_id: int):
     """
     response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS, timeout=60)
     if response.status_code == 204:
+        display_cache.clear()
+        from .server_creation_lock import release_deleted_server
+        release_deleted_server(server_id)
         return True
     return False

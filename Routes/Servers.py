@@ -59,13 +59,17 @@ import secrets
 sys.path.append("..")
 from managers.authentication import login_required, admin_required
 from managers.user_manager import get_ptero_id, get_id, get_name, check_if_user_suspended, get_user_verification_status_and_suspension_status
-from managers.server_manager import get_nodes, get_eggs, get_server_information, improve_list_servers, get_node_allocation, transfer_server
+from managers.server_manager import get_nodes, get_eggs, get_server_information, improve_list_servers, display_servers, get_node_allocation, transfer_server, delete_server as delete_managed_server
 from managers.credit_manager import get_credits, convert_to_product, use_credits, remove_credits, add_credits
 from managers.logging import webhook_log
+from managers.suspension_manager import get_server_suspension
 from managers.utils import HEADERS
 from products import products
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY
+from managers.server_creation_lock import (serialized_server_creation, pending_server_creations,
+                                          reserve_server_creation, finish_server_creation)
+from display_cache import display_cache
 
 servers = Blueprint('servers', __name__)
 
@@ -252,11 +256,14 @@ def server(server_id):
 
     
     verified, ptero_id, credits = get_user_verification_ptero_id_and_credits(session["email"])
-    if not verify_server_ownership_by_ptero_id(server_id, ptero_id):
+    info = get_server_information(server_id)
+    if not info:
+        return "Server not found or temporarily unavailable", 404
+    if info['attributes']['user'] != ptero_id:
         return "You can't view this server - you don't own it!"
         
     
-    response = improve_list_servers(ptero_id) #improved
+    response = display_servers(ptero_id)
     
     # Extract servers from the response
     servers_list = []
@@ -272,13 +279,15 @@ def server(server_id):
             products_local.remove(products[0])
             break
             
-    info = get_server_information(server_id)
     nodes = get_nodes()
     
     # Get current product for the server
     current_product = convert_to_product(info)
     
-    return render_template('server.html', info=info, products=products_local, nodes=tuple(nodes), verified=verified, credits=int(credits), current_product=current_product)
+    suspension = get_server_suspension(server_id) if info['attributes'].get('suspended') else None
+    suspension_reason = (suspension['reason'] if suspension and suspension['active'] else
+                         "A reason was not recorded for this suspension. Please contact support.")
+    return render_template('server.html', info=info, products=products_local, nodes=tuple(nodes), verified=verified, credits=int(credits), current_product=current_product, suspension_reason=suspension_reason)
 
 @servers.route("/create", methods=["GET"])
 @login_required
@@ -445,7 +454,8 @@ def delete_server(server_id):
     try:
         if resp['attributes']['user'] == ptero_id[0]:
             webhook_log(f"Server with id: {server_id} was deleted by user", 0, database_log=True)
-            requests.delete(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}", headers=HEADERS, timeout=60)
+            if not delete_managed_server(int(server_id)):
+                return "Could not delete the server. Please try again shortly.", 502
             return redirect(url_for('user.index'))
         else:
             webhook_log(f"Server with id {server_id} attempted deleted from user {session['email']}", 1, database_log=True)
@@ -456,10 +466,15 @@ def delete_server(server_id):
         return "Server not found"    
 @servers.route('/create/submit', methods=['POST'])
 @login_required
+@serialized_server_creation
 def create_server_submit():
     """
     Handle server creation form submission.
     """
+    if not get_user_verification_status(session['email']):
+        flash("Please verify your email before creating a server.")
+        return redirect(url_for('user.index'))
+
     if not _has_server_creation_approval(session['email']):
         flash(SERVER_APPROVAL_MESSAGE)
         return redirect(url_for('user.index'))
@@ -476,21 +491,26 @@ def create_server_submit():
         flash("Failed captcha please try again")
         return redirect(url_for('servers.create_server'))
 
+    # The account lock remains held until the create API call completes.
+    ptero_id = get_ptero_id(session['email'])[0]
+    inventory = improve_list_servers(ptero_id)
+    try:
+        servers_list = inventory['attributes']['relationships']['servers']['data']
+        if not isinstance(servers_list, list):
+            raise TypeError("Invalid server inventory")
+    except (KeyError, TypeError):
+        return "Could not verify your server quota. Please try again shortly.", 503
+    pending_creations = pending_server_creations(session['account_id'], servers_list)
+
     # Enforce max 2 servers for non-client users
     role_row = DatabaseManager.execute_query(
         "SELECT role FROM users WHERE email = %s",
         (session['email'],)
     )
     if role_row and role_row[0] != 'client' and role_row[0] != 'admin' and role_row[0] != 'support':
-        # Count current servers
-        ptero_id_local = get_ptero_id(session['email'])[0]
-        response_local = improve_list_servers(ptero_id_local)
-        current_servers = []
-        if response_local and 'attributes' in response_local and 'relationships' in response_local['attributes']:
-            if 'servers' in response_local['attributes']['relationships']:
-                current_servers = response_local['attributes']['relationships']['servers']['data']
-        if len(current_servers) >= 2:
-            flash("You have reached the maximum of 2 servers for non-client accounts.")
+        if len(servers_list) + pending_creations >= 2:
+            flash("A server creation is still pending. Please wait for it to appear or contact support."
+                  if pending_creations else "You have reached the maximum of 2 servers for non-client accounts.")
             return redirect(url_for('user.index'))
 
     # Enforce 2-minute cooldown from registration (bypass if client)
@@ -585,15 +605,6 @@ def create_server_submit():
         flash("Selected node is full. Please choose a different node.")
         return redirect(url_for('servers.create_server'))
             
-    ptero_id = get_ptero_id(session['email'])[0]
-    response = improve_list_servers(ptero_id) #improved
-    
-    # Extract servers from the response
-    servers_list = []
-    if response and 'attributes' in response and 'relationships' in response['attributes']:
-        if 'servers' in response['attributes']['relationships']:
-            servers_list = response['attributes']['relationships']['servers']['data']
-        
     products_local = list(products)
     for server_inc in servers_list:
         if server_inc['attributes']['user'] == ptero_id:
@@ -616,10 +627,6 @@ def create_server_submit():
                 found_product = True
                 main_product = product
                 credits_used = main_product['price'] / 30 / 24
-                res = remove_credits(session['email'], credits_used)
-                if res == "SUSPEND":
-                    flash("You are out of credits")
-                    return redirect(url_for('user.index'))
     except (ValueError, TypeError):
         flash("Please select a valid plan")
         return redirect(url_for('servers.create_server'))
@@ -631,9 +638,21 @@ def create_server_submit():
         return ("Your Account has been suspended for breaking our TOS, if you believe this is a mistake you can submit "
                 "appeal at panel@lunes.host")
 
+    creation_request_id = reserve_server_creation(session['account_id'])
+    try:
+        debit = remove_credits(session['email'], credits_used)
+    except Exception:
+        # No remote request was sent, so the quota reservation can be released.
+        finish_server_creation(creation_request_id, failed=True)
+        raise
+    if debit == "SUSPEND":
+        finish_server_creation(creation_request_id, failed=True)
+        flash("You are out of credits")
+        return redirect(url_for('user.index'))
     body = {
+        "external_id": creation_request_id,
         "name": request.form['name'],
-        "user": session['pterodactyl_id'][0],
+        "user": ptero_id,
         "egg": egg_id,
         "docker_image": docker_image,
         "startup": startup,
@@ -646,12 +665,18 @@ def create_server_submit():
     }
 
     res: dict = requests.post(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, json=body, timeout=60).json()
+    display_cache.clear()
 
     error = res.get('errors', None)
     if error is not None:
+        finish_server_creation(creation_request_id, failed=True)
         flash("Failed to create server try a different node or open a ticket")
         add_credits(session['email'], credits_used, False)
         webhook_log(f"Server was just created: ```{res}```", database_log=True)
+    else:
+        # Retain the slot until inventory confirms the created server. Exceptions
+        # and unknown responses deliberately leave a pending reservation.
+        finish_server_creation(creation_request_id, (res.get('attributes') or {}).get('id'))
     webhook_log(f"Server was just created: ```{res}```", database_log=True)
     return redirect(url_for('user.index'))
 

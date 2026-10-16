@@ -4,6 +4,10 @@
 ALT_DETECTION_ENABLED = False
 # When detection is enabled, False warns on login IP matches instead of suspending.
 ALT_ENFORCE = False
+# Database connections per web/bot worker (1-32).
+DATABASE_POOL_SIZE = 10
+# Use redis://... with the redis package for shared limits across workers.
+RATELIMIT_STORAGE_URI = 'memory://'
 HOST=
 USER=
 PASSWORD=

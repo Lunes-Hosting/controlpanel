@@ -32,11 +32,12 @@ from flask import render_template, request, session, redirect, url_for, flash
 from managers.authentication import admin_required
 from managers.utils import HEADERS
 from managers.user_manager import get_ptero_id
-from managers.server_manager import get_server_information, delete_server, suspend_server, unsuspend_server
+from managers.server_manager import get_server_information, display_servers, delete_server, suspend_server, unsuspend_server
 from managers.credit_manager import convert_to_product
 from managers.logging import webhook_log
 from Routes.admin import admin
 from managers.database_manager import DatabaseManager
+from managers.suspension_manager import get_server_suspension, require_reason
 from config import PTERODACTYL_URL
 from products import products
 import sys
@@ -73,7 +74,9 @@ def admin_servers():
     per_page = 20
     
     # Get all servers from Pterodactyl
-    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60).json()
+    resp = display_servers()
+    if not resp:
+        return "Server inventory temporarily unavailable", 503
     all_servers = resp['data']
     
     # Filter servers based on search term (server ID or name)
@@ -161,7 +164,7 @@ def admin_server(server_id):
     products_local = list(products)
     info = get_server_information(server_id)
     product = convert_to_product(info)
-    return render_template('admin/server.html', info=info, products=products_local, product=product)
+    return render_template('admin/server.html', info=info, products=products_local, product=product, suspension=get_server_suspension(server_id))
 
 
 # Hardened with POST so nobody tricks your admin session into doing anything dirty.
@@ -212,8 +215,14 @@ def admin_toggle_server_suspension(server_id):
         flash("Server not found")
         return redirect(url_for('admin.admin_servers'))
     
-    # Toggle suspension status
-    is_suspended = server_info['attributes']['suspended']
+    # Explicit actions keep double submissions from toggling the state twice.
+    action = request.form.get("action")
+    is_suspended = action == "unsuspend" if action in ("suspend", "unsuspend") else server_info['attributes']['suspended']
+    if not is_suspended:
+        try:
+            reason = require_reason(request.form.get("reason"))
+        except ValueError as exc:
+            return str(exc), 400
     
     try:
         if is_suspended:
@@ -222,13 +231,13 @@ def admin_toggle_server_suspension(server_id):
             flash("Server has been unsuspended successfully")
         else:
             # If currently not suspended, suspend it
-            suspend_server(server_id)
+            suspend_server(server_id, reason, "manual")
             flash("Server has been suspended successfully")
             
         # Log the action
         admin_email = session.get('email', 'Unknown')
         action = "unsuspended" if is_suspended else "suspended"
-        webhook_log(f"Admin {admin_email} {action} server {server_info['attributes']['name']} (ID: {server_id})", database_log=True)
+        webhook_log(f"Admin {admin_email} {action} server {server_info['attributes']['name']} (ID: {server_id})" + (f" | Reason: {reason}" if not is_suspended else ""), database_log=True)
         
     except Exception as e:
         flash(f"Error toggling server suspension: {str(e)}")
