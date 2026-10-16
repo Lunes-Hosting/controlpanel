@@ -33,161 +33,6 @@ The project is designed to enhance the user experience when working with Pteroda
 
 # Getting Started
 
-### Suspension reasons and notices
-
-Suspended users see their saved reason after entering valid login credentials.
-The owner's server page shows a suspension banner with the server's saved reason;
-legacy/external suspensions without a recorded reason explicitly say so.
-
-All panel, Discord and automatic account/server suspension paths queue a notice
-in `suspension_email_outbox` with the reason. The outbox is committed alongside
-the suspension record and delivered after commit using the configured `MAIL_*`
-settings. Failed deliveries retry through the production scheduler every minute.
-Repeated application of the same active suspension/reason does not queue another
-notice; a new suspension after unsuspension does. As with any SMTP outbox, a crash
-after SMTP accepts a message but before the acknowledgement is saved can cause a retry.
-The former separate billing, inactivity and Discord suspension emails are removed
-to avoid sending two notices for the same action.
-
-Discord `/info`, `/getuser`, and `/check_reason email:user@example.com` show the
-account suspension state and reason privately to authorized staff in the configured
-guild. Restart the bot after deployment so the new command synchronizes.
-
-### Account, quota and suspension security
-
-Login clears cached account/project/payment data and binds the session to the
-current account and password hash. Changing a password invalidates prior
-sessions on their next protected request. Existing sessions from older versions
-must sign in again after this update.
-
-Server creation uses a MySQL advisory lock per account, covering the quota check
-and the Pterodactyl creation request. All application workers must use the same
-database server. Unavailable server inventories fail closed. Stop old workers
-before deploying so no old creation paths remain active.
-The `server_creation_requests` table reserves pending creations before the API
-call. Requests use their UUID as the Pterodactyl external ID. Inventory observation
-releases the reservation into the normal server count; definitive API rejections
-mark it failed. A timeout keeps the slot reserved, even across restarts. Staff
-must check Pterodactyl before marking a genuinely failed, unobserved request
-`failed`; unresolved requests are not automatically expired.
-
-Admin user and server suspensions require a trimmed, non-empty reason of at
-most 1000 characters. The admin modal and backend both validate it. Discord
-`/suspend` also requires a reason. Automatic credit, inactivity and enabled alt
-checks supply their own reasons. Reasons and sources are stored in automatically
-created `user_suspensions` and `server_suspensions` tables. Existing/external
-suspensions with no record are shown as such and are never automatically lifted.
-Staff suspension intent remains recorded if the remote suspension request fails;
-staff can retry or explicitly unsuspend after reviewing the outcome.
-
-Automatic recovery permits only billing suspensions and inactivity suspensions
-whose owners have logged back in. Banned/missing accounts and manual suspensions
-are excluded. Only billing suspensions use the billing deletion deadline.
-
-DISBOARD rewards require the configured guild and an active linked account.
-The `discord_bump_rewards` table deduplicates message IDs in the same transaction
-as the reward, including edits, concurrent deliveries and bot restarts.
-
-Ticket comments use the database's `AUTO_INCREMENT` key across panel and Discord
-writes. Startup enables it on older schemas when necessary. Startup migrations
-need the relevant `CREATE`/`ALTER` privileges; back up the database before upgrading.
-
-### Credit and payment transactions
-
-Server creation requires email verification on the submission endpoint.
-Credit additions, deductions, and scheduled billing use database transactions
-to avoid overwriting simultaneous balance changes. Checkout payments and
-subscription invoices commit their processed-payment marker, credit increase,
-and client role together. Duplicate deliveries do not grant additional credits;
-failed transactions remain retryable.
-
-The `users`, `stripe_processed_checkouts`, and `stripe_processed_invoices` tables
-must use InnoDB. Payment processing refuses non-transactional tables. Existing
-processed-payment records are preserved; payments affected by failures before
-this update need manual reconciliation against Stripe and the account balance.
-
-### Ticket identifiers
-
-New tickets use random UUIDv4 identifiers in panel links and database records.
-Panel labels and Discord channel names show only the first eight characters;
-hover over a panel label to see the full ID. The short label is for display only,
-and all lookups and links use the full UUID. Existing numeric tickets remain accessible at their original
-links, with comments and Discord channel mappings preserved.
-
-On the first upgraded startup, the application automatically widens `tickets.id`,
-`ticket_comments.ticket_id`, and `ticket_discord_channels.ticket_id` to
-`VARCHAR(36)`. Back up the database before deployment and ensure the database
-account has `ALTER` permission. Stop older application instances before upgrading
-so they cannot continue generating numeric tickets. Subsequent startups skip
-columns that already support UUIDs. The SQL template includes the new types for
-fresh installations. Ticket ownership and staff permission checks still apply.
-
-### Alternate-account detection
-
-Set `ALT_DETECTION_ENABLED = False` in `config.py` to disable automatic
-IP-based login suspensions, shared-IP signup blocking, device-token/storage
-matching, fingerprint-based review, and collection of signup tracking signals.
-Set it to `True` to enable those checks. Restart the application after changing
-the configuration. See `configexample.py` for the settings.
-
-When enabled, `ALT_ENFORCE` separately controls login IP enforcement:
-`False` reports possible matches for review; `True` automatically suspends alts.
-Configurations without `ALT_DETECTION_ENABLED` default to detection disabled,
-even if `ALT_ENFORCE` was previously enabled.
-Disabling detection does not lift existing suspensions or change manual staff
-suspensions, email restrictions, or other account approval rules.
-Automatic server suspension still applies when credits are insufficient and
-when a free-tier server's owner has not logged in for more than 15 days.
-
-
-
-### Performance and login protection
-
-The update works with the existing `config.py`: pull the changes and restart.
-No proxy settings, Redis setup, or separate migration command is required.
-
-Database connections are reused in a pool per process. Optional `DATABASE_POOL_SIZE = 10`
-in `config.py` controls its size (1–32); budget connections for every web worker
-and any separate bot process. Activity timestamps are written at most once per
-minute per account, and repeated role lookups are reused only within a request.
-The admin user list loads suspension reasons with a join instead of one query
-per suspended account.
-
-Dashboard and admin inventory lists use a bounded, per-worker 10-second cache
-that combines simultaneous cache misses. Local create/delete/suspend/unsuspend/
-transfer operations clear it in that worker; other workers and changes made
-directly in Pterodactyl appear within 10 seconds. Ownership, creation quotas,
-balances, verification, account suspension and password/session checks always
-use fresh data. Node/egg catalog instances now share one cache per process.
-
-Startup automatically adds missing indexes for Pterodactyl/Discord account
-lookups, activity scans, ticket lists/comments and Discord channel mappings.
-Existing equivalent indexes are skipped. If database permissions prevent the
-optional indexes, startup logs the issue and continues. The first restart can
-take longer while indexes are built. Fresh installs already include them in
-`controlpanel_template.sql`.
-
-Malformed login fields, duplicate credential fields, oversized bodies and missing
-CAPTCHA tokens are rejected before account queries or password hashing. Login
-POST requests are limited to 20/minute and 120/hour per account and connection
-address. A separate connection limit of 300/minute and 3000/hour bounds attempts
-that rotate account names. Failed credentials
-no longer trigger database log writes or Discord webhooks. CAPTCHA calls time
-out after 5 seconds and fail closed. Page views no longer consume the restrictive
-blueprint mutation limits; payment webhooks are exempt from those mutation limits.
-
-Existing Cloudflare/forwarded-IP headers continue to work without configuration.
-Login protection separately uses the actual connection address, so rotating
-headers or cookies does not reset those login limits. Accounts sharing a proxy
-have separate account limits and share the more generous connection limit.
-These limits do not suspend accounts.
-
-`RATELIMIT_STORAGE_URI = 'memory://'` is per process and resets on restart. For
-limits shared across multiple workers, install the optional `redis` Python package
-and configure a shared Redis URL in that setting. Flask-Limiter's `Retry-After`
-headers tell blocked clients when to retry. Protect the public endpoint at your
-reverse proxy as well; app-level limits cannot absorb a network flood.
-
 ### Prerequisites
 
 * Python (3.11 Preferred)
@@ -203,7 +48,7 @@ reverse proxy as well; app-level limits cannot absorb a network flood.
 git clone https://github.com/Lunes-Hosting/controlpanel
 ```
 
-3. 
+3.
 ```py
 pip install -r requirements.txt
 ```
@@ -220,9 +65,9 @@ Our design leverages the [DaisyUI](https://daisyui.com) CSS framework, enabling 
 ### Creating A Pull Request
 
 1. Fork the Project
-2. Create your Feature Branch 
-3. Commit your Changes 
-4. Push to the Branch 
+2. Create your Feature Branch
+3. Commit your Changes
+4. Push to the Branch
 5. Open a Pull Request
 
 ## License
