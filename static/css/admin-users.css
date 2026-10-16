@@ -1,0 +1,74 @@
+/* The reason disclosure belongs to the same control family as table actions. */
+.user-suspension-reason {
+    width: 14rem;
+    max-width: calc(100vw - 6rem);
+    margin-top: .5rem;
+    font-size: .75rem;
+}
+
+.user-suspension-reason > summary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    min-height: 2rem;
+    max-width: 100%;
+    padding: .375rem .625rem;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: .375rem;
+    background: #0f1219;
+    color: #cbd5e1;
+    font-weight: 500;
+    line-height: 1.25;
+    list-style: none;
+    cursor: pointer;
+}
+
+.user-suspension-reason > summary::-webkit-details-marker { display: none; }
+.user-suspension-reason > summary::marker { content: ''; }
+
+.user-suspension-reason > summary:hover,
+.user-suspension-reason[open] > summary {
+    border-color: rgba(59, 130, 246, .35);
+    background: rgba(59, 130, 246, .1);
+    color: #93c5fd;
+}
+
+.user-suspension-reason > summary:focus-visible {
+    outline: 2px solid #60a5fa;
+    outline-offset: 3px;
+}
+
+.user-suspension-chevron {
+    flex: none;
+    transition: transform 160ms ease-out;
+}
+
+.user-suspension-reason[open] .user-suspension-chevron { transform: rotate(180deg); }
+
+.user-suspension-reason-content {
+    max-height: 12rem;
+    margin: .5rem 0 0;
+    padding: .75rem;
+    overflow: auto;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: .5rem;
+    background: #0f1219;
+    color: #cbd5e1;
+    font-size: .8125rem;
+    line-height: 1.6;
+    scrollbar-width: thin;
+    scrollbar-color: #475569 #0f1219;
+}
+
+.user-suspension-reason-content::selection { background: #1d4ed8; color: #fff; }
+
+@media (pointer: coarse) {
+    .user-suspension-reason > summary { min-height: 2.75rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .user-suspension-chevron { transition: none; }
+}
