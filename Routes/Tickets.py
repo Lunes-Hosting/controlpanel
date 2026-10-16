@@ -49,6 +49,7 @@ Message Formatting:
 """
 
 from hashlib import sha256
+from uuid import uuid4
 from flask import Blueprint, request, render_template, session, flash, current_app, redirect, url_for, abort
 import sys, time, datetime
 from threadedreturn import ThreadWithReturnValue
@@ -58,6 +59,10 @@ from managers.user_manager import get_id, get_name, is_admin, is_support
 from managers.email_manager import send_email
 from managers.logging import webhook_log
 from managers.database_manager import DatabaseManager
+from managers.ticket_ids import ensure_ticket_id_schema, ensure_comment_auto_increment
+
+ensure_ticket_id_schema()
+ensure_comment_auto_increment()
 
 try:
     from discord_bot.ticket_bridge import (
@@ -87,7 +92,7 @@ def tickets_index():
     """Display list of open tickets for the authenticated user."""
     tickets_list = DatabaseManager.execute_query(
         #"SELECT * FROM tickets WHERE (user_id = %s AND status = 'open')",
-        "SELECT t.* FROM tickets t JOIN users u ON t.user_id = u.id WHERE (u.email = %s AND t.status = 'open');",
+        "SELECT t.* FROM tickets t JOIN users u ON t.user_id = u.id WHERE (u.email = %s AND t.status = 'open') ORDER BY t.created_at DESC, t.id DESC",
         #(user_id[0],),
         (session["email"],),
         fetch_all=True
@@ -114,11 +119,7 @@ def create_ticket_submit():
         flash("You already have an open ticket. Please close it before creating a new one.")
         return redirect(url_for('tickets.tickets_index'))
 
-    # Get next ticket ID
-    ticket_id = DatabaseManager.execute_query(
-        "SELECT * FROM tickets ORDER BY id DESC LIMIT 0, 1"
-    )
-    ticket_id = 0 if ticket_id is None else ticket_id[0] + 1
+    ticket_id = str(uuid4())
     
     # Create ticket
     DatabaseManager.execute_query(
@@ -126,16 +127,10 @@ def create_ticket_submit():
         (ticket_id, user_id, title, "open", timestamp)
     )
  
-    # Get next comment ID
-    comment_id = DatabaseManager.execute_query(
-        "SELECT * FROM ticket_comments ORDER BY id DESC LIMIT 0, 1"
-    )
-    comment_id = 0 if comment_id is None else comment_id[0] + 1
-    
     # Add initial message
     DatabaseManager.execute_query(
-        "INSERT INTO ticket_comments (id, ticket_id, user_id, ticketcomment, created_at) VALUES (%s, %s, %s, %s, %s)",
-        (comment_id, ticket_id, user_id, message, timestamp)
+        "INSERT INTO ticket_comments (ticket_id, user_id, ticketcomment, created_at) VALUES (%s, %s, %s, %s)",
+        (ticket_id, user_id, message, timestamp)
     )
 
     webhook_log(f"Ticket created by `{session['email']}` with title `{title}` https://betadash.lunes.host/tickets/{ticket_id}", is_ticket=True)
@@ -152,7 +147,7 @@ def create_ticket_submit():
     )
     return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
 
-@tickets.route('/message/submit/<int:ticket_id>', methods=['POST'])
+@tickets.route('/message/submit/<ticket_id>', methods=['POST'])
 @login_required
 def add_message_submit(ticket_id):
     """Add a new message to an existing ticket."""
@@ -182,16 +177,10 @@ def add_message_submit(ticket_id):
     ts = time.time()
     timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
-    # Get next comment ID
-    comment_id = DatabaseManager.execute_query(
-        "SELECT * FROM ticket_comments ORDER BY id DESC LIMIT 0, 1"
-    )
-    comment_id = 0 if comment_id is None else comment_id[0] + 1
-    
     # Add message
     DatabaseManager.execute_query(
-        "INSERT INTO ticket_comments (id, ticket_id, user_id, ticketcomment, created_at) VALUES (%s, %s, %s, %s, %s)",
-        (comment_id, ticket_id, user_id, message, timestamp)
+        "INSERT INTO ticket_comments (ticket_id, user_id, ticketcomment, created_at) VALUES (%s, %s, %s, %s)",
+        (ticket_id, user_id, message, timestamp)
     )
 
     author_name_data = get_name(user_id)

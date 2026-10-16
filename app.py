@@ -162,6 +162,14 @@ app.register_blueprint(admin, url_prefix="/admin")
 
 
 if not DEBUG_FRONTEND_MODE:
+    @scheduler.task('interval', id='suspension_emails', seconds=60, misfire_grace_time=900)
+    def process_suspension_emails():
+        from managers.suspension_notifications import deliver_pending_suspension_emails
+        try:
+            deliver_pending_suspension_emails()
+        except Exception as exc:
+            print(f"Suspension email retry error: {type(exc).__name__}")
+
     @scheduler.task('interval', id='credit_usage', seconds=3600, misfire_grace_time=900)
     def process_credits():
         """Process hourly credit usage for all servers."""

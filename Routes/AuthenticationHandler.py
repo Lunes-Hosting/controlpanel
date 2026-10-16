@@ -60,6 +60,8 @@ from managers.signup_signals import (collect_signals, device_token, find_matches
                                      record_signup, set_device_cookie)
 from managers.signup_location import connection_details
 from managers.alt_settings import alt_detection_enabled
+from managers.account_sessions import establish_session
+from managers.suspension_manager import get_user_suspension
 from managers.email_manager import send_email, generate_verification_token, send_verification_email, generate_reset_token, send_reset_email
 from managers.user_manager import account_get_information, get_id, get_name, instantly_delete_user, get_ptero_id
 from managers.server_manager import improve_list_servers, delete_server as manager_delete_server
@@ -171,19 +173,18 @@ def login_user():
         try:
             response = login(email, password, ip)
             if response in ("suspended", "alt_suspended"):
-                flash("Your account has been suspended for breaking our TOS. If you believe this is a mistake, please contact support on Discord.")
+                account = get_id(email)
+                reason = get_user_suspension(account[0]) if account else "A reason was not recorded."
+                flash(f"Your account is suspended. Reason: {reason} If you believe this is a mistake, please contact support.")
                 return redirect(url_for('user.login_user'))
             if response is None:
                 flash("Incorrect information. Please ensure you have an account.")
                 return redirect(url_for('user.login_user'))
 
-            try:
-                _ = json.load(response)
-                return response
-            except AttributeError:
-                session['email'] = email
+            if response:
+                raw_next = request.form.get('next') or request.args.get('next') or session.get("next")
+                establish_session(email, response)
                 # Keeping your front door locked tight against open redirects, cutie.
-                raw_next = request.form.get('next') or request.args.get('next') or session.pop("next", None)
                 if raw_next and is_safe_url(raw_next):
                     next_page = raw_next
                 else:

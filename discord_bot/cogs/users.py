@@ -4,6 +4,7 @@ from discord.ext import commands # type: ignore
 from managers.database_manager import DatabaseManager
 from ..utils.database import UserDB
 from ..utils.logger import logger
+from ..utils.permissions import is_staff_context
 
 
 def _find_account(email):
@@ -22,10 +23,26 @@ class Users(commands.Cog):
         self._last_member = None
         self.flask_app = flask_app
 
+    @slash_command(name="check_reason", description="Check an account's suspension status and reason")
+    async def check_reason_command(self, ctx, email: discord.Option(str, "User's email")):
+        if not is_staff_context(ctx):
+            await ctx.respond("You do not have permission to use this command here.", ephemeral=True)
+            return
+        await ctx.defer(ephemeral=True)
+        info = UserDB.get_user_info((email or "").strip().lower())
+        if isinstance(info, str):
+            await ctx.respond(info, ephemeral=True)
+            return
+        embed = discord.Embed(title="Account Suspension", color=discord.Color.yellow())
+        embed.add_field(name="Email", value=(email or "").strip(), inline=False)
+        embed.add_field(name="Suspended", value="Yes" if info['suspended'] else "No", inline=False)
+        embed.add_field(name="Reason", value=info.get('suspension_reason') or ("A reason was not recorded." if info['suspended'] else "Not suspended"), inline=False)
+        await ctx.respond(embed=embed, ephemeral=True)
+
     @slash_command(name="add_credits", description="Add or remove credits from a user's account")
     async def add_credits_command(self, ctx, email: discord.Option(str, "User's email"), amount: discord.Option(int, "Credits amount (negative to subtract)")): # type: ignore
         await ctx.defer(ephemeral=False)
-        if not (ctx.author.guild_permissions.administrator or discord.utils.get(ctx.author.roles, id=1364999900135165993)):
+        if not is_staff_context(ctx):
             await ctx.respond("You do not have permission to use this command.", ephemeral=False)
             return
         try:
@@ -59,7 +76,7 @@ class Users(commands.Cog):
 
     @slash_command(name="info", description="Get user information")
     async def info_command(self, ctx, email: discord.Option(str, "User's email")): # type: ignore
-        if not (ctx.author.guild_permissions.administrator or discord.utils.get(ctx.author.roles, id=1364999900135165993)):
+        if not is_staff_context(ctx):
             await ctx.respond("You do not have permission to use this command.", ephemeral=True)
             return
         try:
@@ -73,6 +90,7 @@ class Users(commands.Cog):
             embed.add_field(name="Role:", value=info['role'], inline=False)
             embed.add_field(name="Pterodactyl ID:", value=info['pterodactyl_id'], inline=False)
             embed.add_field(name="Suspended:", value=str(str(bool(info['suspended']))), inline=False)
+            embed.add_field(name="Suspension reason:", value=info.get('suspension_reason') or ("A reason was not recorded." if info['suspended'] else "Not suspended"), inline=False)
             embed.add_field(name="Manage", value=f"https://betadash.lunes.host/admin/user/{info['id']}/servers", inline=False)
             await ctx.respond(embed=embed, ephemeral=True)
             logger.info(f"Fetched user info for {email}")
@@ -81,12 +99,12 @@ class Users(commands.Cog):
             logger.error(f'Error with discord command "/info": {str(e)}')
 
     @slash_command(name="suspend", description="Suspend a user")
-    async def suspend_command(self, ctx, email: discord.Option(str, "User's email")): # type: ignore
+    async def suspend_command(self, ctx, email: discord.Option(str, "User's email"), reason: discord.Option(str, "Required suspension reason")): # type: ignore
         if self.flask_app is None:
             await ctx.respond("Error: Flask app not initialized", ephemeral=True)
             return
         with self.flask_app.app_context():
-            if not (ctx.author.guild_permissions.administrator or discord.utils.get(ctx.author.roles, id=1364999900135165993)):
+            if not is_staff_context(ctx):
                 await ctx.respond("You do not have permission to use this command.", ephemeral=True)
                 return
             try:
@@ -97,7 +115,13 @@ class Users(commands.Cog):
                 if is_suspended:
                     await ctx.respond(f"`{email}` is already suspended.", ephemeral=True)
                     return
-                UserDB.suspend_user(email, actor=f"{ctx.author} ({ctx.author.id})")
+                if not reason.strip() or len(reason.strip()) > 1000:
+                    await ctx.respond("Enter a reason between 1 and 1000 characters.", ephemeral=True)
+                    return
+                result = UserDB.suspend_user(email, reason, actor=f"{ctx.author} ({ctx.author.id})")
+                if result != "User suspended":
+                    await ctx.respond(result, ephemeral=True)
+                    return
                 embed = discord.Embed(title="User Suspended", color=discord.Color.red())
                 embed.add_field(name="Email:", value=str(email), inline=False)
                 await ctx.respond(embed=embed, ephemeral=True)
@@ -113,7 +137,7 @@ class Users(commands.Cog):
             await ctx.respond("Error: Flask app not initialized", ephemeral=True)
             return
         with self.flask_app.app_context():
-            if not (ctx.author.guild_permissions.administrator or discord.utils.get(ctx.author.roles, id=1364999900135165993)):
+            if not is_staff_context(ctx):
                 await ctx.respond("You do not have permission to use this command.", ephemeral=True)
                 return
             email = (email or "").strip()
@@ -167,7 +191,7 @@ class Users(commands.Cog):
             await ctx.respond("Error: Flask app not initialized", ephemeral=True)
             return
         with self.flask_app.app_context():
-            if not (ctx.author.guild_permissions.administrator or discord.utils.get(ctx.author.roles, id=1364999900135165993)):
+            if not is_staff_context(ctx):
                 await ctx.respond("You do not have permission to use this command.", ephemeral=True)
                 return
             try:

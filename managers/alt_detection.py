@@ -7,6 +7,7 @@ from typing import Optional, Dict, Any, List, Tuple
 from managers.database_manager import DatabaseManager
 from managers.logging import webhook_log
 from managers.alt_settings import alt_detection_enabled
+from managers.suspension_manager import set_user_suspension
 
 _schema_lock = threading.Lock()
 _schema_ready = False
@@ -341,10 +342,9 @@ def check_login_ip(
                 continue
 
             try:
-                DatabaseManager.execute_query(
-                    "UPDATE users SET suspended = 1 WHERE id = %s",
-                    (int(user_id),)
-                )
+                set_user_suspension(user_id, True,
+                    f"Automatic alternate-account detection: shared login IP with account {other_id}.",
+                    source="alt_detection", actor="auto-alt-check")
             except Exception as exc:
                 print(f"Failed to suspend alt user {user_id}: {exc}")
             log_alt_action(user_id, "ban", actor="auto-alt-check", source="auto",
@@ -410,10 +410,9 @@ def check_login_ip(
 
             if not other_suspended:
                 try:
-                    DatabaseManager.execute_query(
-                        "UPDATE users SET suspended = 1 WHERE id = %s",
-                        (other_id,)
-                    )
+                    set_user_suspension(other_id, True,
+                        f"Automatic alternate-account detection: shared login IP with account {user_id}.",
+                        source="alt_detection", actor="auto-alt-check")
                 except Exception as exc:
                     print(f"Failed to suspend alt user {other_id}: {exc}")
                 log_alt_action(other_id, "ban", actor="auto-alt-check", source="auto",

@@ -438,6 +438,13 @@
 
     <!-- Main Content -->
     <div class="page-shell">
+        {% if info['attributes']['suspended'] %}
+        <section class="flash-notice" role="status" aria-label="Server suspension" style="display:block;overflow-wrap:anywhere;">
+            <h2 style="font-weight:600;margin:0 0 .5rem;">This server is suspended</h2>
+            <p style="margin:0;"><strong>Reason:</strong> {{ suspension_reason }}</p>
+            <p style="margin:.75rem 0 0;">Contact support if you believe this is a mistake.</p>
+        </section>
+        {% endif %}
         
         {% if not verified %}
             <!-- Email Verification Warning -->
