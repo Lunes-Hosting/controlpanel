@@ -31,7 +31,8 @@ All routes are protected by admin_required verification
 from flask import render_template, request, session, redirect, url_for, flash
 from managers.authentication import admin_required
 from Routes.admin import admin
-from managers.server_manager import get_nodes, get_all_servers, transfer_server, get_node_allocation
+from managers.server_manager import get_nodes, get_node_servers, transfer_server, get_node_allocation
+import requests
 import sys
 import threading
 import time
@@ -69,7 +70,7 @@ def nodes():
         - get_nodes(): Fetches panel nodes
         - calculate_node_usage(): Gets utilization
     """
-    nodes = get_nodes(all=True)
+    nodes = get_nodes(all=True) or []
     return render_template('admin/nodes.html', nodes=nodes)
 
 
@@ -110,19 +111,24 @@ def node(node_id):
         - get_node_info(): Gets node details
         - get_node_servers(): Lists servers on node
     """
-    nodes = get_nodes(all=True)
+    nodes = get_nodes(all=True) or []
     node = next((node for node in nodes if node['node_id'] == node_id), None)
     if not node:
         flash('Node not found')
         return redirect(url_for('admin.nodes'))
     
-    # Get all servers and filter by node
-    all_servers = get_all_servers()
-    print(f"Total servers: {len(all_servers)}")
-    node_servers = [server for server in all_servers if server['attributes']['node'] == node_id]
-    print(f"Servers on node {node_id}: {len(node_servers)}")
-    
-    return render_template('admin/node.html', node=node, servers=node_servers, all_nodes=nodes)
+    try:
+        node_servers = get_node_servers(node_id, use_cache=True)
+    except (requests.RequestException, ValueError, KeyError, TypeError):
+        return "Node server inventory temporarily unavailable. Please try again shortly.", 503
+    per_page = 20
+    total_servers = len(node_servers)
+    total_pages = max(1, (total_servers + per_page - 1) // per_page)
+    page = min(total_pages, max(1, request.args.get('page', 1, type=int)))
+    start = (page - 1) * per_page
+    return render_template('admin/node.html', node=node, servers=node_servers[start:start + per_page],
+                           all_nodes=nodes, total_servers=total_servers,
+                           total_pages=total_pages, current_page=page)
 
 
 def do_transfers(node_servers, num_servers, target_node):
@@ -218,8 +224,7 @@ def transfer_servers(node_id):
             return redirect(url_for('admin.node', node_id=node_id))
         
         # Get servers on this node
-        all_servers = get_all_servers()
-        node_servers = [server for server in all_servers if server['attributes']['node'] == node_id]
+        node_servers = get_node_servers(node_id)
         
         # Start transfers in background thread
         transfer_thread = threading.Thread(

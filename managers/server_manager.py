@@ -257,6 +257,50 @@ def display_server_page(page, per_page=20):
             return None
     return display_cache.get_or_load(('admin-server-page', page, per_page), load, ttl=10)
 
+
+def iter_statistics_servers():
+    """Stream bounded API pages for background statistics, never partial totals."""
+    deadline = time.monotonic() + 90
+    page = 1
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError('Statistics inventory deadline exceeded')
+        response = safe_requests.get(
+            f"{PTERODACTYL_URL}api/application/servers?page={page}&per_page=100",
+            headers=HEADERS, timeout=(5, min(30, remaining)),
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if not isinstance(payload['data'], list):
+            raise ValueError('Invalid server inventory')
+        total_pages = int(payload['meta']['pagination']['total_pages'])
+        if total_pages < 0 or total_pages > 10000:
+            raise ValueError('Invalid server pagination')
+        yield from payload['data']
+        if page >= total_pages:
+            return
+        page += 1
+
+
+def get_node_servers(node_id, use_cache=False):
+    """Request only one node's servers; transfer actions bypass display caching."""
+    node_id = int(node_id)
+    def load():
+        response = safe_requests.get(
+            f"{PTERODACTYL_URL}api/application/nodes/{node_id}?include=servers",
+            headers=HEADERS, timeout=(5, 30),
+        )
+        response.raise_for_status()
+        payload = response.json()
+        data = payload['attributes']['relationships']['servers']['data']
+        if not isinstance(data, list) or any(server['attributes']['node'] != node_id for server in data):
+            raise ValueError('Invalid node inventory')
+        return data
+    if use_cache:
+        return display_cache.get_or_load(('node-servers', node_id), load, ttl=10)
+    return load()
+
 def suspend_server(server_id: int, reason: str, source: str = "manual"):
     """Persist why a server is suspended; automatic checks cannot override staff."""
     reason = require_reason(reason)
