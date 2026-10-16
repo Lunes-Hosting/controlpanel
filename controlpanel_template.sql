@@ -25,7 +25,8 @@ CREATE TABLE `activity_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Primary Key',
   `create_time` datetime DEFAULT NULL COMMENT 'Create Time',
   `content` longtext DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `activity_logs_time_id_idx` (`create_time`,`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=446296 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
