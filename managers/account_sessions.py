@@ -2,7 +2,7 @@
 
 import hashlib
 import hmac
-from flask import current_app, session
+from flask import current_app, session, g
 from .database_manager import DatabaseManager
 
 
@@ -25,12 +25,18 @@ def session_is_valid():
     if not email:
         return False
     account = DatabaseManager.execute_query(
-        "SELECT id, password, pterodactyl_id, suspended FROM users WHERE email = %s", (email,)
+        "SELECT id, password, pterodactyl_id, suspended, role, credits, name, email_verified_at "
+        "FROM users WHERE email = %s", (email,)
     )
     if (not account or account[3] or session.get("account_id") != account[0]
             or not hmac.compare_digest(str(session.get("credential_stamp", "")),
                                        credential_stamp(account[0], account[1]))):
         session.clear()
         return False
-    session["pterodactyl_id"] = (account[2],)
+    if session.get('pterodactyl_id') not in ((account[2],), [account[2]]):
+        session["pterodactyl_id"] = (account[2],)
+    # Reuse only within this request. The next request still validates the live
+    # credential, suspension flag and role; no privileges or balances get a TTL.
+    g.setdefault('_account_roles', {})[email] = account[4]
+    g.authenticated_account = (email, (account[5], account[2], account[6], account[7] is not None, account[3]))
     return True

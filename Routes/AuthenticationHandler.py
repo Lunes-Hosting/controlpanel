@@ -41,7 +41,7 @@ Cache Keys:
 
 import asyncio
 from hashlib import sha256
-from flask import Blueprint, request, render_template, session, flash, current_app, redirect, url_for
+from flask import Blueprint, request, render_template, session, flash, current_app, redirect, url_for, jsonify
 import sys
 import threading
 import json
@@ -64,6 +64,7 @@ from managers.account_sessions import establish_session
 from managers.suspension_manager import get_user_suspension
 from request_security import client_ip, peer_ip, login_limit_key, login_credentials
 from rate_limits import limiter
+from managers.dashboard_inventory import dashboard_inventory
 from managers.email_manager import send_email, generate_verification_token, send_verification_email, generate_reset_token, send_reset_email
 from managers.user_manager import account_get_information, get_id, get_name, instantly_delete_user, get_ptero_id
 from managers.server_manager import improve_list_servers, display_servers, delete_server as manager_delete_server
@@ -237,18 +238,10 @@ def index():
     """
     current_credits, ptero_id, username, verified, suspended = account_get_information(session["email"])
 
-    session['suspended'] = suspended
-
-    response = display_servers(ptero_id)
-    
-    # Extract servers from the response
-    servers = []
-    if response and 'attributes' in response and 'relationships' in response['attributes']:
-        if 'servers' in response['attributes']['relationships']:
-            servers = response['attributes']['relationships']['servers']['data']
-    
-    server_count = len(servers)
-    monthly_usage = sum(convert_to_product(server)['price'] for server in servers)
+    if session.get('suspended') != suspended:
+        session['suspended'] = suspended
+    state = dashboard_inventory(session['account_id'], ptero_id)
+    inventory = dashboard_server_page(state, request.args.get('server_page', 1, type=int))
 
     #username = DatabaseManager.execute_query(
     #    "SELECT name FROM users WHERE email = %s", 
@@ -260,7 +253,7 @@ def index():
     for product in products_local:
         x = product.get("price_link", None)
         if x is not None:
-            fixed_list.append(product)
+            fixed_list.append({key: product[key] for key in ('price', 'price_link', 'nickname') if key in product})
             #products_local.remove(product)
 
     subscription_credit_options = sorted(
@@ -271,17 +264,45 @@ def index():
     return render_template(
         "account.html", 
         credits=int(current_credits), 
-        server_count=server_count,
         username=username, 
         hash=sha256(session['email'].encode('utf-8')).hexdigest(),
         email=session['email'], 
-        monthly_usage=monthly_usage,
-        servers=servers,
         products=fixed_list,
         subscription_credit_options=subscription_credit_options,
         verified=verified,
-        suspended=suspended
+        suspended=suspended,
+        **inventory,
     )
+
+
+def dashboard_server_page(state, page=1):
+    data = state['data']
+    count = data['server_count'] if data is not None else None
+    total_pages = max(1, ((count or 0) + 19) // 20)
+    page = min(total_pages, max(1, page))
+    start = (page - 1) * 20
+    return dict(servers=(data['servers'][start:start + 20] if data else []),
+                server_count=count, monthly_usage=data['monthly_usage'] if data else None,
+                servers_ready=data is not None, inventory_state=state,
+                current_server_page=page, total_server_pages=total_pages)
+
+
+@user.route('/dashboard/servers')
+@login_required
+def dashboard_servers_data():
+    if request.headers.get('X-Dashboard-Account') != str(session['account_id']):
+        return jsonify(error='Account changed. Reload the dashboard.'), 409
+    _, ptero_id, _, verified, suspended = account_get_information(session['email'])
+    state = dashboard_inventory(session['account_id'], ptero_id)
+    context = dashboard_server_page(state, request.args.get('server_page', 1, type=int))
+    response = jsonify(
+        html=render_template('partials/dashboard_servers.html', verified=verified, **context),
+        ready=context['servers_ready'], server_count=context['server_count'],
+        monthly_usage=context['monthly_usage'], credit_width=min(100, (context['server_count'] or 0) * 12),
+        refreshing=state['refreshing'], error=state['error'],
+    )
+    response.headers['Cache-Control'] = 'private, no-store'
+    return response, 200 if context['servers_ready'] else (503 if state['error'] else 202)
 
 
 # Route to request a password reset (via email)

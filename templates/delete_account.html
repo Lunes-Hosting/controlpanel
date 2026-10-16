@@ -2,12 +2,12 @@
 <html>
 <head>
     <title>Delete Account</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/Lunes.svg') }}">
+    {% with asset_bundle='modern-ui.css' %}{% include 'partials/compiled_assets.html' %}{% endwith %}
+    
     
 </head>
-<body class="bg-gray-900 text-white" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
+<body class="bg-gray-900 text-white" style="font-family: Lunes Sans,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
     <nav class="sticky w-full bg-gradient-to-t from-gray-900/0 to-blue-900/100 top-0 z-50 backdrop-blur-xs">
         <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-row items-center justify-between h-16">

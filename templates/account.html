@@ -2,15 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="Manage your Lunes Hosting account, game servers, credits, and support tickets.">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | Account Page</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6122367965027230" crossorigin="anonymous"></script>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/Luneslogo.png') }}">
-    <link rel="stylesheet" href="http://rsms.me/inter/inter.css"/>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"/>
+    {% with asset_bundle='dashboard.css' %}{% include 'partials/compiled_assets.html' %}{% endwith %}
+    <script defer src="{{ url_for('static', filename='js/deferred-ads.js') }}"></script>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/Lunes.svg') }}">
+    
+    
     </head>
-    <body class="bg-slate-950 text-white min-h-screen relative overflow-x-hidden" style="font-family: Inter var,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
+    <body data-dashboard-account="{{ session['account_id'] }}" data-dashboard-inventory-url="{{ url_for('user.dashboard_servers_data', server_page=request.args.get('server_page', 1, type=int)) }}" data-inventory-ready="{{ 'true' if servers_ready else 'false' }}" data-inventory-refreshing="{{ 'true' if inventory_state.refreshing else 'false' }}" class="bg-slate-950 text-white min-h-screen relative overflow-x-hidden" style="font-family: Lunes Sans,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
     <div class="background-blob blob-one"></div>
     <div class="background-blob blob-two"></div>
     <div class="noise-overlay"></div>
@@ -19,7 +20,7 @@
     {% include 'partials/flash_messages.html' %}
 
     {% if not verified %}
-    <!-- Email Verification Warning -->
+    
     <div class="bg-yellow-950 text-white px-4 py-2 rounded-sm mb-6 flex items-center gap-2 text-black max-w-5xl mx-auto">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
@@ -27,7 +28,7 @@
         <span>Your email is not verified yet. <a href="{{ url_for('user.resend_confirmation_email') }}" class="text-blue-300 hover:underline">Click here to resend verification email</a></span>
     </div>
     {% elif suspended %}
-    <!-- Account Suspended Warning -->
+    
     <div class="bg-yellow-950 text-white px-4 py-2 rounded-sm mb-6 flex items-center gap-2 text-black max-w-5xl mx-auto">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
@@ -41,7 +42,6 @@
     <div class="content max-w-5xl mx-auto">
         <div class="container mx-auto p-4 sm:p-6">
 
-            <!-- Account Information -->
 
             <div class="flex items-center gap-3 section-heading mb-6">
                 <i class="fa-solid fa-house fa-2xl text-blue-400"></i>
@@ -55,10 +55,10 @@
                 <div class="hero-grid">
                     <div class="hero-left">
                         <div class="profile-header">
-                            <img class="profile-avatar" src="https://gravatar.com/avatar/{{ hash }}" alt="User avatar">
+                            <img width="80" height="80" decoding="async" loading="lazy" class="profile-avatar" src="https://gravatar.com/avatar/{{ hash }}" alt="User avatar">
                             <div class="profile-copy">
-                                <!--<p class="eyebrow">Account Control Center</p>  -->
-                                <h1 class="hero-title">Welcome back, {{ username }}.</h1>
+                                
+                                <h2 class="hero-title">Welcome back, {{ username }}.</h2>
                                 <p class="hero-subtitle">{{ email }}</p>
                             </div>
                         </div>
@@ -103,14 +103,14 @@
                                 <span>Updated hourly</span>
                             </div>
                             <h2>{{ formatted_credits }} <small>credits</small></h2>
-                            {% set credit_percent = server_count * 12 %}
+                            {% set credit_percent = (server_count or 0) * 12 %}
                             {% set credit_width = 100 if credit_percent > 100 else credit_percent %}
                             <div class="credit-meter-heading">
                                 <span>Credit meter</span>
-                                <span class="credit-meter-ratio">{{ credit_width }}% / 100%</span>
+                                <span class="credit-meter-ratio" data-dashboard-meter-label>{{ credit_width }}% / 100%</span>
                             </div>
                             <div class="credit-meter" role="progressbar" aria-label="Server capacity" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ credit_width }}">
-                                <div class="credit-progress" style="--progress-width: {{ credit_width }};"></div>
+                                <div class="credit-progress" data-dashboard-meter-fill style="--progress-width: {{ credit_width }};"></div>
                             </div>
                             <p class="credit-meter-caption">Credit meter: server count shown as a percentage of a 100% capacity indicator.</p>
                         </div>
@@ -119,14 +119,14 @@
                             <article class="hero-stat">
                                 <div>
                                     <p>Servers</p>
-                                    <h3>{{ server_count }}</h3>
+                                    <h3><span data-dashboard-stat="server_count">{{ server_count if server_count is not none else '—' }}</span></h3>
                                 </div>
                                 <i class="fa-solid fa-signal"></i>
                             </article>
                             <article class="hero-stat">
                                 <div>
                                     <p>Credit Monthly Usage</p>
-                                    <h3>{{ monthly_usage }}</h3>
+                                    <h3><span data-dashboard-stat="monthly_usage">{{ monthly_usage if monthly_usage is not none else '—' }}</span></h3>
                                 </div>
                                 <i class="fa-solid fa-chart-line"></i>
                             </article>
@@ -135,50 +135,8 @@
                 </div>
             </section>
 
-            <!--<section class="insights-grid">
-                <article class="insight-card">
-                    <header>
-                        <span class="indicator success"></span>
-                        <p>Verification</p>
-                    </header>
-                    <h3>
-                        {% if suspended %}
-                            Action Required
-                        {% elif not verified %}
-                            Verify Email
-                        {% else %}
-                            All Good
-                        {% endif %}
-                    </h3>
-                    <p>Keep your contact details up-to-date so you never lose access to your panel.</p>
-                </article>
-                <article class="insight-card">
-                    <header>
-                        <span class="indicator info"></span>
-                        <p>Support</p>
-                    </header>
-                    <h3>24/7 Discord + Tickets</h3>
-                    <p>Fastest response via Discord. Tickets remain best for billing and audit trails.</p>
-                </article>
-                <article class="insight-card">
-                    <header>
-                        <span class="indicator warning"></span>
-                        <p>Billing Mode</p>
-                    </header>
-                    <h3>Credits · Pay-as-you-Go</h3>
-                    <p>Credits are decremented on an hourly schedule according to your selected plans.</p>
-                </article>
-                <article class="insight-card">
-                    <header>
-                        <span class="indicator neutral"></span>
-                        <p>Automation</p>
-                    </header>
-                    <h3>Auto-suspend Safety</h3>
-                    <p>Servers are suspended when credits hit zero and may resume automatically if you add more credits while servers still exist.</p>
-                </article>
-            </section> -->
 
-            <!-- Servers Section -->
+            
             {% if verified and not suspended %}
             <section class="panel-section" aria-labelledby="servers-heading">
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 section-heading mb-6">
@@ -186,7 +144,7 @@
                         <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
                         <div>
                             <p class="text-sm uppercase tracking-wider text-blue-300/80">Infrastructure</p>
-                            <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
+                            <h2 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h2>
                         </div>
                     </div>
                     <a href="/servers/create" class="btn-primary">
@@ -195,42 +153,9 @@
                     </a>
                 </div>
 
-                <div class="panel-card rounded-sm overflow-hidden border border-white/5">
-                    {% if servers %}
-                    <div class="server-grid gap-6 p-6">
-                        {% for server in servers %}
-                        {% set limits = server['attributes'].get('limits', {}) %}
-                        {% set feature = server['attributes'].get('feature_limits', {}) %}
-                        <a href="{{ url_for('servers.server', server_id=server['attributes']['id']) }}" class="server-card">
-                            <div class="server-card__header">
-                                <div>
-                                    <p class="server-meta">ID · {{ server['attributes'].get('identifier', server['attributes']['id']) }}</p>
-                                    <h3 class="server-title">{{ server['attributes']['name'] }}</h3>
-                                </div>
-                                <span class="server-status">
-                                    {{ (server['attributes'].get('status') or 'active')|capitalize }}
-                                </span>
-                            </div>
-                            <div class="server-card__body">
-                                <span class="server-pill"><i class="fa-solid fa-microchip"></i>{% if limits.get('cpu') == 0 %}Unmetered{% else %}{{ limits.get('cpu', '—') }}%{% endif %} CPU</span>
-                                <span class="server-pill"><i class="fa-solid fa-memory"></i>{{ limits.get('memory', '—') }} MB RAM</span>
-                                <span class="server-pill"><i class="fa-solid fa-hard-drive"></i>{{ limits.get('disk', '—') }} MB Disk</span>
-                                <span class="server-pill"><i class="fa-solid fa-users"></i>{{ feature.get('databases', 'Unlimited') }} DB Slots</span>
-                            </div>
-                            <div class="server-card__footer">
-                                <p>Tap to open console & lifecycle controls.</p>
-                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                            </div>
-                        </a>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="empty-state">
-                        <i class="fa-solid fa-box-open"></i>
-                        <p class="text-lg font-semibold">No servers yet</p>
-                        <p class="text-sm text-gray-400">Use the button above to deploy your first instance in seconds.</p>
-                    </div>
-                    {% endif %}
+                <p id="dashboard-inventory-status" role="status" class="text-sm text-slate-400 mb-4" {% if not servers_ready or (not inventory_state.refreshing and not inventory_state.error) %}hidden{% endif %}>{{ 'Showing last known server inventory. Retrying…' if inventory_state.error else 'Updating server inventory…' }}</p>
+                <div id="dashboard-servers" class="panel-card rounded-sm overflow-hidden border border-white/5" aria-busy="{{ 'false' if servers_ready else 'true' }}">
+                    {% include 'partials/dashboard_servers.html' %}
                 </div>
             </section>
             {% elif not verified %}
@@ -239,7 +164,7 @@
                     <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
                     <div>
                         <p class="text-sm uppercase tracking-wider text-blue-300/80">Infrastructure</p>
-                        <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
+                        <h2 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h2>
                     </div>
                 </div>
                 <div class="panel-card text-center rounded-sm border border-white/5">
@@ -253,7 +178,7 @@
                     <i class="fa-solid fa-server fa-2xl text-blue-400"></i>
                     <div>
                         <p class="text-sm uppercase tracking-wider text-blue-300/80">Infrastructure</p>
-                        <h1 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h1>
+                        <h2 id="servers-heading" class="text-2xl font-semibold">Manage Servers</h2>
                     </div>
                 </div>
                 <div class="panel-card text-center rounded-sm border border-white/5">
@@ -263,14 +188,13 @@
             </section>
             {% endif %}
 
-            <!-- Store Section (Available to all users including suspended) -->
             <section class="panel-section" id="StoreArea" aria-labelledby="store-heading">
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 section-heading mb-6">
                     <div class="flex items-center gap-3">
                         <i class="fa-solid fa-store fa-2xl text-green-400"></i>
                         <div>
                             <p class="text-sm uppercase tracking-wider text-emerald-300/80">Billing</p>
-                            <h1 id="store-heading" class="text-2xl font-semibold">Store</h1>
+                            <h2 id="store-heading" class="text-2xl font-semibold">Store</h2>
                         </div>
                     </div>
                     <span class="badge-live">Instant Delivery</span>
@@ -345,7 +269,7 @@
                         <a class="bundle-card {% if not product.get('price_link') %}disabled{% endif %}" href="{{ bundle_url }}">
                             <div>
                                 <p class="bundle-label">{{ loop.index }}. {{ product.get('nickname', 'Credit Pack') }}</p>
-                                <h4 class="bundle-value">{{ "%.0f"|format(product['price'] | float) }} Credits</h4>
+                                <h3 class="bundle-value">{{ "%.0f"|format(product['price'] | float) }} Credits</h3>
                                 <p class="bundle-price">${{ "%.2f"|format((product['price'] | float) / 100) }}</p>
                             </div>
                             <i class="fa-solid fa-arrow-right"></i>
@@ -362,7 +286,7 @@
                         <i class="fa-solid fa-repeat fa-2xl text-blue-400"></i>
                         <div>
                             <p class="text-sm uppercase tracking-wider text-blue-300/80">Billing</p>
-                            <h1 id="subscription-store-heading" class="text-2xl font-semibold">Subscription Credits</h1>
+                            <h2 id="subscription-store-heading" class="text-2xl font-semibold">Subscription Credits</h2>
                         </div>
                     </div>
                     <a href="{{ url_for('store.billing_portal') }}" class="action-btn secondary">
@@ -383,7 +307,7 @@
                                 <a class="bundle-card" href="{{ url_for('store.create_subscription_checkout_session', price_link=price_link) }}">
                                     <div>
                                         <p class="bundle-label">Monthly Pack</p>
-                                        <h4 class="bundle-value">{{ credits }} Credits</h4>
+                                        <h3 class="bundle-value">{{ credits }} Credits</h3>
                                         <p class="bundle-price">Billed monthly</p>
                                     </div>
                                     <i class="fa-solid fa-arrow-right"></i>
@@ -399,86 +323,19 @@
             </section>
 
             <div id="store-data" class="sr-only" data-products='{{ products | tojson | safe }}' data-checkout-template="{{ url_for('store.create_checkout_session', price_link='__PRICE_LINK__') }}"></div>
-              <script>
-                const storeDataEl = document.getElementById('store-data');
-                const parsedProducts = storeDataEl?.dataset.products ? JSON.parse(storeDataEl.dataset.products) : [];
-                const checkoutTemplate = storeDataEl?.dataset.checkoutTemplate || '';
-                const creditFormatter = new Intl.NumberFormat('en-US');
-                const priceLinkDict = parsedProducts.map((product) => {
-                    const creditValue = Number(product.price || 0);
-                    return {
-                        link: product.price_link ? checkoutTemplate.replace('__PRICE_LINK__', encodeURIComponent(product.price_link)) : '#',
-                        credits: creditValue,
-                        creditsLabel: creditFormatter.format(Math.round(creditValue)),
-                        disabled: !product.price_link
-                    };
-                });
 
-                const rangeInput = document.getElementById('labels-range-input');
-                const sliderValue = document.getElementById('slider-value');
-                const costValue = document.getElementById('costValue');
-                const purchaseBtn = document.getElementById('purchaseLink');
-                const purchaseText = purchaseBtn ? purchaseBtn.querySelector('span') : null;
-                const selectedCredits = document.getElementById('selectedCredits');
-
-                const calculateCost = (credits) => {
-                    const cost = parseFloat(credits || 0) / 100;
-                    return cost.toFixed(2);
-                };
-
-                const updatePackageDisplay = (index) => {
-                    if (!priceLinkDict.length) return;
-                    const pkg = priceLinkDict[index];
-                    const creditLabel = `${pkg.creditsLabel} Lunes Credits`;
-                    if (sliderValue) sliderValue.textContent = creditLabel;
-                    if (selectedCredits) selectedCredits.textContent = creditLabel;
-                    if (costValue) costValue.textContent = `$${calculateCost(pkg.credits)}`;
-                    if (purchaseBtn) {
-                        if (pkg.disabled || pkg.link === '#') {
-                            purchaseBtn.classList.add('pointer-events-none', 'opacity-60');
-                            purchaseBtn.setAttribute('href', '#');
-                            if (purchaseText) purchaseText.textContent = 'Unavailable';
-                        } else {
-                            purchaseBtn.classList.remove('pointer-events-none', 'opacity-60');
-                            purchaseBtn.setAttribute('href', pkg.link);
-                            if (purchaseText) purchaseText.textContent = 'Purchase Credits';
-                        }
-                    }
-                };
-
-                const initializeStore = () => {
-                    if (!rangeInput || !priceLinkDict.length) {
-                        if (sliderValue) sliderValue.textContent = 'No packages available';
-                        if (selectedCredits) selectedCredits.textContent = 'No packages available';
-                        if (costValue) costValue.textContent = '$0.00';
-                        if (purchaseBtn) {
-                            purchaseBtn.classList.add('pointer-events-none', 'opacity-60');
-                            purchaseBtn.setAttribute('href', '#');
-                        }
-                        return;
-                    }
-                    rangeInput.max = Math.max(priceLinkDict.length - 1, 0);
-                    rangeInput.value = 0;
-                    updatePackageDisplay(0);
-                    rangeInput.addEventListener('input', () => updatePackageDisplay(rangeInput.value));
-                };
-
-                initializeStore();
-              </script>
-
-            <!-- Other Section -->
             <section class="panel-section" aria-labelledby="other-heading">
                 <div class="flex items-center gap-3 section-heading mb-6">
                     <i class="fa-solid fa-barcode fa-2xl text-blue-400"></i>
                     <div>
                         <p class="text-sm uppercase tracking-wider text-blue-300/80">Community</p>
-                        <h1 id="other-heading" class="text-2xl font-semibold">Community & Policies</h1>
+                        <h2 id="other-heading" class="text-2xl font-semibold">Community & Policies</h2>
                     </div>
                 </div>
 
                 <div class="panel-card flex flex-col lg:flex-row gap-8 items-center lg:items-stretch rounded-sm border border-white/5 p-6">
                     <div class="flex flex-col items-center text-center gap-4">
-                        <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" rel="preload" class="h-auto w-32 rounded-sm" width="128" height="128">
+                        <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Logo" loading="lazy" decoding="async" class="h-auto w-32 rounded-sm" width="128" height="128">
                         <p class="text-2xl font-bold">Lunes Hosting</p>
                         <p class="text-sm text-gray-400">Reliable cloud infrastructure backed by real people.</p>
                     </div>
@@ -518,761 +375,6 @@
     </div>
     </main>
 
-    <style>
-        :root {
-            --panel-border: rgba(59, 130, 246, 0.35);
-            --panel-bg: rgba(15, 23, 42, 0.8);
-            --panel-shadow: 0 25px 50px -12px rgba(30, 64, 175, 0.35);
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
-        .background-blob {
-            position: fixed;
-            width: 420px;
-            height: 420px;
-            border-radius: 0.125rem;
-            filter: blur(180px);
-            opacity: 0.35;
-            z-index: 0;
-        }
-        .blob-one {
-            top: -120px;
-            left: -80px;
-            background: #3b82f6;
-        }
-        .blob-two {
-            bottom: -160px;
-            right: -120px;
-            background: #14b8a6;
-        }
-        .noise-overlay {
-            position: fixed;
-            inset: 0;
-            background-image: url('https://www.transparenttextures.com/patterns/asfalt-light.png');
-            opacity: 0.05;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .content {
-            position: relative;
-            z-index: 1;
-        }
-
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            border: 0;
-        }
-
-        .account-info,
-        .panel-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--panel-border);
-            box-shadow: var(--panel-shadow);
-            backdrop-filter: blur(18px);
-        }
-
-        .hero-panel {
-            margin-top: 1.5rem;
-            border-radius: 0.125rem;
-            padding: 2rem;
-            background: rgba(15, 23, 42, 0.92);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.35);
-        }
-        .hero-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-            align-items: stretch;
-        }
-        .profile-header {
-            display: grid;
-            grid-template-columns: minmax(4rem, 5rem) minmax(0, 1fr);
-            gap: 1rem;
-            align-items: stretch;
-        }
-        .profile-avatar {
-            width: 100%;
-            object-fit: cover;
-            border-radius: 0.125rem;
-            border: 1px solid rgba(148, 163, 184, 0.3);
-            aspect-ratio: 1 / 1;
-        }
-        .profile-copy {
-            min-width: 0;
-            align-self: center;
-        }
-        .hero-title {
-            font-size: clamp(1.25rem, 2vw, 1.6rem);
-            font-weight: 700;
-        }
-        .hero-subtitle {
-            color: rgba(148, 163, 184, 0.85);
-        }
-        .eyebrow {
-            text-transform: uppercase;
-            letter-spacing: 0.3em;
-            font-size: 0.7rem;
-            color: rgba(148, 163, 184, 0.85);
-        }
-        .hero-badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            margin: 1.25rem 0;
-        }
-        .badge-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.4rem 1rem;
-            border-radius: 0.125rem;
-            background: rgba(15, 23, 42, 0.55);
-            border: 1px solid rgba(148, 163, 184, 0.22);
-            font-size: 0.85rem;
-            color: rgba(226, 232, 240, 0.9);
-        }
-        .badge-chip.status {
-            border-color: rgba(16, 185, 129, 0.4);
-            color: #6ee7b7;
-        }
-        .hero-actions {
-            margin-top: 1.5rem;
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.75rem;
-        }
-        .action-btn {
-            border-radius: 0.125rem;
-            padding: 0.65rem 1.35rem;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            border: 1px solid transparent;
-        }
-        .hero-actions .action-btn {
-            min-height: 2.75rem;
-            width: 100%;
-            justify-content: center;
-            padding: 0.65rem 0.75rem;
-            border-radius: 0.125rem;
-            text-align: center;
-            color: #f8fafc;
-            font-size: 0.9rem;
-            line-height: 1.25;
-            text-decoration: none;
-            box-shadow: 0 4px 12px rgba(2, 6, 23, 0.2);
-            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, filter 0.18s ease;
-        }
-        .hero-actions .action-btn i {
-            width: 1.1rem;
-            text-align: center;
-            color: rgba(255, 255, 255, 0.9);
-        }
-        .hero-actions .action-btn.primary {
-            background: linear-gradient(135deg, #2563eb, #3b82f6);
-            border-color: rgba(147, 197, 253, 0.35);
-        }
-        .hero-actions .action-btn.secondary {
-            background: linear-gradient(135deg, #047857, #059669);
-            border-color: rgba(110, 231, 183, 0.3);
-        }
-        .hero-actions .action-btn.ghost {
-            background: rgba(30, 41, 59, 0.72);
-            border-color: rgba(148, 163, 184, 0.3);
-        }
-        .hero-actions .action-btn.danger {
-            background: rgba(127, 29, 29, 0.35);
-            border-color: rgba(248, 113, 113, 0.4);
-        }
-        .hero-actions .action-btn:hover {
-            transform: translateY(-2px);
-            filter: brightness(1.08);
-            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.32);
-        }
-        .hero-actions .action-btn:active {
-            transform: translateY(0);
-        }
-        .hero-actions .action-btn:focus-visible {
-            outline: 2px solid #93c5fd;
-            outline-offset: 3px;
-        }
-        .action-btn.primary {
-            background: linear-gradient(135deg, #2563eb, #60a5fa);
-            box-shadow: 0 12px 30px rgba(37, 99, 235, 0.35);
-        }
-        .action-btn.secondary {
-            background: linear-gradient(135deg, #059669, #34d399);
-            box-shadow: 0 12px 30px rgba(16, 185, 129, 0.35);
-        }
-        .action-btn.ghost {
-            border-color: rgba(148, 163, 184, 0.4);
-            background: transparent;
-        }
-        .action-btn.danger {
-            border-color: rgba(248, 113, 113, 0.5);
-            background: rgba(127, 29, 29, 0.5);
-        }
-        .action-btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .hero-right {
-            display: grid;
-            align-content: start;
-            gap: 0.75rem;
-        }
-        .credit-card {
-            border-radius: 0.125rem;
-            padding: 1.5rem;
-            background: rgba(30, 41, 59, 0.72);
-            border: 1px solid rgba(148, 163, 184, 0.22);
-        }
-        .credit-header {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            color: rgba(226, 232, 240, 0.8);
-        }
-        .credit-card h2 {
-            font-size: clamp(2.5rem, 4vw, 3.5rem);
-            font-weight: 800;
-            margin: 0.5rem 0 1rem;
-        }
-        .credit-card h2 small {
-            font-size: 1rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-        }
-        .credit-meter {
-            width: 100%;
-            height: 0.5rem;
-            overflow: hidden;
-            border-radius: 0.125rem;
-            background: rgba(15, 23, 42, 0.7);
-        }
-        .credit-meter-heading {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            margin-bottom: 0.45rem;
-            color: rgba(203, 213, 225, 0.8);
-            font-size: 0.7rem;
-            line-height: 1.4;
-        }
-        .credit-meter-ratio {
-            color: #e2e8f0;
-            font-size: 0.72rem;
-            font-variant-numeric: tabular-nums;
-            font-weight: 700;
-            white-space: nowrap;
-        }
-        .credit-meter-caption {
-            margin: 0.5rem 0 0;
-            color: rgba(148, 163, 184, 0.8);
-            font-size: 0.7rem;
-            line-height: 1.4;
-        }
-        .credit-progress {
-            width: calc(var(--progress-width, 0) * 1%);
-            height: 100%;
-            border-radius: 0.125rem;
-            background: linear-gradient(90deg, #22d3ee, #60a5fa);
-            transition: width 0.3s ease;
-        }
-        .hero-stats {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.75rem;
-        }
-        .hero-stat {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 0.5rem;
-            min-width: 0;
-            padding: 1rem;
-            border: 1px solid rgba(148, 163, 184, 0.22);
-            border-radius: 0.125rem;
-            background: rgba(15, 23, 42, 0.55);
-        }
-        .hero-stat p {
-            margin: 0;
-            color: rgba(148, 163, 184, 0.8);
-            font-size: 0.75rem;
-        }
-        .hero-stat h3 {
-            margin: 0.25rem 0 0;
-            font-size: 1.25rem;
-            font-weight: 700;
-            overflow-wrap: anywhere;
-        }
-        .hero-stat i {
-            color: rgba(147, 197, 253, 0.9);
-        }
-
-        .insights-grid {
-            margin-top: 2.5rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.25rem;
-        }
-        .insight-card {
-            padding: 1.5rem;
-            border-radius: 0.125rem;
-            background: rgba(15, 23, 42, 0.75);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.6);
-        }
-        .insight-card header {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            text-transform: uppercase;
-            letter-spacing: 0.3em;
-            font-size: 0.65rem;
-            color: rgba(148, 163, 184, 0.7);
-            margin-bottom: 0.75rem;
-        }
-        .insight-card h3 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-        .insight-card p {
-            color: rgba(148, 163, 184, 0.85);
-        }
-        .indicator {
-            width: 0.6rem;
-            height: 0.6rem;
-            border-radius: 0.125rem;
-        }
-        .indicator.success { background: #22c55e; }
-        .indicator.info { background: #3b82f6; }
-        .indicator.warning { background: #f59e0b; }
-        .indicator.neutral { background: #94a3b8; }
-
-        .stat-card {
-            display: flex;
-            gap: 1rem;
-            padding: 1.25rem;
-            border-radius: 0.125rem;
-            background: rgba(15, 23, 42, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 15px 35px -12px rgba(0, 0, 0, 0.6);
-        }
-        .stat-icon {
-            width: 3rem;
-            height: 3rem;
-            border-radius: 0.125rem;
-            display: grid;
-            place-items: center;
-            font-size: 1.25rem;
-        }
-        .stat-label {
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: rgba(248, 250, 252, 0.65);
-        }
-        .stat-value {
-            font-size: 1.35rem;
-            font-weight: 700;
-        }
-
-        .panel-section {
-            margin-top: 3rem;
-        }
-        .section-heading {
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-        }
-        .btn-primary {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.125rem;
-            background: linear-gradient(135deg, #2563eb, #3b82f6);
-            font-weight: 600;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35);
-        }
-        .btn-primary:hover {
-            transform: translateY(-1px) scale(1.01);
-            box-shadow: 0 18px 35px rgba(37, 99, 235, 0.45);
-        }
-
-        .server-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 280px));
-            justify-content: center;
-            align-items: stretch;
-        }
-
-        .server-card {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            width: 100%;
-            min-width: 0;
-            padding: 1.5rem;
-            border-radius: 0.125rem;
-            background: rgba(15, 23, 42, 0.95);
-            border: 1px solid rgba(59, 130, 246, 0.25);
-            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        .server-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(96, 165, 250, 0.6);
-            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.7);
-        }
-        .server-card__header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 0.75rem;
-        }
-        .server-card__header > div {
-            min-width: 0;
-        }
-        .server-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-top: 0.35rem;
-            overflow-wrap: anywhere;
-            word-break: break-word;
-            line-height: 1.25;
-        }
-        .server-meta {
-            font-size: 0.7rem;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: rgba(148, 163, 184, 0.65);
-        }
-        .server-status {
-            padding: 0.35rem 0.85rem;
-            border-radius: 0.125rem;
-            font-size: 0.75rem;
-            flex-shrink: 0;
-            background: rgba(16, 185, 129, 0.15);
-            border: 1px solid rgba(16, 185, 129, 0.4);
-            color: #a7f3d0;
-        }
-        .server-card__body {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        .server-pill {
-            font-size: 0.75rem;
-            padding: 0.45rem 0.75rem;
-            border-radius: 0.125rem;
-            background: rgba(15, 23, 42, 0.7);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-        }
-        .server-card__footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 0.75rem;
-            font-size: 0.85rem;
-            color: rgba(148, 163, 184, 0.8);
-        }
-        .server-card__footer p {
-            margin: 0;
-            min-width: 0;
-            overflow-wrap: anywhere;
-        }
-        .empty-state {
-            padding: 2rem;
-            border-radius: 0.125rem;
-            border: 1px dashed rgba(148, 163, 184, 0.4);
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            align-items: center;
-        }
-        .empty-state i {
-            font-size: 2rem;
-            color: rgba(59, 130, 246, 0.7);
-        }
-
-        .badge-live {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 0.125rem;
-            border: 1px solid rgba(16, 185, 129, 0.5);
-            color: #6ee7b7;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .slider-shell {
-            background: rgba(15, 23, 42, 0.7);
-            border-radius: 0.125rem;
-            padding: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .range-input {
-            width: 100%;
-            appearance: none;
-            -webkit-appearance: none;
-            height: 6px;
-            display: block;
-            border-radius: 0.125rem;
-            background: linear-gradient(90deg, #22c55e, #3b82f6);
-            outline: none;
-            margin: 1rem 0;
-        }
-        .range-input::-webkit-slider-thumb {
-            appearance: none;
-            -webkit-appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 0.125rem;
-            background: #fff;
-            border: 3px solid #3b82f6;
-            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
-        }
-        .range-input::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 0.125rem;
-            background: #fff;
-            border: 3px solid #3b82f6;
-            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
-        }
-        .range-markers {
-            position: relative;
-            height: 1rem;
-            margin-inline: 10px;
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            color: rgba(148, 163, 184, 0.7);
-        }
-        .range-markers span {
-            position: absolute;
-            top: 0;
-            transform: translateX(-50%);
-            text-align: center;
-            white-space: nowrap;
-        }
-        .feature-list {
-            display: grid;
-            gap: 0.75rem;
-            font-size: 0.9rem;
-            color: rgba(226, 232, 240, 0.9);
-        }
-        .feature-list li {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .feature-list i {
-            color: #22d3ee;
-        }
-
-        .store-preview {
-            border-radius: 0.125rem;
-            background: radial-gradient(circle at top, rgba(96, 165, 250, 0.35), rgba(15, 23, 42, 0.95));
-            border: 1px solid rgba(96, 165, 250, 0.4);
-            padding: 2rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-        .cost-value {
-            font-size: clamp(2rem, 4vw, 3.5rem);
-            font-weight: 800;
-        }
-        .credit-badge {
-            border-radius: 0.125rem;
-            padding: 1rem;
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px dashed rgba(96, 165, 250, 0.5);
-        }
-
-        .recommended-section {
-            margin-top: 2rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid rgba(148, 163, 184, 0.2);
-        }
-        .recommended-grid {
-            margin-top: 1rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1rem;
-        }
-        .bundle-card {
-            padding: 1.25rem;
-            border-radius: 0.125rem;
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            background: rgba(15, 23, 42, 0.8);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
-            transition: transform 0.2s ease, border-color 0.2s ease;
-        }
-        .bundle-card:hover {
-            transform: translateY(-3px);
-            border-color: rgba(34, 197, 94, 0.6);
-        }
-        .bundle-card.disabled {
-            pointer-events: none;
-            opacity: 0.5;
-        }
-        .bundle-label {
-            text-transform: uppercase;
-            letter-spacing: 0.2em;
-            font-size: 0.7rem;
-            color: rgba(148, 163, 184, 0.7);
-        }
-        .bundle-value {
-            font-size: 1.3rem;
-            font-weight: 600;
-        }
-        .bundle-price {
-            color: rgba(148, 163, 184, 0.9);
-        }
-        .bundle-card i {
-            color: #34d399;
-        }
-
-        .link-card {
-            display: flex;
-            gap: 1rem;
-            padding: 1.25rem;
-            border-radius: 0.125rem;
-            border: 1px solid rgba(71, 85, 105, 0.7);
-            background: rgba(15, 23, 42, 0.7);
-            transition: transform 0.2s ease, border-color 0.2s ease;
-        }
-        .link-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(96, 165, 250, 0.7);
-        }
-        .link-card i {
-            font-size: 1.5rem;
-            color: rgba(129, 140, 248, 0.9);
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.6);
-        }
-        .modal-content {
-            background-color: #0f172a;
-            margin: 10% auto;
-            padding: 24px;
-            border: 1px solid rgba(59, 130, 246, 0.4);
-            width: 90%;
-            max-width: 520px;
-            border-radius: 0.125rem;
-            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.9);
-        }
-
-        .tooltip {
-            display: none;
-        }
-        .tooltip-container:hover .tooltip,
-        .tooltip-container:focus-within .tooltip {
-            display: block;
-        }
-
-        /* Mobile Optimization */
-        @media (max-width: 640px) {
-            body {
-                padding: 1rem 0.75rem;
-            }
-
-            .server-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .hero-panel {
-                padding: 1.5rem;
-                margin-top: 1rem;
-                border-radius: 0.125rem;
-            }
-            .profile-header {
-                gap: 1rem;
-            }
-            .hero-badges {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .hero-actions,
-            .hero-stats {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            /* Increased Font Sizes for Mobile Readability */
-            .eyebrow {
-                font-size: 0.8rem; /* Bumped from 0.7rem */
-            }
-            
-            /* Box Layout Fixes */
-            .insight-card {
-                padding: 1.25rem;
-            }
-
-            .stat-card {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .panel-section {
-                margin-top: 2rem;
-            }
-
-            .server-card {
-                padding: 1.25rem;
-            }
-            .server-card__footer {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
-            }
-
-            .slider-shell {
-                padding: 1.25rem;
-            }
-            .store-preview {
-                padding: 1.5rem;
-            }
-
-            .modal-content {
-                margin: 20% 1rem;
-                width: auto;
-            }
-        }
-    </style>
 
     <div id="deleteModal" class="modal" style="display: none;">
         <div class="modal-content bg-gray-900 border border-2 border-blue-500 shadow-xl shadow-blue-800">
@@ -1288,15 +390,6 @@
             </div>
         </div>
     </div>
-
-    <script>
-        function openDeleteModal() {
-            document.getElementById('deleteModal').style.display = 'block';
-        }
-
-        function closeDeleteModal() {
-            document.getElementById('deleteModal').style.display = 'none';
-        }
-    </script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
 </body>
 </html>
