@@ -24,6 +24,7 @@ from email.mime.text import MIMEText
 from flask import Flask, Blueprint, request, session, flash, redirect, url_for
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from test_credit_transactions import load_functions
+from request_security import login_credentials, peer_ip, login_limit_key
 
 ROOT = Path(__file__).resolve().parent
 
@@ -50,6 +51,9 @@ class LoginReasonTests(unittest.TestCase):
                 user.add_url_rule('/', endpoint='index', view_func=lambda: 'Dashboard')
                 reason = Mock(return_value='Repeated abuse report')
                 ns = dict(user=user, request=request, session=session, flash=flash,
+                          limiter=SimpleNamespace(limit=lambda *a, **kw: lambda f: f),
+                          login_credentials=login_credentials,
+                          peer_ip=peer_ip, login_limit_key=login_limit_key,
                           redirect=redirect, url_for=url_for, DEBUG_FRONTEND_MODE=False,
                           requests=SimpleNamespace(post=lambda *a, **kw: Mock(json=lambda: {'success': True})),
                           RECAPTCHA_SECRET_KEY='test', RECAPTCHA_SITE_KEY='test',
@@ -59,7 +63,7 @@ class LoginReasonTests(unittest.TestCase):
                 load_functions('Routes/AuthenticationHandler.py', ns, {'login_user'})
                 app.register_blueprint(user)
                 client = app.test_client()
-                self.assertEqual(client.post('/login', data={'email': 'user@example.com', 'password': 'test'}).status_code, 302)
+                self.assertEqual(client.post('/login', data={'email': 'user@example.com', 'password': 'test', 'g-recaptcha-response': 'test'}).status_code, 302)
                 with client.session_transaction() as state:
                     text = ' '.join(message for _, message in state.get('_flashes', []))
                 if result:

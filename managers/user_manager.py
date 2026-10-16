@@ -19,6 +19,7 @@ import datetime
 from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 from managers.database_manager import DatabaseManager
 from .logging import webhook_log
+from flask import g, has_request_context
 
 # API authentication headers
 HEADERS = {
@@ -126,8 +127,10 @@ def update_last_seen(email: str, everyone: bool = False):
         query = "UPDATE users SET last_seen = %s"
         DatabaseManager.execute_query(query, (datetime.datetime.now(),))
     else:
-        query = "UPDATE users SET last_seen = %s WHERE email = %s"
-        DatabaseManager.execute_query(query, (datetime.datetime.now(), email))
+        query = ("UPDATE users SET last_seen = %s WHERE email = %s "
+                 "AND (last_seen IS NULL OR last_seen < %s)")
+        now = datetime.datetime.now()
+        DatabaseManager.execute_query(query, (now, email, now - datetime.timedelta(seconds=60)))
 
 def get_last_seen(email: str):
     """
@@ -153,9 +156,7 @@ def is_admin(email: str):
     Returns:
         bool: Whether user is an admin
     """
-    query = "SELECT role FROM users WHERE email = %s"
-    result = DatabaseManager.execute_query(query, (email,))
-    return result and result[0] == "admin"
+    return get_role(email) == "admin"
 
 def is_support(email: str):
     """
@@ -167,9 +168,16 @@ def is_support(email: str):
     Returns:
         bool: Whether user is a support staff.
     """
-    query = "SELECT role FROM users WHERE email = %s"
-    result = DatabaseManager.execute_query(query, (email,))
-    return result and result[0] == "support"
+    return get_role(email) == "support"
+
+
+def get_role(email):
+    # Request-only reuse: role revocations take effect on the next request.
+    roles = g.setdefault('_account_roles', {}) if has_request_context() else {}
+    if email not in roles:
+        row = DatabaseManager.execute_query("SELECT role FROM users WHERE email = %s", (email,))
+        roles[email] = row[0] if row else None
+    return roles[email]
 
 def check_if_user_suspended(pterodactyl_id: str):
     """

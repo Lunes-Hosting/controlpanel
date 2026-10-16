@@ -26,13 +26,7 @@ def get_db_connection(database=DATABASE):
     Returns:
         tuple: (connection, cursor)
     """
-    connection = mysql.connector.connect(
-        host=HOST,
-        user=USER,
-        password=PASSWORD,
-        database=database
-    )
-    cursor = connection.cursor()
-    return connection, cursor
+    from .database_manager import DatabaseManager
+    return DatabaseManager.get_connection(database)
 
 # Add any other utility functions or constants here that are used across multiple modules

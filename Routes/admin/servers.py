@@ -32,7 +32,7 @@ from flask import render_template, request, session, redirect, url_for, flash
 from managers.authentication import admin_required
 from managers.utils import HEADERS
 from managers.user_manager import get_ptero_id
-from managers.server_manager import get_server_information, delete_server, suspend_server, unsuspend_server
+from managers.server_manager import get_server_information, display_servers, delete_server, suspend_server, unsuspend_server
 from managers.credit_manager import convert_to_product
 from managers.logging import webhook_log
 from Routes.admin import admin
@@ -74,7 +74,9 @@ def admin_servers():
     per_page = 20
     
     # Get all servers from Pterodactyl
-    resp = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60).json()
+    resp = display_servers()
+    if not resp:
+        return "Server inventory temporarily unavailable", 503
     all_servers = resp['data']
     
     # Filter servers based on search term (server ID or name)

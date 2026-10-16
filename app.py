@@ -20,6 +20,9 @@ Configuration:
 from flask import Flask, request
 from flask_apscheduler import APScheduler
 from flask_limiter import Limiter
+from rate_limits import limiter
+from request_security import client_ip
+import config as panel_config
 from flask_mail import Mail, Message
 from managers.maintenance import sync_users_script
 from managers.credit_manager import use_credits, check_to_unsuspend, delete_suspended_users_servers
@@ -40,6 +43,11 @@ from managers.logging import webhook_log
 from cacheext import cache
 from threading import Thread
 import datetime
+from scripts.add_performance_indexes import ensure_performance_indexes
+
+# Optional performance upgrades run automatically and never block startup on a
+# missing ALTER privilege. All settings continue to have backwards-compatible defaults.
+ensure_performance_indexes()
 
 if ENABLE_BOT and not DEBUG_FRONTEND_MODE:
     from discord_bot.bot import bot, run_bot
@@ -59,6 +67,10 @@ app.config.update(
     SESSION_TYPE="filesystem",
     PERMANENT_SESSION_LIFETIME=datetime.timedelta(days=31),
     SECRET_KEY=SECRET_KEY,
+    RATELIMIT_STORAGE_URI=getattr(panel_config, 'RATELIMIT_STORAGE_URI', 'memory://'),
+    RATELIMIT_HEADERS_ENABLED=True,
+    RATELIMIT_ENABLED=not DEBUG_FRONTEND_MODE,
+    RATELIMIT_DEFAULT='5000 per hour',
     SCHEDULER_API_ENABLED=False,
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_SAMESITE='Lax',
@@ -113,37 +125,21 @@ def inject_user_roles():
 
 
 def rate_limit_key():
-    """Generate a rate limit key from client IP + session identifier.
-    Using both means:
-    - Session cycling (clearing cookies) doesn't fully reset the limit,
-      because the IP component of the key stays the same.
-    - Different users on the same IP (NAT) are still somewhat separated
-      by their session component.
-    """
-    # Grabbing Cloudflare's verified IP first so bad actors can't spoof their way past your rate limits.
-    ip = request.headers.get('CF-Connecting-IP')
-    if not ip:
-        xff = request.headers.get('X-Forwarded-For')
-        if xff:
-            ip = xff.split(',')[0].strip()
-    if not ip:
-        ip = request.remote_addr
-    
-    session_id = session.get('random_id', 'anonymous')
-    return f"{ip}:{session_id}"
+    """Keep existing proxy-address behavior; login has separate peer-based limits."""
+    return client_ip()
+
+limiter.init_app(app)
 
 if not DEBUG_FRONTEND_MODE:
-    # Configure rate limiting
-    limiter = Limiter(rate_limit_key, app=app, default_limits=["200 per day", "5000 per hour"])
-
     # Apply rate limits to blueprints
     for blueprint, limit in [
-        (user, "20 per hour"),
-        (servers, "15 per hour"),
+        (user, "60 per hour"),
+        (servers, "30 per hour"),
         (tickets, "60 per hour"),
-        (store, "10 per hour")
+        (store, "60 per hour")
     ]:
-        limiter.limit(limit, key_func=rate_limit_key)(blueprint)
+        limiter.limit(limit, key_func=rate_limit_key, methods=['POST'],
+                      exempt_when=lambda: request.endpoint == 'store.stripe_webhook')(blueprint)
         app.register_blueprint(blueprint, 
                             url_prefix=f"/{blueprint.name}" if blueprint.name != "user" else None)
 

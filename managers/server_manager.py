@@ -27,6 +27,7 @@ import datetime
 from .suspension_manager import require_reason
 from .suspension_notifications import (queue_suspension_email, clear_suspension_email_keys,
                                        kick_suspension_email_delivery)
+from display_cache import display_cache
 
 # Initialize cache
 cache = PteroCache()
@@ -96,7 +97,7 @@ def get_autodeploy_info(project_id: int) -> list[dict]:
                 "startup": attributes['startup']}], environment
     return None
 
-def improve_list_servers(pterodactyl_id: int = None):
+def improve_list_servers(pterodactyl_id: int = None, timeout=60):
     """
     Example Response:
     {
@@ -171,12 +172,12 @@ def improve_list_servers(pterodactyl_id: int = None):
     }
     """
     if pterodactyl_id is None:
-        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
+        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=timeout)
         if response.status_code == 200:
             return response.json()
         return None
     else:
-        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{pterodactyl_id}?include=servers", headers=HEADERS, timeout=60)
+        response = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{pterodactyl_id}?include=servers", headers=HEADERS, timeout=timeout)
         if response.status_code == 200:
             return response.json()
         return None
@@ -223,6 +224,12 @@ def get_server_information(server_id: int):
         return response.json()
     return None
 
+
+def display_servers(pterodactyl_id=None):
+    """Short-lived inventory for lists only; mutations use fresh API reads."""
+    key = ('server-list', int(pterodactyl_id) if pterodactyl_id is not None else None)
+    return display_cache.get_or_load(key, lambda: improve_list_servers(pterodactyl_id, timeout=5), ttl=10)
+
 def suspend_server(server_id: int, reason: str, source: str = "manual"):
     """Persist why a server is suspended; automatic checks cannot override staff."""
     reason = require_reason(reason)
@@ -261,6 +268,7 @@ def suspend_server(server_id: int, reason: str, source: str = "manual"):
         queue_suspension_email(cursor, "server", server_id, owner[0], reason,
                                label=info['attributes'].get('name'), source=source)
     kick_suspension_email_delivery()
+    display_cache.clear()
     return response.status_code
 
 
@@ -287,6 +295,7 @@ def unsuspend_server(server_id: int, automatic: bool = False):
         response.raise_for_status()
         cursor.execute("UPDATE server_suspensions SET active=0 WHERE server_id=%s", (int(server_id),))
         clear_suspension_email_keys(cursor, "server", server_id)
+    display_cache.clear()
     return response.status_code
 
 
@@ -390,6 +399,7 @@ def transfer_server(server_id: int, target_node_id: int) -> int:
             print(f"Server transfer failed - Status: {response.status_code}, Response: {response.text}", 2)
         else:
             # Get the user who owns the server
+            display_cache.clear()
             user_id = server_info['attributes']['user']
             print(f"User {user_id} transferred server {server_id} to node {target_node_id}")
         
@@ -443,6 +453,7 @@ def delete_server(server_id: int):
     """
     response = requests.delete(f"{PTERODACTYL_URL}api/application/servers/{server_id}", headers=HEADERS, timeout=60)
     if response.status_code == 204:
+        display_cache.clear()
         from .server_creation_lock import release_deleted_server
         release_deleted_server(server_id)
         return True

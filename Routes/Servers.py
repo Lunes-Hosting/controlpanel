@@ -59,7 +59,7 @@ import secrets
 sys.path.append("..")
 from managers.authentication import login_required, admin_required
 from managers.user_manager import get_ptero_id, get_id, get_name, check_if_user_suspended, get_user_verification_status_and_suspension_status
-from managers.server_manager import get_nodes, get_eggs, get_server_information, improve_list_servers, get_node_allocation, transfer_server, delete_server as delete_managed_server
+from managers.server_manager import get_nodes, get_eggs, get_server_information, improve_list_servers, display_servers, get_node_allocation, transfer_server, delete_server as delete_managed_server
 from managers.credit_manager import get_credits, convert_to_product, use_credits, remove_credits, add_credits
 from managers.logging import webhook_log
 from managers.suspension_manager import get_server_suspension
@@ -69,6 +69,7 @@ from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY
 from managers.server_creation_lock import (serialized_server_creation, pending_server_creations,
                                           reserve_server_creation, finish_server_creation)
+from display_cache import display_cache
 
 servers = Blueprint('servers', __name__)
 
@@ -255,11 +256,14 @@ def server(server_id):
 
     
     verified, ptero_id, credits = get_user_verification_ptero_id_and_credits(session["email"])
-    if not verify_server_ownership_by_ptero_id(server_id, ptero_id):
+    info = get_server_information(server_id)
+    if not info:
+        return "Server not found or temporarily unavailable", 404
+    if info['attributes']['user'] != ptero_id:
         return "You can't view this server - you don't own it!"
         
     
-    response = improve_list_servers(ptero_id) #improved
+    response = display_servers(ptero_id)
     
     # Extract servers from the response
     servers_list = []
@@ -275,7 +279,6 @@ def server(server_id):
             products_local.remove(products[0])
             break
             
-    info = get_server_information(server_id)
     nodes = get_nodes()
     
     # Get current product for the server
@@ -662,6 +665,7 @@ def create_server_submit():
     }
 
     res: dict = requests.post(f"{PTERODACTYL_URL}api/application/servers", headers=HEADERS, json=body, timeout=60).json()
+    display_cache.clear()
 
     error = res.get('errors', None)
     if error is not None:

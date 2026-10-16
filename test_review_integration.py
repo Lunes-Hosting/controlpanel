@@ -9,6 +9,7 @@ from unittest.mock import Mock
 
 from flask import Flask, Blueprint, request, session, flash, redirect, url_for
 from test_credit_transactions import load_functions
+from request_security import login_credentials, peer_ip, login_limit_key
 
 
 class ReviewTests(unittest.TestCase):
@@ -23,6 +24,9 @@ class ReviewTests(unittest.TestCase):
                 session.clear()
                 session['email'] = email
             ns = dict(user=user, request=request, session=session, flash=flash,
+                      limiter=SimpleNamespace(limit=lambda *a, **kw: lambda f: f),
+                      login_credentials=login_credentials,
+                      peer_ip=peer_ip, login_limit_key=login_limit_key,
                       redirect=redirect, url_for=url_for, DEBUG_FRONTEND_MODE=True,
                       RECAPTCHA_SECRET_KEY='test', RECAPTCHA_SITE_KEY='test',
                       _get_client_ip=lambda _: '192.0.2.1', login=lambda *a: (7,),
