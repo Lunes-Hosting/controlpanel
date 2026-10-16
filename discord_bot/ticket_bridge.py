@@ -79,7 +79,7 @@ def _submit_task(task_type: str, args: Tuple[Any, ...], kwargs: Dict[str, Any]) 
 
 
 def schedule_ticket_channel_creation(
-    ticket_id: int,
+    ticket_id: str,
     title: str,
     opener_name: str,
     opener_email: str,
@@ -95,7 +95,7 @@ def schedule_ticket_channel_creation(
 
 
 def schedule_ticket_message(
-    ticket_id: int,
+    ticket_id: str,
     author_name: str,
     author_email: str,
     message: str,
@@ -109,11 +109,11 @@ def schedule_ticket_message(
     )
 
 
-def schedule_ticket_channel_deletion(ticket_id: int, reason: str) -> None:
+def schedule_ticket_channel_deletion(ticket_id: str, reason: str) -> None:
     logger.debug("Scheduling Discord ticket channel deletion for ticket %s", ticket_id)
     _submit_task("delete", (ticket_id, reason), {})
 
 
-def schedule_ticket_channel_status_update(ticket_id: int) -> None:
+def schedule_ticket_channel_status_update(ticket_id: str) -> None:
     logger.debug("Scheduling Discord ticket channel status update for ticket %s", ticket_id)
     _submit_task("status", (ticket_id,), {})

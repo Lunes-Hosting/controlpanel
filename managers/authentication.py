@@ -24,6 +24,7 @@ from urllib.parse import quote
 from managers.email_manager import send_email
 from security import safe_requests
 from managers.alt_settings import alt_detection_enabled
+from managers.account_sessions import session_is_valid
 
 
 # API authentication headers
@@ -56,7 +57,7 @@ def login_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'email' not in session:
+        if not session_is_valid():
             # Only pass the path portion of the URL for redirection after login
             next_url = request.path
             return redirect(url_for('user.login_user', next=next_url))
@@ -79,7 +80,7 @@ def admin_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'email' not in session:
+        if not session_is_valid():
             # Only pass the path portion of the URL for redirection after login
             next_url = request.path
             return redirect(url_for('user.login_user', next=next_url))
@@ -105,7 +106,7 @@ def support_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'email' not in session:
+        if not session_is_valid():
             # Only pass the path portion of the URL for redirection after login
             next_url = request.path
             return redirect(url_for('user.login_user', next=next_url))

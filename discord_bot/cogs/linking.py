@@ -6,6 +6,7 @@ from managers.database_manager import DatabaseManager
 from managers.email_manager import send_email_without_app_context
 from ..utils.database import UserDB
 from ..utils.logger import logger
+from ..utils.permissions import is_staff_context
 import random
 import string
 import importlib.util
@@ -90,7 +91,7 @@ class Linking(commands.Cog):
     @slash_command(name="getuser", description="Get user info")
     async def getuser_command(self, ctx, user: discord.Option(discord.User, "User")):
         await ctx.defer(ephemeral=True)
-        if not (ctx.author.guild_permissions.administrator or discord.utils.get(ctx.author.roles, id=1364999900135165993)):
+        if not is_staff_context(ctx):
             await ctx.respond("You do not have permission to use this command.", ephemeral=False)
             return
         try:
@@ -104,6 +105,7 @@ class Linking(commands.Cog):
             embed.add_field(name="Role:", value=info['role'], inline=False)
             embed.add_field(name="Pterodactyl ID:", value=info['pterodactyl_id'], inline=False)
             embed.add_field(name="Suspended:", value=str(str(bool(info['suspended']))), inline=False)
+            embed.add_field(name="Suspension reason:", value=info.get('suspension_reason') or ("A reason was not recorded." if info['suspended'] else "Not suspended"), inline=False)
             embed.add_field(name="Manage", value=f"https://betadash.lunes.host/admin/user/{info['id']}/servers", inline=False)
             await ctx.respond(embed=embed, ephemeral=True)
             logger.info(f"Fetched user info for {user.id}")

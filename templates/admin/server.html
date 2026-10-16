@@ -288,12 +288,14 @@
                 </form>
                 {% if info['attributes']['suspended'] %}
                 <form method="POST" action="{{ url_for('admin.admin_toggle_server_suspension', server_id=info['attributes']['id']) }}" style="display: inline;">
+                    <input type="hidden" name="action" value="unsuspend">
                     <button type="submit" class="btn btn-success">
                         <i class="fas fa-play"></i> Unsuspend
                     </button>
                 </form>
                 {% else %}
-                <form method="POST" action="{{ url_for('admin.admin_toggle_server_suspension', server_id=info['attributes']['id']) }}" style="display: inline;">
+                <form method="POST" action="{{ url_for('admin.admin_toggle_server_suspension', server_id=info['attributes']['id']) }}" style="display: inline;" data-require-suspension-reason data-suspension-label="server #{{ info['attributes']['id'] }}">
+                    <input type="hidden" name="action" value="suspend">
                     <button type="submit" class="btn btn-warning">
                         <i class="fas fa-pause"></i> Suspend
                     </button>
@@ -302,6 +304,12 @@
             </div>
         </div>
 
+        {% if info['attributes']['suspended'] %}
+        <div class="card" style="overflow-wrap:anywhere;">
+            <strong>Suspension reason</strong>
+            <p>{{ suspension.reason if suspension and suspension.active else 'Legacy or external suspension — reason not recorded' }}</p>
+        </div>
+        {% endif %}
         <div class="card">
             <div class="section-title">Current Resources</div>
             <div class="resource-card">
@@ -350,5 +358,6 @@
             </form>
         </div>
     </div>
+{% include 'partials/suspension_reason_modal.html' %}
 </body>
 </html>

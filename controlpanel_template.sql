@@ -128,7 +128,7 @@ DROP TABLE IF EXISTS `ticket_comments`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ticket_comments` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `ticket_id` int(10) unsigned NOT NULL,
+  `ticket_id` varchar(36) NOT NULL,
   `user_id` int(10) unsigned NOT NULL,
   `ticketcomment` text NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
@@ -144,7 +144,7 @@ DROP TABLE IF EXISTS `ticket_discord_channels`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ticket_discord_channels` (
-  `ticket_id` int(10) unsigned NOT NULL,
+  `ticket_id` varchar(36) NOT NULL,
   `channel_id` bigint(20) unsigned NOT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`ticket_id`)
@@ -159,7 +159,7 @@ DROP TABLE IF EXISTS `tickets`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tickets` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id` varchar(36) NOT NULL,
   `user_id` int(10) unsigned NOT NULL,
   `title` varchar(191) NOT NULL,
   `status` varchar(191) NOT NULL,
@@ -167,7 +167,7 @@ CREATE TABLE `tickets` (
   `reply_status` varchar(255) NOT NULL DEFAULT 'waiting' COMMENT 'responded OR waiting depending on who replyed last',
   `last_reply` timestamp NULL DEFAULT NULL COMMENT 'Timestamp of latest reply',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1824 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --

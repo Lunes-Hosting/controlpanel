@@ -384,7 +384,7 @@
                             <a class="ticket-card" href="{{ url_for('tickets.ticket', ticket_id=ticket[0]) }}">
                                 <div class="ticket-meta">
                                     <i class="fa-solid fa-ticket"></i>
-                                    <span>#{{ '%04d' | format(ticket[0]) }}</span>
+                                    <span title="{{ ticket[0] }}">#{{ (ticket[0]|string).split('-')[0] }}</span>
                                 </div>
                                 <h3>{{ ticket[2] }}</h3>
                                 <p>{{ ticket[3] }}</p>

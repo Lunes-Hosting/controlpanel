@@ -37,6 +37,7 @@ from managers.logging import webhook_log
 from Routes.admin import admin
 from managers.user_manager import get_ptero_id
 from managers.database_manager import DatabaseManager
+from managers.suspension_manager import set_user_suspension, require_reason, get_user_suspension
 from config import PTERODACTYL_URL
 import requests
 import sys
@@ -132,6 +133,7 @@ def users():
                 "role": user[2], 
                 "email": user[3], 
                 "suspended": user[4],
+                "suspension_reason": get_user_suspension(user[5]) if user[4] else "",
                 "id": user[5], 
                 "panel_id": user[6]
             })
@@ -218,11 +220,12 @@ def audit_recent_multi():
 
     suspended = False
     if request.method == 'POST' and request.form.get('suspend') == '1' and offenders:
+        try:
+            reason = require_reason(request.form.get("reason"))
+        except ValueError as exc:
+            return jsonify(error=str(exc)), 400
         for off in offenders:
-            DatabaseManager.execute_query(
-                "UPDATE users SET suspended = 1 WHERE id = %s",
-                (off['id'],)
-            )
+            set_user_suspension(off['id'], True, reason, source="admin_audit", actor=session['email'])
         webhook_log(
             f"Admin {session['email']} suspended {len(offenders)} recent multi-server offenders",
             "admin",
@@ -499,12 +502,14 @@ def admin_toggle_suspension(user_id):
     current_status = db_user[15]  # Assuming suspended is at index 9
     new_status = 0 if current_status == 1 else 1
     
-    # Update user in database
-    DatabaseManager.execute_query(
-        "UPDATE users SET suspended = %s WHERE id = %s", 
-        (new_status, user_id)
-    )
-    
+    requested = request.form.get("suspended")
+    if requested in ("0", "1"):
+        new_status = int(requested)
+    try:
+        set_user_suspension(user_id, bool(new_status), request.form.get("reason"), actor=session['email'])
+    except ValueError as exc:
+        return jsonify(error=str(exc)), 400
+
     from managers.alt_detection import (
         exempt_user, log_alt_action, unban_history, describe_unban_history,
     )
@@ -518,6 +523,7 @@ def admin_toggle_suspension(user_id):
     action = "suspended" if new_status == 1 else "unsuspended"
     webhook_log(
         f"Admin {session['email']} {action} user {db_user[1]} (ID: {db_user[0]})"
+        + (f" | Reason: {request.form.get('reason', '').strip()}" if new_status else "")
         + (f" | {history_note}" if history_note else ""),
         "admin", database_log=True
     )

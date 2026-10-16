@@ -8,6 +8,7 @@ with existing codebase functionality.
 """
 
 import mysql.connector
+from contextlib import contextmanager
 from typing import Optional, Union, Tuple, List, Any
 from .base_manager import BaseManager
 from config import DATABASE, HOST, PASSWORD, USER
@@ -18,6 +19,22 @@ class DatabaseManager(BaseManager):
     Designed to be compatible with existing database usage patterns.
     """
     
+    @classmethod
+    @contextmanager
+    def transaction(cls):
+        """Keep all operations on one connection and commit them together."""
+        connection, cursor = cls.get_connection()
+        try:
+            connection.start_transaction()
+            yield cursor
+            connection.commit()
+        except BaseException:
+            connection.rollback()
+            raise
+        finally:
+            cursor.close()
+            connection.close()
+
     @classmethod
     def get_connection(cls, database: str = DATABASE) -> Tuple[mysql.connector.MySQLConnection, mysql.connector.cursor.MySQLCursor]:
         """

@@ -227,6 +227,31 @@ def send_reset_email(email: str, reset_token: str, inner_app):
         print(f"Error sending reset email: {str(e)}")
 
 
+def send_suspension_email(email, title, message):
+    """Synchronous sender so the outbox can acknowledge or retry delivery."""
+    import config
+    import ssl
+    from email.utils import formataddr
+    msg = MIMEMultipart('alternative')
+    sender = config.MAIL_DEFAULT_SENDER
+    msg['From'] = formataddr(sender) if isinstance(sender, tuple) else sender
+    msg['To'] = email
+    msg['Subject'] = title
+    msg.attach(MIMEText(_plain_email_body(message), 'plain', 'utf-8'))
+    msg.attach(MIMEText(_render_email_html(title, message), 'html', 'utf-8'))
+    use_ssl = getattr(config, 'MAIL_USE_SSL', False)
+    smtp = smtplib.SMTP_SSL if use_ssl else smtplib.SMTP
+    options = {'timeout': 30}
+    if use_ssl:
+        options['context'] = ssl.create_default_context()
+    with smtp(config.MAIL_SERVER, config.MAIL_PORT, **options) as server:
+        if not use_ssl and getattr(config, 'MAIL_USE_TLS', True):
+            server.starttls(context=ssl.create_default_context())
+        if config.MAIL_USERNAME and config.MAIL_PASSWORD:
+            server.login(config.MAIL_USERNAME, config.MAIL_PASSWORD)
+        server.send_message(msg)
+
+
 def send_email_without_app_context(email: str, title: str, message: str, smtp_config):
     """
     Sends an email without requiring a Flask application context.

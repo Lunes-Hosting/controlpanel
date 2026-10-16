@@ -211,37 +211,10 @@ def delete_inactive_free_servers():
                     elif inactivity > datetime.timedelta(days=15):
                         if not server['attributes'].get('suspended', False):
                             from managers.server_manager import suspend_server
-                            suspend_server(server_id)
+                            status = suspend_server(server_id, "Free-tier owner inactive for more than 15 days.", "inactivity")
+                            if status not in (200, 204):
+                                continue
                             webhook_log(f"Suspended free tier server {server_name} (ID: {server_id}) due to owner inactivity (15+ days)", database_log=True)
 
-                            # Send suspension email to the owner
-                            try:
-                                email_result = db.execute_query(
-                                    "SELECT email FROM users WHERE pterodactyl_id = %s",
-                                    (user_id,)
-                                )
-                                if email_result and email_result[0]:
-                                    user_email = email_result[0]
-                                    message = (
-                                        "Your free-tier server has been suspended due to inactivity (no login for over 15 days).\n\n"
-                                        "To keep your server, please log in to your account within the next 2 days. "
-                                        "Servers inactive for 17+ days are automatically deleted.\n\n"
-                                        "If you believe this was a mistake or need assistance, please contact support."
-                                    )
-                                    send_email(
-                                        user_email,
-                                        "Server Suspended Due to Inactivity",
-                                        message,
-                                        current_app._get_current_object()
-                                    )
-                                    webhook_log(
-                                        f"Suspension email sent to {user_email} for server {server_name} (ID: {server_id})",
-                                        database_log=True
-                                    )
-                            except Exception as e:
-                                webhook_log(
-                                    f"Failed to send suspension email for server {server_name} (ID: {server_id}): {str(e)}",
-                                    database_log=True
-                                )
         except Exception as e:
             webhook_log(f"Error processing server for inactive free tier check: {str(e)}", database_log=True)

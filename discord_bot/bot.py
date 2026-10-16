@@ -10,6 +10,7 @@ from discord_bot.ticket_bridge import set_bot_loop
 from discord_bot.account_approval import set_approval_bot, restore_pending_approval_views
 from discord_bot.ticket_sync import process_discord_message
 from managers.database_manager import DatabaseManager
+from managers.ticket_ids import short_ticket_id
 from managers.ticket_discord_manager import (
     clear_channel,
     get_ticket_id,
@@ -98,7 +99,7 @@ async def closewebticket(ctx):
         is_ticket=True,
     )
 
-    await ctx.respond(f"Ticket #{ticket_id} closed. This channel will be deleted shortly.", ephemeral=True)
+    await ctx.respond(f"Ticket #{short_ticket_id(ticket_id)} closed. This channel will be deleted shortly.", ephemeral=True)
 
     clear_channel(ticket_id)
     try:
@@ -111,7 +112,7 @@ async def run_bot():
     await bot.start(TOKEN)
 
 
-def _get_ticket_owner_id(ticket_id: int) -> int:
+def _get_ticket_owner_id(ticket_id: str) -> int:
     row = DatabaseManager.execute_query(
         "SELECT user_id FROM tickets WHERE id = %s",
         (ticket_id,),

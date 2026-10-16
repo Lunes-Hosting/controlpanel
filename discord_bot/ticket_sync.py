@@ -24,6 +24,7 @@ except ImportError:
     TICKET_DISCORD_CATEGORY_ID = None  # type: ignore
 
 from managers.database_manager import DatabaseManager
+from managers.ticket_ids import short_ticket_id
 from managers.email_manager import send_email_without_app_context
 from managers.ticket_discord_manager import (
     clear_channel,
@@ -53,7 +54,7 @@ async def ensure_category(guild: discord.Guild, category_id: int) -> Optional[di
 
 async def create_discord_ticket_channel(
     bot: discord.Client,
-    ticket_id: int,
+    ticket_id: str,
     title: str,
     opener_name: str,
     opener_email: str,
@@ -86,9 +87,9 @@ async def create_discord_ticket_channel(
             return
 
     channel = await guild.create_text_channel(
-        name=_resolve_ticket_channel_name(ticket_id) or f"ticket-{ticket_id}-waiting",
+        name=_resolve_ticket_channel_name(ticket_id) or f"ticket-{short_ticket_id(ticket_id)}-waiting",
         category=category,
-        topic=f"Ticket #{ticket_id}: {title}",
+        topic=f"Ticket #{short_ticket_id(ticket_id)}: {title}",
     )
     set_channel(ticket_id, channel.id)
     await send_ticket_open_message(
@@ -123,7 +124,7 @@ async def send_ticket_open_message(
 
 async def send_discord_ticket_message(
     bot: discord.Client,
-    ticket_id: int,
+    ticket_id: str,
     author_name: str,
     author_email: str,
     message: str,
@@ -171,7 +172,7 @@ async def send_discord_ticket_message(
     await _apply_ticket_channel_status(channel, ticket_id)
 
 
-async def delete_discord_ticket_channel(bot: discord.Client, ticket_id: int, reason: str) -> None:
+async def delete_discord_ticket_channel(bot: discord.Client, ticket_id: str, reason: str) -> None:
     if not _discord_ids_configured():
         logger.warning("Discord ticket channel deletion skipped: DISCORD_GUILD_ID or TICKET_DISCORD_CATEGORY_ID not set")
         return
@@ -241,12 +242,10 @@ async def process_discord_message(bot: discord.Client, message: discord.Message)
         ticket_id,
     )
 
-    comment_id = _get_next_comment_id()
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     DatabaseManager.execute_query(
-        "INSERT INTO ticket_comments (id, ticket_id, user_id, ticketcomment, created_at) VALUES (%s, %s, %s, %s, %s)",
+        "INSERT INTO ticket_comments (ticket_id, user_id, ticketcomment, created_at) VALUES (%s, %s, %s, %s)",
         (
-            comment_id,
             ticket_id,
             staff_id,
             content,
@@ -276,7 +275,7 @@ async def process_discord_message(bot: discord.Client, message: discord.Message)
         logger.warning("Discord ticket bridge: failed to add reaction: %s", exc)
 
 
-async def update_ticket_channel_status(bot: discord.Client, ticket_id: int) -> None:
+async def update_ticket_channel_status(bot: discord.Client, ticket_id: str) -> None:
     if not _discord_ids_configured():
         return
     guild = bot.get_guild(int(DISCORD_GUILD_ID))
@@ -308,7 +307,7 @@ def _discord_ids_configured() -> bool:
     return bool(DISCORD_GUILD_ID) and bool(TICKET_DISCORD_CATEGORY_ID)
 
 
-async def _apply_ticket_channel_status(channel: discord.TextChannel, ticket_id: int) -> None:
+async def _apply_ticket_channel_status(channel: discord.TextChannel, ticket_id: str) -> None:
     target_name = _resolve_ticket_channel_name(ticket_id)
     if not target_name:
         return
@@ -327,7 +326,7 @@ async def _apply_ticket_channel_status(channel: discord.TextChannel, ticket_id: 
         logger.warning("Discord ticket bridge: failed to rename channel %s: %s", channel.id, exc)
 
 
-def _resolve_ticket_channel_name(ticket_id: int) -> Optional[str]:
+def _resolve_ticket_channel_name(ticket_id: str) -> Optional[str]:
     row = DatabaseManager.execute_query(
         "SELECT reply_status FROM tickets WHERE id = %s",
         (ticket_id,),
@@ -336,10 +335,10 @@ def _resolve_ticket_channel_name(ticket_id: int) -> Optional[str]:
         return None
     status = (row[0] or "").lower()
     suffix = "responded" if status == "responded" else "waiting"
-    return f"ticket-{ticket_id}-{suffix}"
+    return f"ticket-{short_ticket_id(ticket_id)}-{suffix}"
 
 
-def _get_ticket_owner_email(ticket_id: int) -> Optional[str]:
+def _get_ticket_owner_email(ticket_id: str) -> Optional[str]:
     row = DatabaseManager.execute_query(
         "SELECT users.email FROM tickets JOIN users ON tickets.user_id = users.id WHERE tickets.id = %s",
         (ticket_id,),
@@ -364,12 +363,3 @@ def _lookup_staff_user(discord_id: int) -> Optional[Tuple[int, str]]:
         if fallback:
             return fallback[0], fallback[1]
     return None
-
-
-def _get_next_comment_id() -> int:
-    row = DatabaseManager.execute_query(
-        "SELECT id FROM ticket_comments ORDER BY id DESC LIMIT 0, 1",
-    )
-    if not row:
-        return 0
-    return row[0] + 1

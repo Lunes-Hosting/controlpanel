@@ -3,7 +3,8 @@ from discord.ext import commands  # type: ignore
 import asyncio
 
 from ..utils.database import UserDB
-from managers.credit_manager import add_credits
+from managers.bump_rewards import award_bump
+from config import DISCORD_GUILD_ID
 from ..utils.logger import logger
 
 DISBOARD_BOT_ID = 302050872383242240
@@ -100,6 +101,9 @@ class BumpRewards(commands.Cog):
 
     async def _process_message(self, message: discord.Message):
         """Core detection and reward logic, shared by on_message and edit/refetch paths."""
+        if (not DISCORD_GUILD_ID or not message.guild or
+                message.guild.id != int(DISCORD_GUILD_ID) or message.author.id != DISBOARD_BOT_ID):
+            return
         # Find the bump confirmation by either:
         # - image URL match (classic DISBOARD confirmation), OR
         # - interaction name == 'bump', OR
@@ -186,7 +190,8 @@ class BumpRewards(commands.Cog):
             logger.info(
                 f"(process) Awarding +4 credit to email={email} (discord_id={bumper_id}) for DISBOARD bump"
             )
-            add_credits(email, 4, set_client=False)
+            if not award_bump(message.id, message.guild.id, bumper_id):
+                return
             await message.channel.send(
                 content=(
                     f"<@{bumper_id}>, thanks for the bump on [{message.guild.name} | DISBOARD: Discord Server List]"

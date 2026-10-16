@@ -42,6 +42,10 @@
                                 <td class="px-4 py-3 status-cell">
                                     {% if user.suspended %}
                                         <span class="px-2 py-1 rounded text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">Suspended</span>
+                                        <details class="mt-2 text-sm" style="max-width:28rem;overflow-wrap:anywhere;">
+                                            <summary>Suspension reason</summary>
+                                            <p>{{ user.suspension_reason }}</p>
+                                        </details>
                                     {% else %}
                                         <span class="px-2 py-1 rounded text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20">Active</span>
                                     {% endif %}
@@ -50,10 +54,14 @@
                                     <a href="/admin/user/{{ user.id }}/servers" class="px-3 py-1 rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-colors text-xs font-medium">
                                         Servers
                                     </a>
-                                    <button onclick="toggleSuspension({{ user.id }}, this)" 
+                                    <form method="post" action="{{ url_for('admin.admin_toggle_suspension', user_id=user.id) }}"
+                                          {% if not user.suspended %}data-require-suspension-reason data-suspension-label="account #{{ user.id }}"{% endif %}>
+                                    <input type="hidden" name="suspended" value="{{ '0' if user.suspended else '1' }}">
+                                    <button type="submit"
                                        class="px-3 py-1 rounded border transition-colors text-xs font-medium {{ 'bg-green-500/10 text-green-400 hover:bg-green-500/20 border-green-500/20' if user.suspended else 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 border-yellow-500/20' }}">
                                         {{ 'Unsuspend' if user.suspended else 'Suspend' }}
                                     </button>
+                                    </form>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -129,30 +137,6 @@
         }
     });
 
-    function toggleSuspension(userId, button) {
-        fetch(`/admin/user/toggle_suspension/${userId}`, {
-            method: 'POST'
-        }).then(response => {
-            if (response.ok) {
-                const isSuspended = button.textContent.trim() === 'Suspend';
-                button.textContent = isSuspended ? 'Unsuspend' : 'Suspend';
-                
-                // Toggle button styling
-                if (isSuspended) { // Now suspended, so button should show "Unsuspend" (green)
-                     button.className = "px-3 py-1 rounded border transition-colors text-xs font-medium bg-green-500/10 text-green-400 hover:bg-green-500/20 border-green-500/20";
-                } else { // Now active, so button should show "Suspend" (yellow)
-                     button.className = "px-3 py-1 rounded border transition-colors text-xs font-medium bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 border-yellow-500/20";
-                }
-                
-                // Toggle status badge
-                const statusCell = button.closest('tr').querySelector('.status-cell');
-                if (isSuspended) {
-                    statusCell.innerHTML = '<span class="px-2 py-1 rounded text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">Suspended</span>';
-                } else {
-                    statusCell.innerHTML = '<span class="px-2 py-1 rounded text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20">Active</span>';
-                }
-            }
-        });
-    }
 </script>
+{% include 'partials/suspension_reason_modal.html' %}
 {% endblock %}
