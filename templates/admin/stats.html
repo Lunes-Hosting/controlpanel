@@ -5,7 +5,7 @@
     <div class="flex justify-between items-center">
         <div>
             <h1 class="text-2xl font-bold text-white">Platform Statistics</h1>
-            <p id="stats-status" class="text-gray-400" role="status" aria-live="polite">{{ 'Updating statistics…' if stats_state.refreshing else ('Statistics temporarily unavailable. Retrying…' if stats_state.error else 'Statistics updated. Refreshes every minute.') }}</p>
+            <p id="stats-status" class="text-gray-400" role="status" aria-live="polite" {% if not stats_state.error %}hidden{% endif %}>{{ 'Statistics temporarily unavailable. Retrying…' if stats_state.error else '' }}</p>
         </div>
     </div>
     <noscript><p class="text-gray-400">Enable JavaScript to load platform statistics.</p></noscript>

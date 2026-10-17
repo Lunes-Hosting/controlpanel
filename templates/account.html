@@ -153,7 +153,7 @@
                     </a>
                 </div>
 
-                <p id="dashboard-inventory-status" role="status" class="text-sm text-slate-400 mb-4" {% if not servers_ready or (not inventory_state.refreshing and not inventory_state.error) %}hidden{% endif %}>{{ 'Showing last known server inventory. Retrying…' if inventory_state.error else 'Updating server inventory…' }}</p>
+                <p id="dashboard-inventory-status" role="status" class="text-sm text-slate-400 mb-4" {% if not servers_ready or not inventory_state.error %}hidden{% endif %}>{{ 'Showing last known server inventory. Retrying…' if inventory_state.error else '' }}</p>
                 <div id="dashboard-servers" class="panel-card rounded-sm overflow-hidden border border-white/5" aria-busy="{{ 'false' if servers_ready else 'true' }}">
                     {% include 'partials/dashboard_servers.html' %}
                 </div>

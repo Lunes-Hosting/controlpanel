@@ -8,6 +8,7 @@
     let stopped = false;
 
     function showStatus(message) {
+        status.hidden = !message;
         if (status.textContent !== message) status.textContent = message;
     }
 
@@ -77,7 +78,7 @@
             }
             showStatus(state.error ? (state.data ? 'Showing the last available statistics. Retrying…' :
                 'Statistics temporarily unavailable. Retrying…') :
-                state.refreshing ? 'Updating statistics…' : 'Statistics updated. Refreshes every minute.');
+                '');
             delay = state.error ? 15000 : state.refreshing ? 2000 : 60000;
         } catch (error) {
             showStatus('Statistics refresh unavailable. Retrying shortly…');
