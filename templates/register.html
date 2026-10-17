@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lunes Host | {{ 'Registration blocked' if alt_detected else 'Register' }}</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/Lunes.svg') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/inter.css') }}">
     
     {% with asset_bundle='legacy-ui.css' %}{% include 'partials/compiled_assets.html' %}{% endwith %}
+    <link rel="preconnect" href="https://challenges.cloudflare.com" crossorigin>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer></script>
     <style>
+        html { overflow-x: clip; }
         :root {
             color-scheme: dark;
         }
@@ -324,7 +325,7 @@
     {% include 'partials/top_nav.html' %}
     <div class="auth-shell">
         <section class="brand-panel">
-            <img src="{{ url_for('static', filename='images/Luneslogo.png') }}" alt="Lunes" style="width:48px;height:48px;border-radius:0.125rem;margin-bottom:1.25rem;">
+            <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Lunes" style="width:48px;height:48px;border-radius:0.125rem;margin-bottom:1.25rem;">
             <p style="display:inline-flex;gap:0.35rem;align-items:center;background:rgba(59,130,246,0.15);border:1px solid rgba(96,165,250,0.4);padding:0.35rem 0.9rem;border-radius:0.125rem;font-size:0.85rem;color:#bfdbfe;">New to Lunes Cloud</p>
             <h1>Create your Lunes Host account.</h1>
             <p class="tagline">Provision servers, manage credits, and track activity from one sleek dashboard.</p>

@@ -52,7 +52,7 @@ class LoginReasonTests(unittest.TestCase):
                 reason = Mock(return_value='Repeated abuse report')
                 ns = dict(user=user, request=request, session=session, flash=flash,
                           limiter=SimpleNamespace(limit=lambda *a, **kw: lambda f: f),
-                          login_credentials=login_credentials,
+                          login_credentials=login_credentials, verify_turnstile=lambda *a: True,
                           peer_ip=peer_ip, login_limit_key=login_limit_key,
                           redirect=redirect, url_for=url_for, DEBUG_FRONTEND_MODE=False,
                           requests=SimpleNamespace(post=lambda *a, **kw: Mock(json=lambda: {'success': True})),
