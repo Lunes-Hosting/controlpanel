@@ -121,8 +121,8 @@ function openDeleteModal() {
                 document.querySelector('[data-dashboard-meter-label]').textContent = `${state.credit_width}% / 100%`;
             }
             if (notice) {
-                notice.hidden = !ready || (!state.error && !state.refreshing);
-                notice.textContent = state.error ? 'Showing last known server inventory. Retrying…' : 'Updating server inventory…';
+                notice.hidden = !ready || !state.error;
+                notice.textContent = state.error ? 'Showing last known server inventory. Retrying…' : '';
             }
             delay = state.error ? 15000 : state.refreshing ? 2000 : 15000;
         } catch (error) {
