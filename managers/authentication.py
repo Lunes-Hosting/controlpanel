@@ -270,16 +270,15 @@ def register(email: str, password: str, name: str, ip: str, needs_review: bool =
         error = data['errors'][0]['detail']
         return error
     except KeyError:
-        # Get next user ID
-        user_id = DatabaseManager.execute_query("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
-        
+        # Let AUTO_INCREMENT allocate a durable identity. max(id)+1 can reuse a
+        # deleted account's ID, which would misidentify saved payment recipients.
         # Non-Gmail free accounts require staff review before they can create a server.
         role = "sketchy" if needs_review or requires_manual_server_approval(email) else "member"
 
         # Insert user into database
-        query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, ip, credits, role, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())")
+        query = ("INSERT INTO users (name, email, password, pterodactyl_id, ip, credits, role, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())")
         password_hash = passthread.join()
-        values = (name, email, password_hash, user_id, data['attributes']['id'], ip, 5, role)
+        values = (name, email, password_hash, data['attributes']['id'], ip, 5, role)
         DatabaseManager.execute_query(query, values)
         
         return data

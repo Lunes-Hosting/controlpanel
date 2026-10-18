@@ -100,9 +100,9 @@
                         <div class="credit-card">
                             <div class="credit-header">
                                 <p>Current Balance</p>
-                                <span>Updated hourly</span>
+                                <span>Auto-refresh</span>
                             </div>
-                            <h2>{{ formatted_credits }} <small>credits</small></h2>
+                            <h2><span data-dashboard-balance>{{ formatted_credits }}</span> <small>credits</small></h2>
                             {% set credit_percent = (server_count or 0) * 12 %}
                             {% set credit_width = 100 if credit_percent > 100 else credit_percent %}
                             <div class="credit-meter-heading">

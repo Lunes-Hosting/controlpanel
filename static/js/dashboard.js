@@ -114,6 +114,8 @@ function openDeleteModal() {
                 const value = state[element.dataset.dashboardStat];
                 if (value !== null && value !== undefined) element.textContent = value;
             });
+            const balance = document.querySelector('[data-dashboard-balance]');
+            if (balance && Number.isFinite(state.credits)) balance.textContent = creditFormatter.format(state.credits);
             const meter = document.querySelector('.credit-meter');
             if (meter && ready) {
                 meter.setAttribute('aria-valuenow', state.credit_width);

@@ -77,6 +77,22 @@ class LoginTests(unittest.TestCase):
         self.assertEqual(ns['login']('a@example.com','password','8.8.8.8'),'suspended')
         alt.assert_not_called()
 
+class RegistrationIdentityTests(unittest.TestCase):
+    def test_registration_uses_database_identity_instead_of_reusing_deleted_ids(self):
+        database=Mock()
+        api=Mock();api.post.return_value.json.return_value={'attributes':{'id':77}}
+        thread=Mock();thread.return_value.join.return_value=b'hashed'
+        ns=dict(DatabaseManager=database,auth_requests=api,blocked_email_list=Mock(get=lambda:()),bcrypt=Mock(),
+                ThreadWithReturnValue=thread,webhook_log=Mock(),alt_detection_enabled=lambda:False,
+                requires_manual_server_approval=lambda _:False,HEADERS={},PTERODACTYL_URL='https://example.invalid/')
+        load_functions('managers/authentication.py',ns,{'register'})
+        self.assertEqual(ns['register']('a@example.com','password','name','8.8.8.8')['attributes']['id'],77)
+        database.execute_query.assert_called_once()
+        sql,values=database.execute_query.call_args.args
+        self.assertIn('(name, email, password, pterodactyl_id,',sql)
+        self.assertNotIn('password, id,',sql)
+        self.assertEqual(values,('name','a@example.com',b'hashed',77,'8.8.8.8',5,'member'))
+
 class ResetTests(unittest.TestCase):
     def setUp(self):
         self.app=Flask(__name__);self.app.secret_key='test'
