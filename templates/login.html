@@ -7,8 +7,10 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/Lunes.svg') }}">
     
     {% with asset_bundle='legacy-ui.css' %}{% include 'partials/compiled_assets.html' %}{% endwith %}
+    <link rel="preconnect" href="https://challenges.cloudflare.com" crossorigin>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer></script>
     <style>
+        html { overflow-x: clip; }
         *, *::before, *::after {
             box-sizing: border-box;
         }
@@ -288,7 +290,7 @@
     <div class="auth-shell">
         <section class="form-panel">
             <div class="brand-mark">
-                <img src="{{ url_for('static', filename='images/Luneslogo.png') }}" alt="Lunes Hosting LLC">
+                <img src="{{ url_for('static', filename='images/Lunes.svg') }}" alt="Lunes Hosting LLC">
             </div>
             <header class="panel-header">
                 <p class="panel-eyebrow">Lunes Hosting LLC</p>

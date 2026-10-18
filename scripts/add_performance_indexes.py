@@ -8,6 +8,8 @@ import mysql.connector
 import logging
 
 INDEXES = (
+    ('users', 'users_email_idx', ('email',)),
+    ('pending_deletions', 'pending_deletions_email_idx', ('email',)),
     ('activity_logs', 'activity_logs_time_id_idx', ('create_time', 'id')),
     ('users', 'users_pterodactyl_id_idx', ('pterodactyl_id',)),
     ('users', 'users_discord_id_idx', ('discord_id',)),
