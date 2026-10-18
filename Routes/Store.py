@@ -55,6 +55,8 @@ sys.path.append("..")
 from managers.authentication import login_required
 from managers.user_manager import get_ptero_id, get_id
 from managers.payment_manager import credit_payment
+from managers.checkout_manager import ensure_checkout_orders, remember_checkout, fulfill_checkout
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 from managers.email_manager import send_email
 from managers.logging import webhook_log
 from managers.database_manager import DatabaseManager
@@ -70,6 +72,7 @@ from products import products
 import stripe
 
 stripe.api_key = STRIPE_SECRET_KEY
+stripe.default_http_client = stripe.http_client.RequestsClient(timeout=15)
 store = Blueprint('store', __name__)
 
 
@@ -177,6 +180,13 @@ def billing_portal():
     return redirect(portal_session['url'])
 
 
+def checkout_success_url(base):
+    parts = urlsplit(base)
+    query = urlencode([(key,value) for key,value in parse_qsl(parts.query,keep_blank_values=True) if key != 'session_id'])
+    query = (query + '&' if query else '') + 'session_id={CHECKOUT_SESSION_ID}'
+    return urlunsplit((parts.scheme,parts.netloc,parts.path,query,parts.fragment))
+
+
 @store.route('/checkout/<price_link>', methods=['POST', 'GET'])
 @login_required
 def create_checkout_session(price_link: str):
@@ -218,6 +228,11 @@ def create_checkout_session(price_link: str):
         ptero_id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = ptero_id
 
+    product = next((p for p in products if p.get('price_link') == price_link), None)
+    if product is None or float(product.get('price') or 0) <= 0:
+        return 'Unknown credit package', 400
+
+    ensure_checkout_orders()
     check_session = stripe.checkout.Session.create(
         payment_method_types=['card', 'cashapp', "wechat_pay", "alipay", 'crypto'],
         payment_method_options={
@@ -232,10 +247,13 @@ def create_checkout_session(price_link: str):
             'quantity': 1,
         }],
         mode='payment',
-        success_url=YOUR_SUCCESS_URL,
+        success_url=checkout_success_url(YOUR_SUCCESS_URL),
         cancel_url=YOUR_CANCEL_URL,
         customer_email=str(session['email']).strip().lower()
     )
+    # Save before redirecting the buyer, so reconciliation survives restarts and
+    # does not depend on the browser cookie or webhook delivery.
+    remember_checkout(check_session['id'], session['account_id'], session['email'], price_link, product['price'])
     session['price_link'] = price_link
     session['pay_id'] = check_session['id']
     return redirect(check_session['url'])
@@ -264,52 +282,13 @@ def stripe_webhook():
     data_object = (event.get('data') or {}).get('object') or {}
 
     try:
-        if event_type == 'checkout.session.completed':
-            check_session = data_object
-            pay_id = str(check_session.get('id') or '').strip()
+        if event_type in ('checkout.session.completed', 'checkout.session.async_payment_succeeded'):
+            pay_id = str(data_object.get('id') or '').strip()
             if not pay_id:
-                return "", 200
-
-            if check_session.get('mode') != 'payment':
-                return "", 200
-
-            if check_session.get('payment_status') != 'paid':
-                return "", 200
-
-            customer_email = str(check_session.get('customer_email') or '').strip().lower()
-            if not customer_email:
-                customer_details = check_session.get('customer_details') or {}
-                customer_email = str(customer_details.get('email') or '').strip().lower()
-            if not customer_email:
-                webhook_log(f"Checkout session {pay_id} completed with no customer email", database_log=True)
-                return "", 200
-
-            full_session = stripe.checkout.Session.retrieve(
-                pay_id,
-                expand=['line_items.data.price'],
-            )
-            line_items = (full_session.get('line_items') or {}).get('data') or []
-            if not line_items:
-                webhook_log(f"Checkout session {pay_id} completed with no line items", database_log=True)
-                return "", 200
-
-            price_id = (line_items[0].get('price') or {}).get('id')
-            credits_to_add = None
-            for product in products:
-                if product.get('price_link') == price_id:
-                    credits_to_add = product.get('price')
-                    break
-
-            if credits_to_add is None:
-                webhook_log(f"Checkout session {pay_id} price {price_id} has no credit mapping", database_log=True)
-                return "", 200
-
-            if not credit_payment(customer_email, credits_to_add, pay_id, "checkout"):
-                return "", 200
-            webhook_log(
-                f"**PAYMENT SUCCESS (webhook backstop)**: {customer_email} bought {credits_to_add} credits (session {pay_id})",
-                database_log=True,
-            )
+                raise ValueError('Checkout event missing its session identifier')
+            credited = fulfill_checkout(pay_id)
+            if credited:
+                webhook_log(f"PAYMENT SUCCESS: credits committed for checkout {pay_id}", database_log=True)
             return "", 200
 
         if event_type == 'invoice.payment_succeeded':
@@ -347,7 +326,7 @@ def stripe_webhook():
                         credits_to_add = SUBSCRIPTION_CREDIT_PRICES.get(price_id)
             if credits_to_add is None:
                 webhook_log(f"Subscription invoice {invoice_id} missing credit mapping", database_log=True)
-                return "", 200
+                return "", 500
 
             if not user_email:
                 customer_id = invoice.get('customer')
@@ -357,7 +336,7 @@ def stripe_webhook():
 
             if not user_email:
                 webhook_log(f"Subscription invoice {invoice_id} missing user email", database_log=True)
-                return "", 200
+                return "", 500
 
             if not credit_payment(user_email, int(credits_to_add), invoice_id, "invoice"):
                 return "", 200
@@ -416,86 +395,29 @@ def stripe_webhook():
 @store.route('/success', methods=['GET'])
 @login_required
 def success():
-    pay_id = session.get('pay_id')
-    if not pay_id:
+    # Each Stripe return URL carries its own ID; starting another purchase must
+    # not make this callback settle the newer purchase instead.
+    pay_id = request.args.get('session_id') or session.get('pay_id')
+    if not pay_id or len(pay_id) > 255:
         flash("Invalid payment session")
         return redirect(url_for("user.index"))
-
     try:
-        check_session = stripe.checkout.Session.retrieve(
-            pay_id,
-            expand=['line_items.data.price']
-        )
-    except Exception as e:
-        flash("Could not retrieve payment details")
-        return redirect(url_for("user.index"))
-
-    if check_session is None:
-        flash("Payment session not found")
-        return redirect(url_for("user.index"))
-
-    session_email = session.get('email', '').strip().lower()
-    customer_email = check_session.get('customer_email', '').strip().lower()
-    if not session_email or session_email != customer_email:
-        webhook_log(
-            f"Email mismatch for session {pay_id}: session={session_email}, customer={customer_email}",
-            database_log=True
-        )
+        credited = fulfill_checkout(pay_id, expected_email=session.get('email', ''),
+                                    expected_account_id=session.get('account_id'))
+    except PermissionError:
         flash("Invalid payment")
         return redirect(url_for("user.index"))
-
-    if check_session.get('payment_status') != 'paid':
-        flash("Payment not completed")
-        return redirect(url_for("user.index"))
-
-    line_items = check_session.get('line_items', {}).get('data', [])
-    if not line_items:
-        flash("No product found in this payment")
-        return redirect(url_for("user.index"))
-
-    price_id = line_items[0].get('price', {}).get('id')
-    if not price_id:
-        flash("Product price not found")
-        return redirect(url_for("user.index"))
-
-    credits_to_add = None
-    for product in products:
-        if product.get('price_link') == price_id:
-            credits_to_add = product.get('price')
-            break
-
-    if credits_to_add is None:
-        flash("Could not determine credit amount – please open a support ticket")
-        return redirect(url_for("user.index"))
-
-    try:
-        credited = credit_payment(customer_email, credits_to_add, pay_id, "checkout")
     except Exception as exc:
-        # Keep the checkout in the session; no marker or credits committed.
-        webhook_log(f"Checkout credit failed for session {pay_id}: {exc}", database_log=True)
+        webhook_log(f"Checkout credit failed for session {pay_id}: {type(exc).__name__}", database_log=True)
         return "Payment processing is temporarily unavailable. Please refresh this page to retry.", 503
-
-    if not credited:
-        webhook_log(
-            f"Blocked duplicate/replayed credit claim for session {pay_id} ({customer_email})",
-            2, database_log=True
-        )
-  
+    if credited is None:
+        flash("Payment is still awaiting confirmation. Credits will be added automatically when it is confirmed.")
+        return redirect(url_for("user.index"))
+    # Do not erase a different, newer checkout still open in another tab.
+    if session.get('pay_id') == pay_id:
         session.pop('pay_id', None)
         session.pop('price_link', None)
-        flash("This payment has already been processed.")
-        return redirect(url_for("user.index"))
-
-    webhook_log(
-        f"**PAYMENT SUCCESS**: {customer_email} bought {credits_to_add} credits (session {pay_id})",
-        database_log=True
-    )
-
-    # 8. Clear session variables to prevent double-crediting on refresh
-    session.pop('pay_id', None)
-    session.pop('price_link', None)
-
-    flash("Payment successful! Credits added.")
+    flash("Payment successful! Credits added." if credited else "This payment has already been processed.")
     return redirect(url_for("user.index"))
 
 

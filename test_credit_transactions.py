@@ -11,6 +11,10 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
+from threading import Lock
+import logging
+from time import monotonic
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 from unittest.mock import Mock
 
 from mysql.connector import IntegrityError
@@ -41,6 +45,9 @@ class CreditTransactionTests(unittest.TestCase):
                 INSERT INTO users VALUES (1, 'user@example.com', 10, 'member');
                 CREATE TABLE stripe_processed_checkouts (pay_id TEXT PRIMARY KEY);
                 CREATE TABLE stripe_processed_invoices (invoice_id TEXT PRIMARY KEY);
+                CREATE TABLE stripe_checkout_orders (pay_id TEXT PRIMARY KEY, user_id INTEGER, user_email TEXT,
+                  price_id TEXT, credits REAL, status TEXT DEFAULT 'pending', next_check TEXT,
+                  created_at TEXT DEFAULT CURRENT_TIMESTAMP);
             """)
         owner = self
 
@@ -53,12 +60,18 @@ class CreditTransactionTests(unittest.TestCase):
                 if owner.fail_role and "SET role" in sql:
                     raise RuntimeError('Injected role-write failure')
                 try:
+                    sql = sql.replace('DATE_ADD(NOW(), INTERVAL 2 MINUTE)', "datetime('now','+2 minutes')")
+                    sql = sql.replace('DATE_ADD(NOW(), INTERVAL 5 MINUTE)', "datetime('now','+5 minutes')")
+                    sql = sql.replace('NOW()', "datetime('now')")
                     return self.cursor.execute(sql.replace('%s', '?').replace(' FOR UPDATE', ''), params)
                 except sqlite3.IntegrityError as exc:
                     raise IntegrityError(str(exc), errno=1062) from exc
 
             def fetchone(self):
                 return self.cursor.fetchone()
+
+            def fetchall(self):
+                return self.cursor.fetchall()
 
         class Database:
             @staticmethod
@@ -79,8 +92,14 @@ class CreditTransactionTests(unittest.TestCase):
             def execute_query(sql, *args, **kwargs):
                 if sql.startswith('SELECT TABLE_NAME'):
                     return owner.engines
-                if not sql.startswith('CREATE TABLE IF NOT EXISTS'):
-                    raise AssertionError(sql)
+                if sql.startswith('CREATE TABLE IF NOT EXISTS'):
+                    return
+                with closing(sqlite3.connect(owner.path,timeout=15)) as db:
+                    cursor = Cursor(db.cursor())
+                    cursor.execute(sql, args[0] if args else ())
+                    result = (cursor.fetchall() if kwargs.get('fetch_all') else cursor.fetchone()) if sql.startswith('SELECT') else None
+                    db.commit()
+                    return result
 
         self.ns = load_functions('managers/credit_manager.py', {
             'DatabaseManager': Database, 'webhook_log': Mock(),
@@ -200,12 +219,18 @@ class CreditTransactionTests(unittest.TestCase):
                        request=request, session=session, flash=flash, redirect=redirect,
                        url_for=url_for, stripe=stripe, STRIPE_WEBHOOK_SECRET='test',
                        products=[{'price_link': 'price-1', 'price': 25}],
-                       SUBSCRIPTION_CREDIT_PRICES={})
-        load_functions('Routes/Store.py', self.ns, {'success', 'stripe_webhook'})
+                       SUBSCRIPTION_CREDIT_PRICES={},YOUR_SUCCESS_URL='https://example.invalid/store/success',
+                       YOUR_CANCEL_URL='https://example.invalid/store/cancel')
+        self.ns.update(_schema_ready=False, _schema_lock=Lock(), logging=logging, monotonic=monotonic,
+                       urlsplit=urlsplit,urlunsplit=urlunsplit,parse_qsl=parse_qsl,urlencode=urlencode)
+        load_functions('managers/checkout_manager.py', self.ns)
+        load_functions('Routes/Store.py', self.ns, {'success', 'stripe_webhook', 'checkout_success_url','create_checkout_session'})
         app.register_blueprint(self.ns['store'], url_prefix='/store')
         client = app.test_client()
         with client.session_transaction() as state:
             state['email'] = 'user@example.com'
+            state['account_id'] = 1
+            state['pterodactyl_id'] = (7,)
             state['pay_id'] = 'checkout-1'
         return client, stripe
 
@@ -243,6 +268,131 @@ class CreditTransactionTests(unittest.TestCase):
         self.assertEqual(client.post('/store/stripe_webhook').status_code, 200)
         self.assertEqual(client.post('/store/stripe_webhook').status_code, 200)
         self.assertEqual(self.balance(), 35)
+
+    def test_crypto_confirmation_after_checkout_completed_is_credited_once(self):
+        client, stripe = self.store_client()
+        checkout = stripe.checkout.Session.retrieve.return_value
+        self.ns['products'][0]['price'] = 1000
+        checkout['payment_status'] = 'unpaid'
+        self.assertEqual(client.post('/store/stripe_webhook').status_code,200)
+        self.assertEqual(self.balance(),10)
+        self.assertEqual(self.scalar('SELECT COUNT(*) FROM stripe_processed_checkouts'),0)
+        checkout['payment_status'] = 'paid'
+        stripe.Webhook.construct_event.return_value['type'] = 'checkout.session.async_payment_succeeded'
+        self.assertEqual(client.post('/store/stripe_webhook').status_code,200)
+        self.assertEqual(client.post('/store/stripe_webhook').status_code,200)
+        self.assertEqual(client.get('/store/success').status_code,302)
+        self.assertEqual(self.balance(),1010)
+
+    def test_return_url_identifies_first_purchase_when_second_is_open(self):
+        client, stripe = self.store_client()
+        first = dict(stripe.checkout.Session.retrieve.return_value)
+        second = dict(first,id='checkout-2',line_items={'data':[{'price':{'id':'price-2'}}]})
+        self.ns['products'][0]['price']=1000
+        self.ns['products'].append({'price_link':'price-2','price':100})
+        stripe.checkout.Session.retrieve.side_effect=lambda pay_id,**kw: {'checkout-1':first,'checkout-2':second}[pay_id]
+        with client.session_transaction() as state:state['pay_id']='checkout-2'
+        self.assertEqual(client.get('/store/success?session_id=checkout-1').status_code,302)
+        self.assertEqual(self.balance(),1010)
+        with client.session_transaction() as state:self.assertEqual(state['pay_id'],'checkout-2')
+        self.assertEqual(client.get('/store/success?session_id=checkout-2').status_code,302)
+        self.assertEqual(self.balance(),1110)
+
+    def test_paid_missing_mapping_returns_failure_so_stripe_can_retry(self):
+        client, stripe = self.store_client()
+        product = self.ns['products'].pop()
+        self.assertEqual(client.post('/store/stripe_webhook').status_code,500)
+        self.assertEqual(self.balance(),10)
+        self.ns['products'].append(product)
+        self.assertEqual(client.post('/store/stripe_webhook').status_code,200)
+        self.assertEqual(self.balance(),35)
+
+    def test_pending_reconciliation_recovers_without_webhook_or_browser(self):
+        _, stripe = self.store_client()
+        self.ns['remember_checkout']('checkout-1',1,'user@example.com','price-1',1000)
+        self.ns['products'].clear() # Purchase-time mapping survives config changes.
+        self.ns['DatabaseManager'].execute_query("UPDATE stripe_checkout_orders SET next_check='2000-01-01'")
+        self.assertEqual(self.ns['reconcile_pending_checkouts'](),1)
+        self.assertEqual(self.balance(),1010)
+        self.assertEqual(self.scalar("SELECT COUNT(*) FROM stripe_checkout_orders WHERE status='credited'"),1)
+        self.assertEqual(self.ns['reconcile_pending_checkouts'](),0)
+        self.assertEqual(self.balance(),1010)
+        stripe.checkout.Session.list.assert_not_called() # No historical payment replay.
+
+    def test_reconciliation_failure_after_credit_commit_does_not_double_credit(self):
+        self.store_client()
+        self.ns['remember_checkout']('checkout-1',1,'user@example.com','price-1',1000)
+        database = self.ns['DatabaseManager']
+        original = database.execute_query
+        def fail_status(sql,*args,**kwargs):
+            if "status='credited'" in sql:raise RuntimeError('Status write failed')
+            return original(sql,*args,**kwargs)
+        database.execute_query = fail_status
+        with self.assertRaises(RuntimeError):self.ns['fulfill_checkout']('checkout-1')
+        self.assertEqual(self.balance(),1010)
+        database.execute_query = original
+        self.assertFalse(self.ns['fulfill_checkout']('checkout-1'))
+        self.assertEqual(self.balance(),1010)
+
+    def test_unpaid_expired_and_wrong_owner_are_not_credited(self):
+        client, stripe = self.store_client()
+        checkout = stripe.checkout.Session.retrieve.return_value
+        self.ns['remember_checkout']('checkout-1',1,'user@example.com','price-1',1000)
+        with client.session_transaction() as state:state['account_id']=2
+        self.assertEqual(client.get('/store/success?session_id=checkout-1').status_code,302)
+        self.assertEqual(self.balance(),10)
+        checkout.update(payment_status='unpaid',status='expired')
+        self.assertIsNone(self.ns['fulfill_checkout']('checkout-1'))
+        self.assertEqual(self.scalar("SELECT COUNT(*) FROM stripe_checkout_orders WHERE status='expired'"),1)
+        self.assertEqual(self.balance(),10)
+
+    def test_customer_details_email_fallback_and_return_url(self):
+        client, stripe = self.store_client()
+        checkout = stripe.checkout.Session.retrieve.return_value
+        checkout.pop('customer_email')
+        checkout['customer_details']={'email':'USER@example.com'}
+        self.assertEqual(client.get('/store/success').status_code,302)
+        self.assertEqual(self.balance(),35)
+        url=self.ns['checkout_success_url']('https://example.invalid/store/success?from=store#done')
+        self.assertEqual(url,'https://example.invalid/store/success?from=store&session_id={CHECKOUT_SESSION_ID}#done')
+
+    def test_checkout_is_recorded_before_redirect_with_individual_return_id(self):
+        client,stripe=self.store_client()
+        self.ns['products'][0]['price']=1000
+        def create(**kwargs):
+            self.assertTrue(self.ns['_schema_ready'])
+            return {'id':'new-checkout','url':'https://checkout.stripe.invalid/new'}
+        stripe.checkout.Session.create.side_effect=create
+        response=client.get('/store/checkout/price-1')
+        self.assertEqual(response.status_code,302)
+        self.assertEqual(self.scalar("SELECT credits FROM stripe_checkout_orders WHERE pay_id='new-checkout'"),1000)
+        self.assertEqual(self.balance(),10)
+        self.assertIn('session_id={CHECKOUT_SESSION_ID}',stripe.checkout.Session.create.call_args.kwargs['success_url'])
+        self.assertEqual(client.get('/store/checkout/unknown-price').status_code,400)
+        stripe.checkout.Session.create.assert_called_once()
+
+    def test_failed_recovery_keeps_order_and_retries_without_losing_payment(self):
+        self.store_client()
+        self.ns['remember_checkout']('checkout-1',1,'user@example.com','price-1',1000)
+        self.ns['DatabaseManager'].execute_query("UPDATE stripe_checkout_orders SET next_check='2000-01-01'")
+        self.fail_role=True
+        self.ns['reconcile_pending_checkouts']()
+        self.assertEqual(self.balance(),10)
+        self.assertEqual(self.scalar('SELECT COUNT(*) FROM stripe_processed_checkouts'),0)
+        self.assertEqual(self.scalar("SELECT COUNT(*) FROM stripe_checkout_orders WHERE status='pending'"),1)
+        self.fail_role=False
+        self.ns['DatabaseManager'].execute_query("UPDATE stripe_checkout_orders SET next_check='2000-01-01'")
+        self.ns['reconcile_pending_checkouts']()
+        self.assertEqual(self.balance(),1010)
+
+    def test_concurrent_fulfillment_with_saved_order_commits_one_credit(self):
+        self.store_client()
+        self.ns['remember_checkout']('checkout-1',1,'user@example.com','price-1',1000)
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            result=list(pool.map(lambda _:self.ns['fulfill_checkout']('checkout-1'),range(8)))
+        self.assertEqual(result.count(True),1)
+        self.assertEqual(self.balance(),1010)
+        self.assertEqual(self.scalar('SELECT COUNT(*) FROM stripe_processed_checkouts'),1)
 
 
 class TransactionContextTests(unittest.TestCase):

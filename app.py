@@ -160,6 +160,14 @@ app.register_blueprint(admin, url_prefix="/admin")
 
 
 if not DEBUG_FRONTEND_MODE:
+    @scheduler.task('interval', id='checkout_reconciliation', seconds=60, misfire_grace_time=900)
+    def reconcile_checkout_payments():
+        from managers.checkout_manager import reconcile_pending_checkouts
+        try:
+            reconcile_pending_checkouts()
+        except Exception as exc:
+            print(f"Checkout reconciliation unavailable: {type(exc).__name__}")
+
     @scheduler.task('interval', id='suspension_emails', seconds=60, misfire_grace_time=900)
     def process_suspension_emails():
         from managers.suspension_notifications import deliver_pending_suspension_emails
