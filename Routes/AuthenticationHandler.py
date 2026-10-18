@@ -48,6 +48,7 @@ import json
 import datetime
 import requests
 import bcrypt
+from auth_http import auth_requests, verify_turnstile, blocked_email_list
 
 from flask_limiter import Limiter
 from security import safe_requests
@@ -153,22 +154,16 @@ def login_user():
         recaptcha_response = request.form.get('g-recaptcha-response')
         if not DEBUG_FRONTEND_MODE and not recaptcha_response:
             return "Complete the login verification and try again.", 400
-        data = {
-            'secret': RECAPTCHA_SECRET_KEY,
-            'response': recaptcha_response
-        }
 
         if DEBUG_FRONTEND_MODE is True:
             # Skip reCAPTCHA verification in debug mode
             pass
         else:
             try:
-                response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data, timeout=5)
-                response.raise_for_status()
-                result = response.json()
+                verified_captcha = verify_turnstile(recaptcha_response, RECAPTCHA_SECRET_KEY)
             except (requests.RequestException, ValueError):
                 return "Login verification temporarily unavailable. Please try again.", 503
-            if not result.get('success'):
+            if not verified_captcha:
                 flash("Failed captcha please try again")
                 return render_template("login.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
@@ -292,14 +287,14 @@ def dashboard_server_page(state, page=1):
 def dashboard_servers_data():
     if request.headers.get('X-Dashboard-Account') != str(session['account_id']):
         return jsonify(error='Account changed. Reload the dashboard.'), 409
-    _, ptero_id, _, verified, suspended = account_get_information(session['email'])
+    current_credits, ptero_id, _, verified, suspended = account_get_information(session['email'])
     state = dashboard_inventory(session['account_id'], ptero_id)
     context = dashboard_server_page(state, request.args.get('server_page', 1, type=int))
     response = jsonify(
         html=render_template('partials/dashboard_servers.html', verified=verified, **context),
         ready=context['servers_ready'], server_count=context['server_count'],
         monthly_usage=context['monthly_usage'], credit_width=min(100, (context['server_count'] or 0) * 12),
-        refreshing=state['refreshing'], error=state['error'],
+        refreshing=state['refreshing'], error=state['error'], credits=int(current_credits),
     )
     response.headers['Cache-Control'] = 'private, no-store'
     return response, 200 if context['servers_ready'] else (503 if state['error'] else 202)
@@ -338,14 +333,12 @@ def reset_password():
     """
     if request.method == 'POST':
         recaptcha_response = request.form.get('g-recaptcha-response')
-        data = {
-            'secret': RECAPTCHA_SECRET_KEY,
-            'response': recaptcha_response
-        }
 
-        response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data, timeout=60)
-        result = response.json()
-        if not result['success']:
+        try:
+            verified_captcha = verify_turnstile(recaptcha_response, RECAPTCHA_SECRET_KEY)
+        except (requests.RequestException, ValueError):
+            return "Verification temporarily unavailable. Please try again.", 503
+        if not verified_captcha:
             flash("Failed captcha please try again")
             return render_template("reset_password.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
@@ -417,23 +410,30 @@ def reset_password_confirm(token):
                     flash('Error: User not found in Pterodactyl panel')
                     return redirect(url_for('user.login_user'))
                 
-                # Update password in database
+                # Update password in panel
+                try:
+                    info_response = auth_requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=(3, 10))
+                    info_response.raise_for_status()
+                    info = info_response.json()['attributes']
+                    body = {
+                        "username": info['username'],
+                        "email": info['email'],
+                        "first_name": info['first_name'],
+                        "last_name": info['last_name'],
+                        "password": password
+                    }
+
+                    panel_response = auth_requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body, timeout=(3, 10))
+                    panel_response.raise_for_status()
+
+                except (requests.RequestException, ValueError, KeyError):
+                    flash('The hosting panel is temporarily unavailable. Your reset link is still valid; please try again.')
+                    return render_template('reset_password_confirm.html', token=token), 503
+
                 DatabaseManager.execute_query(
                     "UPDATE users SET password = %s WHERE email = %s",
                     (password_hash.decode(), email)
                 )
-
-                # Update password in panel
-                info = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=60).json()['attributes']
-                body = {
-                    "username": info['username'],
-                    "email": info['email'],
-                    "first_name": info['first_name'],
-                    "last_name": info['last_name'],
-                    "password": password
-                }
-
-                requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body, timeout=60)
 
                 # Wiping the token by email the second it's used so nobody gets to replay your keys.
                 cache.delete(email)
@@ -483,16 +483,17 @@ def register_user():
         - send_verification_email(): Sends email verification
         - generate_verification_token(): Creates secure token
     """
+    if request.method == "GET":
+        blocked_email_list.preload()
+
     if request.method == "POST":
         recaptcha_response = request.form.get('g-recaptcha-response')
-        data = {
-            'secret': RECAPTCHA_SECRET_KEY,
-            'response': recaptcha_response
-        }
 
-        response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data, timeout=60)
-        result = response.json()
-        if not result['success']:
+        try:
+            verified_captcha = verify_turnstile(recaptcha_response, RECAPTCHA_SECRET_KEY)
+        except (requests.RequestException, ValueError):
+            return "Verification temporarily unavailable. Please try again.", 503
+        if not verified_captcha:
             flash("Failed captcha please try again")
             return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
         
@@ -554,7 +555,11 @@ def register_user():
             return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
         profile_review = bool(matches['profile'])
-        res = register(email, password, name, ip, needs_review=profile_review)
+        try:
+            res = register(email, password, name, ip, needs_review=profile_review)
+        except (requests.RequestException, ValueError):
+            flash('Account creation could not be confirmed. Please try signing in, or contact support if it did not complete.')
+            return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY), 503
         if isinstance(res, str):
             flash(res + " If this is an error, please contact support.")
             return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)

@@ -15,8 +15,9 @@
     <div class="background-blob blob-one"></div>
     <div class="background-blob blob-two"></div>
     <div class="noise-overlay"></div>
-    <main class="relative z-10">
+    <div class="relative z-10">
     {% include 'partials/top_nav.html' %}
+    <main id="main-content">
     {% include 'partials/flash_messages.html' %}
 
     {% if not verified %}
@@ -100,9 +101,9 @@
                         <div class="credit-card">
                             <div class="credit-header">
                                 <p>Current Balance</p>
-                                <span>Updated hourly</span>
+                                <span>Auto-refresh</span>
                             </div>
-                            <h2>{{ formatted_credits }} <small>credits</small></h2>
+                            <h2><span data-dashboard-balance>{{ formatted_credits }}</span> <small>credits</small></h2>
                             {% set credit_percent = (server_count or 0) * 12 %}
                             {% set credit_width = 100 if credit_percent > 100 else credit_percent %}
                             <div class="credit-meter-heading">
@@ -374,6 +375,7 @@
         </div>
     </div>
     </main>
+    </div>
 
 
     <div id="deleteModal" class="modal" style="display: none;">

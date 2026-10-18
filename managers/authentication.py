@@ -15,6 +15,7 @@ import bcrypt
 import requests
 import threading
 import logging
+from auth_http import auth_requests, blocked_email_list
 from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 from managers.database_manager import DatabaseManager
 from .logging import webhook_log
@@ -168,8 +169,8 @@ def login(email: str, password: str, ip: str):
                 return "alt_suspended"
 
             # Update last seen and IP
-            update_last_seen(email)
-            update_ip(email, ip)
+            DatabaseManager.execute_query(
+                "UPDATE users SET last_seen = NOW(), ip = %s WHERE id = %s", (ip, result[0]))
             
             # Check if user was pending deletion and remove from pending deletions
             pending_query = "SELECT * FROM pending_deletions WHERE email = %s"
@@ -239,19 +240,12 @@ def register(email: str, password: str, name: str, ip: str, needs_review: bool =
     passthread = ThreadWithReturnValue(target=bcrypt.hashpw, args=(password.encode('utf-8'), salt))
     passthread.start()
 
-    # Check for blocked emails
-    try:
-        resp_emails = safe_requests.get("https://lunes.host/blockedemails.txt", timeout=60)
-        blocked_emails = [line.strip() for line in resp_emails.text.splitlines() if line.strip()]
-        banned_emails = set(blocked_emails)
-            
-        if "+" in email or any(banned in email for banned in banned_emails):
-            webhook_log(f"Failed to register email {email} with IP {ip} due to email blacklist", database_log=True)
+    # The blocklist changes infrequently; do not download it for every signup.
+    banned_emails = blocked_email_list.get()
+    if "+" in email or any(banned in email for banned in banned_emails):
+        webhook_log(f"Failed to register email {email} with IP {ip} due to email blacklist", database_log=True)
+        return "Temporary emails are not allowed! Contact panel@lunes.host if this is a mistake"
 
-            return "Temporary emails are not allowed! Contact panel@lunes.host if this is a mistake"
-    except Exception as e:
-        print(f"Error checking blocked emails: {str(e)}")
-    
     webhook_log(f"User with email: {email}, name: {name} ip: {ip} registered", database_log=True)
     
     # Check if IP is already registered
@@ -269,23 +263,22 @@ def register(email: str, password: str, name: str, ip: str, needs_review: bool =
         "password": password
     }
 
-    response = requests.post(f"{PTERODACTYL_URL}api/application/users", headers=HEADERS, json=body, timeout=60)
+    response = auth_requests.post(f"{PTERODACTYL_URL}api/application/users", headers=HEADERS, json=body, timeout=(3, 15))
     data = response.json()
 
     try:
         error = data['errors'][0]['detail']
         return error
     except KeyError:
-        # Get next user ID
-        user_id = DatabaseManager.execute_query("SELECT * FROM users ORDER BY id DESC LIMIT 0, 1")[0] + 1
-        
+        # Let AUTO_INCREMENT allocate a durable identity. max(id)+1 can reuse a
+        # deleted account's ID, which would misidentify saved payment recipients.
         # Non-Gmail free accounts require staff review before they can create a server.
         role = "sketchy" if needs_review or requires_manual_server_approval(email) else "member"
 
         # Insert user into database
-        query = ("INSERT INTO users (name, email, password, id, pterodactyl_id, ip, credits, role, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())")
+        query = ("INSERT INTO users (name, email, password, pterodactyl_id, ip, credits, role, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())")
         password_hash = passthread.join()
-        values = (name, email, password_hash, user_id, data['attributes']['id'], ip, 5, role)
+        values = (name, email, password_hash, data['attributes']['id'], ip, 5, role)
         DatabaseManager.execute_query(query, values)
         
         return data

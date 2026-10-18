@@ -196,6 +196,7 @@ class LoginGuardTests(unittest.TestCase):
                        login_credentials=login_credentials, DEBUG_FRONTEND_MODE=False,
                        peer_ip=peer_ip, login_limit_key=login_limit_key,
                        RECAPTCHA_SECRET_KEY='test', RECAPTCHA_SITE_KEY='test', requests=self.api,
+                       verify_turnstile=lambda token, secret: self.api.post('captcha', data={'response': token}, timeout=(2, 5)).json().get('success', False),
                        _get_client_ip=client_ip, login=self.login,
                        render_template=lambda *a, **kw: 'Login')
         load_functions('Routes/AuthenticationHandler.py', self.ns, {'login_user'})
@@ -257,7 +258,7 @@ class LoginGuardTests(unittest.TestCase):
                                                    'g-recaptcha-response': 'token'})
         self.assertEqual(response.status_code, 302)
         self.login.assert_called_once_with('a@example.com', 'x', '127.0.0.1')
-        self.assertEqual(self.api.post.call_args.kwargs['timeout'], 5)
+        self.assertEqual(self.api.post.call_args.kwargs['timeout'], (2, 5))
 
 
 if __name__ == '__main__':

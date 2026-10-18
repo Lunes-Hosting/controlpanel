@@ -55,6 +55,9 @@ sys.path.append("..")
 from managers.authentication import login_required
 from managers.user_manager import get_ptero_id, get_id
 from managers.payment_manager import credit_payment
+from managers.invoice_manager import remember_invoice, fulfill_invoice, invoice_snapshot, invoice_subscription
+from managers.checkout_manager import ensure_checkout_orders, remember_checkout, fulfill_checkout, PaymentReviewRequired
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 from managers.email_manager import send_email
 from managers.logging import webhook_log
 from managers.database_manager import DatabaseManager
@@ -70,6 +73,7 @@ from products import products
 import stripe
 
 stripe.api_key = STRIPE_SECRET_KEY
+stripe.default_http_client = stripe.http_client.RequestsClient(timeout=15)
 store = Blueprint('store', __name__)
 
 
@@ -146,6 +150,7 @@ def create_subscription_checkout_session(price_link: str):
         subscription_data={
             'metadata': {
                 'user_email': user_email,
+                'user_id': str(session['account_id']),
                 'credits_per_month': str(credits_per_month),
                 'price_link': price_link,
             }
@@ -175,6 +180,13 @@ def billing_portal():
         return_url=f"{HOSTED_URL}",
     )
     return redirect(portal_session['url'])
+
+
+def checkout_success_url(base):
+    parts = urlsplit(base)
+    query = urlencode([(key,value) for key,value in parse_qsl(parts.query,keep_blank_values=True) if key != 'session_id'])
+    query = (query + '&' if query else '') + 'session_id={CHECKOUT_SESSION_ID}'
+    return urlunsplit((parts.scheme,parts.netloc,parts.path,query,parts.fragment))
 
 
 @store.route('/checkout/<price_link>', methods=['POST', 'GET'])
@@ -218,6 +230,11 @@ def create_checkout_session(price_link: str):
         ptero_id = get_ptero_id(session['email'])
         session['pterodactyl_id'] = ptero_id
 
+    product = next((p for p in products if p.get('price_link') == price_link), None)
+    if product is None or float(product.get('price') or 0) <= 0:
+        return 'Unknown credit package', 400
+
+    ensure_checkout_orders()
     check_session = stripe.checkout.Session.create(
         payment_method_types=['card', 'cashapp', "wechat_pay", "alipay", 'crypto'],
         payment_method_options={
@@ -232,10 +249,13 @@ def create_checkout_session(price_link: str):
             'quantity': 1,
         }],
         mode='payment',
-        success_url=YOUR_SUCCESS_URL,
+        success_url=checkout_success_url(YOUR_SUCCESS_URL),
         cancel_url=YOUR_CANCEL_URL,
         customer_email=str(session['email']).strip().lower()
     )
+    # Save before redirecting the buyer, so reconciliation survives restarts and
+    # does not depend on the browser cookie or webhook delivery.
+    remember_checkout(check_session['id'], session['account_id'], session['email'], price_link, product['price'])
     session['price_link'] = price_link
     session['pay_id'] = check_session['id']
     return redirect(check_session['url'])
@@ -264,146 +284,44 @@ def stripe_webhook():
     data_object = (event.get('data') or {}).get('object') or {}
 
     try:
-        if event_type == 'checkout.session.completed':
-            check_session = data_object
-            pay_id = str(check_session.get('id') or '').strip()
+        if event_type in ('checkout.session.completed', 'checkout.session.async_payment_succeeded'):
+            pay_id = str(data_object.get('id') or '').strip()
             if not pay_id:
-                return "", 200
-
-            if check_session.get('mode') != 'payment':
-                return "", 200
-
-            if check_session.get('payment_status') != 'paid':
-                return "", 200
-
-            customer_email = str(check_session.get('customer_email') or '').strip().lower()
-            if not customer_email:
-                customer_details = check_session.get('customer_details') or {}
-                customer_email = str(customer_details.get('email') or '').strip().lower()
-            if not customer_email:
-                webhook_log(f"Checkout session {pay_id} completed with no customer email", database_log=True)
-                return "", 200
-
-            full_session = stripe.checkout.Session.retrieve(
-                pay_id,
-                expand=['line_items.data.price'],
-            )
-            line_items = (full_session.get('line_items') or {}).get('data') or []
-            if not line_items:
-                webhook_log(f"Checkout session {pay_id} completed with no line items", database_log=True)
-                return "", 200
-
-            price_id = (line_items[0].get('price') or {}).get('id')
-            credits_to_add = None
-            for product in products:
-                if product.get('price_link') == price_id:
-                    credits_to_add = product.get('price')
-                    break
-
-            if credits_to_add is None:
-                webhook_log(f"Checkout session {pay_id} price {price_id} has no credit mapping", database_log=True)
-                return "", 200
-
-            if not credit_payment(customer_email, credits_to_add, pay_id, "checkout"):
-                return "", 200
-            webhook_log(
-                f"**PAYMENT SUCCESS (webhook backstop)**: {customer_email} bought {credits_to_add} credits (session {pay_id})",
-                database_log=True,
-            )
+                raise ValueError('Checkout event missing its session identifier')
+            credited = fulfill_checkout(pay_id)
+            if credited:
+                webhook_log(f"PAYMENT SUCCESS: credits committed for checkout {pay_id}", database_log=True)
             return "", 200
 
-        if event_type == 'invoice.payment_succeeded':
+        if event_type in ('invoice.payment_succeeded', 'invoice.paid'):
             invoice_id = str(data_object.get('id') or '').strip()
-            if not invoice_id:
-                return "", 200
-
-            invoice = stripe.Invoice.retrieve(
-                invoice_id,
-                expand=['lines.data.price'],
-            )
-
-            subscription_id = invoice.get('subscription')
-            subscription = None
-            if subscription_id:
-                subscription = stripe.Subscription.retrieve(subscription_id)
-
-            metadata = (subscription or {}).get('metadata') or {}
-            user_email = str(metadata.get('user_email') or '').strip().lower()
-
-            credits_per_month = metadata.get('credits_per_month')
-            credits_to_add = None
-            try:
-                if credits_per_month is not None:
-                    credits_to_add = int(credits_per_month)
-            except Exception:
-                credits_to_add = None
-
-            if credits_to_add is None:
-                lines = (invoice.get('lines') or {}).get('data') or []
-                if lines:
-                    price = lines[0].get('price')
-                    price_id = price.get('id') if isinstance(price, dict) else None
-                    if price_id:
-                        credits_to_add = SUBSCRIPTION_CREDIT_PRICES.get(price_id)
-            if credits_to_add is None:
-                webhook_log(f"Subscription invoice {invoice_id} missing credit mapping", database_log=True)
-                return "", 200
-
-            if not user_email:
-                customer_id = invoice.get('customer')
-                if customer_id:
-                    customer = stripe.Customer.retrieve(customer_id)
-                    user_email = str(customer.get('email') or '').strip().lower()
-
-            if not user_email:
-                webhook_log(f"Subscription invoice {invoice_id} missing user email", database_log=True)
-                return "", 200
-
-            if not credit_payment(user_email, int(credits_to_add), invoice_id, "invoice"):
-                return "", 200
-            webhook_log(
-                f"Subscription payment succeeded: {user_email} credited {int(credits_to_add)} (invoice {invoice_id})",
-                database_log=True,
-            )
+            remember_invoice(invoice_id)
+            if fulfill_invoice(invoice_id):
+                webhook_log(f"Subscription credits committed for invoice {invoice_id}", database_log=True)
             return "", 200
 
         if event_type == 'invoice.payment_failed':
             invoice_id = str(data_object.get('id') or '').strip()
-            subscription_id = data_object.get('subscription')
-
-            user_email = ''
-            if subscription_id:
-                subscription = stripe.Subscription.retrieve(subscription_id)
-                metadata = (subscription.get('metadata') or {})
-                user_email = str(metadata.get('user_email') or '').strip().lower()
-
-            if not user_email:
-                customer_id = data_object.get('customer')
-                if customer_id:
-                    customer = stripe.Customer.retrieve(customer_id)
-                    user_email = str(customer.get('email') or '').strip().lower()
-
-            if user_email:
-                try:
-                    send_email(
-                        user_email,
-                        "Subscription payment failed",
-                        "Your subscription payment failed and your subscription has been canceled. Please update your payment method and resubscribe.",
-                        current_app._get_current_object(),
-                    )
-                except Exception as e:
-                    webhook_log(f"Failed sending payment failed email to {user_email}: {e}", database_log=True)
-
-            if subscription_id:
-                try:
-                    stripe.Subscription.delete(subscription_id)
-                except Exception as e:
-                    webhook_log(f"Failed canceling subscription {subscription_id}: {e}", database_log=True)
-
-            webhook_log(
-                f"Subscription payment failed: invoice={invoice_id} subscription={subscription_id} email={user_email}",
-                database_log=True,
-            )
+            invoice = stripe.Invoice.retrieve(invoice_id)
+            # Events can arrive out of order. A recovered payment is not a new failure.
+            if invoice.get('status') == 'paid':
+                remember_invoice(invoice_id)
+                fulfill_invoice(invoice_id)
+                return "", 200
+            if invoice.get('status') != 'open':
+                return "", 200
+            metadata = invoice_snapshot(invoice)
+            subscription_id = invoice_subscription(invoice)
+            if not metadata and subscription_id:
+                metadata = stripe.Subscription.retrieve(subscription_id).get('metadata') or {}
+            email = metadata.get('user_email') or invoice.get('customer_email')
+            if email:
+                send_email(email, "Subscription payment failed",
+                           "Your subscription payment could not be completed. Please update your payment method in the billing portal. Stripe will follow the subscription's configured retry policy.",
+                           current_app._get_current_object())
+            # Do not delete subscriptions on a transient failure; this prevents
+            # Stripe's normal retry/payment recovery and can race a successful payment.
+            webhook_log(f"Subscription payment needs attention: invoice={invoice_id}", database_log=True)
             return "", 200
 
     except Exception as e:
@@ -416,86 +334,32 @@ def stripe_webhook():
 @store.route('/success', methods=['GET'])
 @login_required
 def success():
-    pay_id = session.get('pay_id')
-    if not pay_id:
+    # Each Stripe return URL carries its own ID; starting another purchase must
+    # not make this callback settle the newer purchase instead.
+    pay_id = request.args.get('session_id') or session.get('pay_id')
+    if not pay_id or len(pay_id) > 255:
         flash("Invalid payment session")
         return redirect(url_for("user.index"))
-
     try:
-        check_session = stripe.checkout.Session.retrieve(
-            pay_id,
-            expand=['line_items.data.price']
-        )
-    except Exception as e:
-        flash("Could not retrieve payment details")
+        credited = fulfill_checkout(pay_id, expected_email=session.get('email', ''),
+                                    expected_account_id=session.get('account_id'))
+    except PaymentReviewRequired:
+        flash("This payment requires staff review because it was refunded or disputed. Please contact support.")
         return redirect(url_for("user.index"))
-
-    if check_session is None:
-        flash("Payment session not found")
-        return redirect(url_for("user.index"))
-
-    session_email = session.get('email', '').strip().lower()
-    customer_email = check_session.get('customer_email', '').strip().lower()
-    if not session_email or session_email != customer_email:
-        webhook_log(
-            f"Email mismatch for session {pay_id}: session={session_email}, customer={customer_email}",
-            database_log=True
-        )
+    except PermissionError:
         flash("Invalid payment")
         return redirect(url_for("user.index"))
-
-    if check_session.get('payment_status') != 'paid':
-        flash("Payment not completed")
-        return redirect(url_for("user.index"))
-
-    line_items = check_session.get('line_items', {}).get('data', [])
-    if not line_items:
-        flash("No product found in this payment")
-        return redirect(url_for("user.index"))
-
-    price_id = line_items[0].get('price', {}).get('id')
-    if not price_id:
-        flash("Product price not found")
-        return redirect(url_for("user.index"))
-
-    credits_to_add = None
-    for product in products:
-        if product.get('price_link') == price_id:
-            credits_to_add = product.get('price')
-            break
-
-    if credits_to_add is None:
-        flash("Could not determine credit amount – please open a support ticket")
-        return redirect(url_for("user.index"))
-
-    try:
-        credited = credit_payment(customer_email, credits_to_add, pay_id, "checkout")
     except Exception as exc:
-        # Keep the checkout in the session; no marker or credits committed.
-        webhook_log(f"Checkout credit failed for session {pay_id}: {exc}", database_log=True)
+        webhook_log(f"Checkout credit failed for session {pay_id}: {type(exc).__name__}", database_log=True)
         return "Payment processing is temporarily unavailable. Please refresh this page to retry.", 503
-
-    if not credited:
-        webhook_log(
-            f"Blocked duplicate/replayed credit claim for session {pay_id} ({customer_email})",
-            2, database_log=True
-        )
-  
+    if credited is None:
+        flash("Payment is still awaiting confirmation. Credits will be added automatically when it is confirmed.")
+        return redirect(url_for("user.index"))
+    # Do not erase a different, newer checkout still open in another tab.
+    if session.get('pay_id') == pay_id:
         session.pop('pay_id', None)
         session.pop('price_link', None)
-        flash("This payment has already been processed.")
-        return redirect(url_for("user.index"))
-
-    webhook_log(
-        f"**PAYMENT SUCCESS**: {customer_email} bought {credits_to_add} credits (session {pay_id})",
-        database_log=True
-    )
-
-    # 8. Clear session variables to prevent double-crediting on refresh
-    session.pop('pay_id', None)
-    session.pop('price_link', None)
-
-    flash("Payment successful! Credits added.")
+    flash("Payment successful! Credits added." if credited else "This payment has already been processed.")
     return redirect(url_for("user.index"))
 
 

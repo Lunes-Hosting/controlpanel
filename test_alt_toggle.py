@@ -62,7 +62,7 @@ class AltToggleTests(unittest.TestCase):
                 requests.post.return_value.json.return_value = {'errors': [{'detail': 'API reached'}]}
                 ns = load_functions('managers/authentication.py', {
                     'alt_detection_enabled': lambda: enabled, 'DatabaseManager': database,
-                    'requests': requests, 'safe_requests': safe_requests, 'bcrypt': Mock(),
+                    'requests': requests, 'auth_requests': requests, 'blocked_email_list': Mock(get=lambda: ()), 'safe_requests': safe_requests, 'bcrypt': Mock(),
                     'ThreadWithReturnValue': Mock(), 'webhook_log': Mock(),
                     'PTERODACTYL_URL': 'https://example.com/', 'HEADERS': {},
                 })
