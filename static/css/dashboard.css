@@ -75,9 +75,14 @@
         }
         .hero-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
             gap: 2rem;
             align-items: stretch;
+        }
+        .hero-grid > *,
+        .hero-right > *,
+        .hero-stat > div {
+            min-width: 0;
         }
         .profile-header {
             display: grid;
@@ -99,10 +104,12 @@
             align-self: center;
         }
         .hero-title {
+            overflow-wrap: anywhere;
             font-size: clamp(1.25rem, 2vw, 1.6rem);
             font-weight: 700;
         }
         .hero-subtitle {
+            overflow-wrap: anywhere;
             color: rgba(148, 163, 184, 0.85);
         }
         .eyebrow {
@@ -228,11 +235,14 @@
         }
         .credit-header {
             display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
             justify-content: space-between;
             font-size: 0.85rem;
             color: rgba(226, 232, 240, 0.8);
         }
         .credit-card h2 {
+            overflow-wrap: anywhere;
             font-size: clamp(2.5rem, 4vw, 3.5rem);
             font-weight: 800;
             margin: 0.5rem 0 1rem;
@@ -695,8 +705,9 @@
 
         /* Mobile Optimization */
         @media (max-width: 640px) {
-            body {
-                padding: 1rem 0.75rem;
+            .hero-grid {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 1.5rem;
             }
 
             .server-grid {
@@ -709,7 +720,12 @@
                 border-radius: 0.125rem;
             }
             .profile-header {
-                gap: 1rem;
+                grid-template-columns: 3rem minmax(0, 1fr);
+                gap: 0.75rem;
+                align-items: start;
+            }
+            .credit-card {
+                padding: 1rem;
             }
             .hero-badges {
                 flex-direction: column;

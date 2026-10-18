@@ -15,8 +15,9 @@
     <div class="background-blob blob-one"></div>
     <div class="background-blob blob-two"></div>
     <div class="noise-overlay"></div>
-    <main class="relative z-10">
+    <div class="relative z-10">
     {% include 'partials/top_nav.html' %}
+    <main id="main-content">
     {% include 'partials/flash_messages.html' %}
 
     {% if not verified %}
@@ -374,6 +375,7 @@
         </div>
     </div>
     </main>
+    </div>
 
 
     <div id="deleteModal" class="modal" style="display: none;">
