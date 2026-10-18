@@ -50,7 +50,7 @@ def _add_credits_in_transaction(cursor, email, amount, set_client=True):
         raise ValueError("Credit recipient does not exist")
     cursor.execute("UPDATE users SET credits = credits + %s WHERE email = %s", (amount, email))
     if set_client:
-        cursor.execute("UPDATE users SET role = 'client' WHERE email = %s", (email,))
+        cursor.execute("UPDATE users SET role = 'client' WHERE email = %s AND role NOT IN ('admin', 'support')", (email,))
 
 
 def add_credits(email: str, amount: int, set_client: bool = True):
@@ -124,6 +124,9 @@ def use_credits():
     Returns:
         None
     """
+    from .payment_manager import bill_server_hour
+    billing_hour = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H')
+
     # Get all servers from Pterodactyl
     try:
         response = safe_requests.get(f"{PTERODACTYL_URL}api/application/servers?per_page=100000", headers=HEADERS, timeout=60)
@@ -170,7 +173,7 @@ def use_credits():
             hourly_cost = float(product['price'])/30.0/24.0
             
             # Debit against the live, locked balance, including concurrent purchases.
-            if remove_credits(user_email, hourly_cost) == "SUSPEND":
+            if bill_server_hour(user_email, hourly_cost, server['attributes']['id'], billing_hour) == "SUSPEND":
                 # User can't afford this server, suspend it
                 server_id = server['attributes']['id']
                 server_name = server['attributes']['name']

@@ -5,10 +5,15 @@ import logging
 import stripe
 from products import products
 from .database_manager import DatabaseManager
-from .payment_manager import credit_payment
+from .payment_manager import credit_payment, payment_recorded
+from .credit_manager import _credit_amount
 
 _schema_lock = Lock()
 _schema_ready = False
+
+
+class PaymentReviewRequired(ValueError):
+    """Payment was reversed before fulfillment; staff must resolve the order."""
 
 
 def ensure_checkout_orders():
@@ -49,7 +54,9 @@ def checkout_order(pay_id):
 
 def checkout_details(checkout, order=None):
     """Use verified Stripe data and, for new orders, the purchase-time snapshot."""
-    if checkout.get('mode') != 'payment' or checkout.get('payment_status') != 'paid':
+    free_completed = (checkout.get('payment_status') == 'no_payment_required' and
+                      checkout.get('status') == 'complete' and checkout.get('amount_total') == 0)
+    if checkout.get('mode') != 'payment' or (checkout.get('payment_status') != 'paid' and not free_completed):
         return None
     email = str(checkout.get('customer_email') or (checkout.get('customer_details') or {}).get('email') or '').strip().lower()
     items = (checkout.get('line_items') or {}).get('data') or []
@@ -65,15 +72,21 @@ def checkout_details(checkout, order=None):
         recipient = DatabaseManager.execute_query('SELECT email FROM users WHERE id=%s', (order['user_id'],))
         if not recipient:
             raise ValueError('Purchase account no longer exists')
-        return str(recipient[0]).strip().lower(), order['credits']
+        amount = _credit_amount(order['credits'])
+        if amount <= 0:
+            raise ValueError('Saved checkout has no positive credit amount')
+        return str(recipient[0]).strip().lower(), amount
     for product in products:
         if product.get('price_link') == price_id:
-            return email, float(product['price']) * quantity
+            amount = _credit_amount(product['price']) * quantity
+            if amount <= 0:
+                raise ValueError('Checkout package has no positive credit amount')
+            return email, amount
     raise ValueError('Paid checkout has no credit mapping')
 
 
 def fulfill_checkout(pay_id, expected_email=None, expected_account_id=None):
-    checkout = stripe.checkout.Session.retrieve(pay_id, expand=['line_items.data.price'])
+    checkout = stripe.checkout.Session.retrieve(pay_id, expand=['line_items.data.price','payment_intent.latest_charge'])
     if not checkout or checkout.get('id') != pay_id:
         raise ValueError('Unexpected checkout identifier')
     order = checkout_order(pay_id)
@@ -86,6 +99,18 @@ def fulfill_checkout(pay_id, expected_email=None, expected_account_id=None):
             buyer = str(checkout.get('customer_email') or (checkout.get('customer_details') or {}).get('email') or '').strip().lower()
             if buyer != expected_email.strip().lower():
                 raise PermissionError('Checkout belongs to another account')
+    if payment_recorded(pay_id,'checkout'):
+        if order:
+            DatabaseManager.execute_query("UPDATE stripe_checkout_orders SET status='credited' WHERE pay_id=%s",(pay_id,))
+        return False
+    intent = checkout.get('payment_intent') or {}
+    charge = intent.get('latest_charge') if isinstance(intent,dict) else None
+    if isinstance(charge,str):
+        charge = stripe.Charge.retrieve(charge)
+    if charge and (charge.get('refunded') or charge.get('amount_refunded',0) > 0 or charge.get('disputed')):
+        if order:
+            DatabaseManager.execute_query("UPDATE stripe_checkout_orders SET status='review' WHERE pay_id=%s AND status='pending'",(pay_id,))
+        raise PaymentReviewRequired('Refunded or disputed payment needs staff review before crediting')
     details = checkout_details(checkout, order)
     if details is None:
         if order and checkout.get('status') == 'expired':

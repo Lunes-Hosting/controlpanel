@@ -55,7 +55,8 @@ sys.path.append("..")
 from managers.authentication import login_required
 from managers.user_manager import get_ptero_id, get_id
 from managers.payment_manager import credit_payment
-from managers.checkout_manager import ensure_checkout_orders, remember_checkout, fulfill_checkout
+from managers.invoice_manager import remember_invoice, fulfill_invoice, invoice_snapshot, invoice_subscription
+from managers.checkout_manager import ensure_checkout_orders, remember_checkout, fulfill_checkout, PaymentReviewRequired
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 from managers.email_manager import send_email
 from managers.logging import webhook_log
@@ -149,6 +150,7 @@ def create_subscription_checkout_session(price_link: str):
         subscription_data={
             'metadata': {
                 'user_email': user_email,
+                'user_id': str(session['account_id']),
                 'credits_per_month': str(credits_per_month),
                 'price_link': price_link,
             }
@@ -291,98 +293,35 @@ def stripe_webhook():
                 webhook_log(f"PAYMENT SUCCESS: credits committed for checkout {pay_id}", database_log=True)
             return "", 200
 
-        if event_type == 'invoice.payment_succeeded':
+        if event_type in ('invoice.payment_succeeded', 'invoice.paid'):
             invoice_id = str(data_object.get('id') or '').strip()
-            if not invoice_id:
-                return "", 200
-
-            invoice = stripe.Invoice.retrieve(
-                invoice_id,
-                expand=['lines.data.price'],
-            )
-
-            subscription_id = invoice.get('subscription')
-            subscription = None
-            if subscription_id:
-                subscription = stripe.Subscription.retrieve(subscription_id)
-
-            metadata = (subscription or {}).get('metadata') or {}
-            user_email = str(metadata.get('user_email') or '').strip().lower()
-
-            credits_per_month = metadata.get('credits_per_month')
-            credits_to_add = None
-            try:
-                if credits_per_month is not None:
-                    credits_to_add = int(credits_per_month)
-            except Exception:
-                credits_to_add = None
-
-            if credits_to_add is None:
-                lines = (invoice.get('lines') or {}).get('data') or []
-                if lines:
-                    price = lines[0].get('price')
-                    price_id = price.get('id') if isinstance(price, dict) else None
-                    if price_id:
-                        credits_to_add = SUBSCRIPTION_CREDIT_PRICES.get(price_id)
-            if credits_to_add is None:
-                webhook_log(f"Subscription invoice {invoice_id} missing credit mapping", database_log=True)
-                return "", 500
-
-            if not user_email:
-                customer_id = invoice.get('customer')
-                if customer_id:
-                    customer = stripe.Customer.retrieve(customer_id)
-                    user_email = str(customer.get('email') or '').strip().lower()
-
-            if not user_email:
-                webhook_log(f"Subscription invoice {invoice_id} missing user email", database_log=True)
-                return "", 500
-
-            if not credit_payment(user_email, int(credits_to_add), invoice_id, "invoice"):
-                return "", 200
-            webhook_log(
-                f"Subscription payment succeeded: {user_email} credited {int(credits_to_add)} (invoice {invoice_id})",
-                database_log=True,
-            )
+            remember_invoice(invoice_id)
+            if fulfill_invoice(invoice_id):
+                webhook_log(f"Subscription credits committed for invoice {invoice_id}", database_log=True)
             return "", 200
 
         if event_type == 'invoice.payment_failed':
             invoice_id = str(data_object.get('id') or '').strip()
-            subscription_id = data_object.get('subscription')
-
-            user_email = ''
-            if subscription_id:
-                subscription = stripe.Subscription.retrieve(subscription_id)
-                metadata = (subscription.get('metadata') or {})
-                user_email = str(metadata.get('user_email') or '').strip().lower()
-
-            if not user_email:
-                customer_id = data_object.get('customer')
-                if customer_id:
-                    customer = stripe.Customer.retrieve(customer_id)
-                    user_email = str(customer.get('email') or '').strip().lower()
-
-            if user_email:
-                try:
-                    send_email(
-                        user_email,
-                        "Subscription payment failed",
-                        "Your subscription payment failed and your subscription has been canceled. Please update your payment method and resubscribe.",
-                        current_app._get_current_object(),
-                    )
-                except Exception as e:
-                    webhook_log(f"Failed sending payment failed email to {user_email}: {e}", database_log=True)
-
-            if subscription_id:
-                try:
-                    stripe.Subscription.delete(subscription_id)
-                except Exception as e:
-                    webhook_log(f"Failed canceling subscription {subscription_id}: {e}", database_log=True)
-
-            webhook_log(
-                f"Subscription payment failed: invoice={invoice_id} subscription={subscription_id} email={user_email}",
-                database_log=True,
-            )
+            invoice = stripe.Invoice.retrieve(invoice_id)
+            # Events can arrive out of order. A recovered payment is not a new failure.
+            if invoice.get('status') == 'paid':
+                remember_invoice(invoice_id)
+                fulfill_invoice(invoice_id)
+                return "", 200
+            if invoice.get('status') != 'open':
+                return "", 200
+            metadata = invoice_snapshot(invoice)
+            subscription_id = invoice_subscription(invoice)
+            if not metadata and subscription_id:
+                metadata = stripe.Subscription.retrieve(subscription_id).get('metadata') or {}
+            email = metadata.get('user_email') or invoice.get('customer_email')
+            if email:
+                send_email(email, "Subscription payment failed",
+                           "Your subscription payment could not be completed. Please update your payment method in the billing portal. Stripe will follow the subscription's configured retry policy.",
+                           current_app._get_current_object())
+            # Do not delete subscriptions on a transient failure; this prevents
+            # Stripe's normal retry/payment recovery and can race a successful payment.
+            webhook_log(f"Subscription payment needs attention: invoice={invoice_id}", database_log=True)
             return "", 200
 
     except Exception as e:
@@ -404,6 +343,9 @@ def success():
     try:
         credited = fulfill_checkout(pay_id, expected_email=session.get('email', ''),
                                     expected_account_id=session.get('account_id'))
+    except PaymentReviewRequired:
+        flash("This payment requires staff review because it was refunded or disputed. Please contact support.")
+        return redirect(url_for("user.index"))
     except PermissionError:
         flash("Invalid payment")
         return redirect(url_for("user.index"))

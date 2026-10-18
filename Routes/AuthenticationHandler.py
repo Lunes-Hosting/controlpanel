@@ -287,14 +287,14 @@ def dashboard_server_page(state, page=1):
 def dashboard_servers_data():
     if request.headers.get('X-Dashboard-Account') != str(session['account_id']):
         return jsonify(error='Account changed. Reload the dashboard.'), 409
-    _, ptero_id, _, verified, suspended = account_get_information(session['email'])
+    current_credits, ptero_id, _, verified, suspended = account_get_information(session['email'])
     state = dashboard_inventory(session['account_id'], ptero_id)
     context = dashboard_server_page(state, request.args.get('server_page', 1, type=int))
     response = jsonify(
         html=render_template('partials/dashboard_servers.html', verified=verified, **context),
         ready=context['servers_ready'], server_count=context['server_count'],
         monthly_usage=context['monthly_usage'], credit_width=min(100, (context['server_count'] or 0) * 12),
-        refreshing=state['refreshing'], error=state['error'],
+        refreshing=state['refreshing'], error=state['error'], credits=int(current_credits),
     )
     response.headers['Cache-Control'] = 'private, no-store'
     return response, 200 if context['servers_ready'] else (503 if state['error'] else 202)

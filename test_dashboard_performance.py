@@ -114,6 +114,7 @@ class DashboardTests(unittest.TestCase):
             session.update(account_id=7,email='a@example.com')
             response,status=ns['dashboard_servers_data']()
             self.assertEqual(status,200)
+            self.assertEqual(response.get_json()['credits'],100)
             self.assertIn('no-store',response.headers['Cache-Control'])
             ns['dashboard_inventory'].assert_called_once_with(7,7)
 
