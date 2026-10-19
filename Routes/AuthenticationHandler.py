@@ -46,16 +46,9 @@ import sys
 import threading
 import json
 import datetime
-import time
 import requests
 import bcrypt
 from auth_http import auth_requests, verify_turnstile, blocked_email_list
-from managers.two_factor_manager import (
-    get_two_factor_status, verify_totp, verify_and_consume_backup_code,
-    send_email_2fa_code, verify_email_2fa_code, generate_totp_secret,
-    get_totp_uri, verify_setup_totp, generate_backup_codes,
-    enable_two_factor, disable_two_factor, replace_backup_codes
-)
 
 from flask_limiter import Limiter
 from rate_limits import limiter
@@ -189,21 +182,6 @@ def login_user():
 
             if response:
                 raw_next = request.form.get('next') or request.args.get('next') or session.get("next")
-                user_id = int(response[0])
-                tf_status = get_two_factor_status(user_id)
-                if tf_status.get("is_enabled"):
-                    # Two-Factor Authentication required: do NOT establish full session yet!
-                    session.clear()
-                    session['2fa_pending_user_id'] = user_id
-                    session['2fa_pending_email'] = email
-                    session['2fa_method'] = tf_status.get("method", "totp")
-                    session['2fa_expires_at'] = time.time() + 300  # 5 minutes
-                    session['2fa_attempts'] = 0
-                    session['2fa_next_url'] = raw_next if (raw_next and is_safe_url(raw_next)) else url_for("user.index")
-                    if tf_status.get("method") == "email":
-                        send_email_2fa_code(user_id, email)
-                    return redirect(url_for('user.two_factor_login'))
-
                 establish_session(email, response)
                 # Keeping your front door locked tight against open redirects, cutie.
                 if raw_next and is_safe_url(raw_next):
@@ -282,7 +260,6 @@ def index():
     from managers.webhook_manager import get_user_webhook
     account_id = session.get('account_id')
     user_webhook = get_user_webhook(account_id) if account_id else None
-    two_factor_status = get_two_factor_status(account_id) if account_id else {"is_enabled": False}
 
     return render_template(
         "account.html", 
@@ -295,7 +272,6 @@ def index():
         verified=verified,
         suspended=suspended,
         user_webhook=user_webhook,
-        two_factor_status=two_factor_status,
         **inventory,
     )
 
@@ -926,304 +902,4 @@ def delete_webhook():
 
     flash("Webhook configuration removed.")
     return redirect(url_for('user.index') + "#WebhooksArea")
-
-
-# =========================================================================
-# Two-Factor Authentication (2FA) Routes
-# =========================================================================
-
-@user.route('/login/2fa', methods=['GET', 'POST'])
-@limiter.limit('10 per minute; 60 per hour', key_func=peer_ip, methods=['POST'])
-def two_factor_login():
-    """Verify 2FA challenge and elevate temporary login state to authenticated session."""
-    user_id = session.get('2fa_pending_user_id')
-    email = session.get('2fa_pending_email')
-    method = session.get('2fa_method', 'totp')
-    expires_at = session.get('2fa_expires_at', 0)
-
-    if not user_id or not email:
-        flash("No two-factor challenge in progress. Please sign in.")
-        return redirect(url_for('user.login_user'))
-
-    if time.time() > expires_at:
-        session.clear()
-        flash("Two-factor authentication session expired. Please sign in again.")
-        return redirect(url_for('user.login_user'))
-
-    if request.method == 'POST':
-        attempts = session.get('2fa_attempts', 0)
-        if attempts >= 5:
-            session.clear()
-            flash("Too many failed two-factor attempts. Please sign in again.")
-            return redirect(url_for('user.login_user'))
-
-        code = request.form.get('code', '').strip()
-        is_backup = request.form.get('is_backup', '0') == '1'
-
-        if not code:
-            flash("Please enter a verification code.")
-            return render_template('login_2fa.html', email=email, method=method)
-
-        verified = False
-        if is_backup or '-' in code or len(code) == 8:
-            verified, _ = verify_and_consume_backup_code(user_id, code)
-        elif method == 'email':
-            verified, _ = verify_email_2fa_code(user_id, code)
-        else:
-            verified, _ = verify_totp(user_id, code)
-
-        if not verified:
-            session['2fa_attempts'] = attempts + 1
-            remaining = 5 - session['2fa_attempts']
-            if remaining <= 0:
-                session.clear()
-                flash("Too many failed two-factor attempts. Please sign in again.")
-                return redirect(url_for('user.login_user'))
-            flash(f"Invalid verification code. {remaining} attempt{'s' if remaining != 1 else ''} remaining.")
-            return render_template('login_2fa.html', email=email, method=method)
-
-        # Retrieve user record and establish authenticated session
-        account = DatabaseManager.execute_query(
-            "SELECT * FROM users WHERE id = %s", (user_id,)
-        )
-        if not account:
-            session.clear()
-            flash("Account error during authentication. Please sign in again.")
-            return redirect(url_for('user.login_user'))
-
-        raw_next = session.pop('2fa_next_url', None)
-        next_url = raw_next if (raw_next and is_safe_url(raw_next)) else url_for('user.index')
-
-        for key in ['2fa_pending_user_id', '2fa_pending_email', '2fa_method', '2fa_expires_at', '2fa_attempts', '2fa_last_resend_at']:
-            session.pop(key, None)
-
-        establish_session(email, account)
-        return redirect(next_url)
-
-    return render_template('login_2fa.html', email=email, method=method)
-
-
-@user.route('/login/2fa/resend', methods=['POST'])
-@limiter.limit('3 per minute; 10 per hour', key_func=peer_ip)
-def two_factor_resend_email():
-    """Resend 6-digit email OTP for users with Email 2FA configured."""
-    user_id = session.get('2fa_pending_user_id')
-    email = session.get('2fa_pending_email')
-    method = session.get('2fa_method')
-    expires_at = session.get('2fa_expires_at', 0)
-
-    if not user_id or not email or method != 'email' or time.time() > expires_at:
-        return jsonify(success=False, message="Invalid or expired 2FA session."), 400
-
-    last_resend = session.get('2fa_last_resend_at', 0)
-    if time.time() - last_resend < 60:
-        remaining_secs = int(60 - (time.time() - last_resend))
-        return jsonify(success=False, message=f"Please wait {remaining_secs} seconds before requesting another code."), 429
-
-    sent, msg = send_email_2fa_code(user_id, email)
-    if sent:
-        session['2fa_last_resend_at'] = time.time()
-        return jsonify(success=True, message="A new verification code has been sent to your email.")
-    return jsonify(success=False, message=msg), 500
-
-
-@user.route('/2fa/setup', methods=['POST'])
-@login_required
-@limiter.limit('10 per minute')
-def two_factor_setup():
-    """Initiate 2FA setup by generating an RFC 6238 secret and emergency recovery codes."""
-    account_id = session.get('account_id')
-    email = session.get('email')
-    if not account_id or not email:
-        return jsonify(success=False, message="Unauthorized"), 401
-
-    data = request.get_json(silent=True) or request.form
-    method = data.get('method', 'totp')
-    if method not in ('totp', 'email'):
-        return jsonify(success=False, message="Invalid 2FA method."), 400
-
-    secret = generate_totp_secret()
-    plaintext_codes, hashed_codes = generate_backup_codes(count=8)
-    uri = get_totp_uri(secret, email)
-
-    session['2fa_setup_secret'] = secret
-    session['2fa_setup_method'] = method
-    session['2fa_setup_backup_codes'] = hashed_codes
-
-    return jsonify(
-        success=True,
-        method=method,
-        secret=secret,
-        uri=uri,
-        backup_codes=plaintext_codes
-    )
-
-
-@user.route('/2fa/send-test-email', methods=['POST'])
-@login_required
-@limiter.limit('3 per minute')
-def two_factor_send_test_email():
-    """Send verification code when setting up Email 2FA."""
-    account_id = session.get('account_id')
-    email = session.get('email')
-    if not account_id or not email:
-        return jsonify(success=False, message="Unauthorized"), 401
-
-    sent, msg = send_email_2fa_code(account_id, email)
-    if sent:
-        return jsonify(success=True, message=f"Verification code sent to {email}.")
-    return jsonify(success=False, message=msg), 500
-
-
-@user.route('/2fa/confirm', methods=['POST'])
-@login_required
-@limiter.limit('10 per minute')
-def two_factor_confirm():
-    """Confirm 2FA setup with a valid live code and commit enabled status."""
-    account_id = session.get('account_id')
-    if not account_id:
-        return jsonify(success=False, message="Unauthorized"), 401
-
-    secret = session.get('2fa_setup_secret')
-    method = session.get('2fa_setup_method')
-    hashed_codes = session.get('2fa_setup_backup_codes')
-
-    if not secret or not hashed_codes or not method:
-        return jsonify(success=False, message="No 2FA setup in progress. Please start setup again."), 400
-
-    data = request.get_json(silent=True) or request.form
-    code = data.get('code', '').strip()
-    if not code:
-        return jsonify(success=False, message="Verification code is required."), 400
-
-    if method == 'email':
-        valid, _ = verify_email_2fa_code(account_id, code)
-    else:
-        valid = verify_setup_totp(secret, code)
-
-    if not valid:
-        return jsonify(success=False, message="Invalid verification code. Please check your code and try again."), 400
-
-    success, msg = enable_two_factor(account_id, method, secret, hashed_codes)
-    if success:
-        session.pop('2fa_setup_secret', None)
-        session.pop('2fa_setup_method', None)
-        session.pop('2fa_setup_backup_codes', None)
-        return jsonify(success=True, message="Two-factor authentication has been successfully enabled!")
-    return jsonify(success=False, message=msg), 500
-
-
-@user.route('/2fa/disable', methods=['POST'])
-@login_required
-@limiter.limit('5 per minute')
-def two_factor_disable():
-    """Tamper-proof removal: Requires BOTH valid account password and live 2FA / backup code."""
-    account_id = session.get('account_id')
-    if not account_id:
-        return jsonify(success=False, message="Unauthorized"), 401
-
-    data = request.get_json(silent=True) or request.form
-    password = data.get('password', '')
-    code = data.get('code', '').strip()
-
-    if not password:
-        return jsonify(success=False, message="Current password is required."), 400
-    if not code:
-        return jsonify(success=False, message="Verification code is required to disable 2FA."), 400
-
-    # 1. Verify password
-    user_row = DatabaseManager.execute_query(
-        "SELECT password FROM users WHERE id = %s", (account_id,)
-    )
-    if not user_row:
-        return jsonify(success=False, message="User not found."), 404
-
-    hashed_pw = user_row[0]
-    try:
-        pw_matched = bcrypt.checkpw(password.encode('utf-8'), hashed_pw.encode('utf-8'))
-    except (ValueError, TypeError):
-        pw_matched = False
-
-    if not pw_matched:
-        return jsonify(success=False, message="Incorrect password."), 400
-
-    # 2. Verify live 2FA code or backup code
-    tf_status = get_two_factor_status(account_id)
-    if not tf_status.get('is_enabled'):
-        return jsonify(success=False, message="Two-factor authentication is not currently enabled."), 400
-
-    code_valid = False
-    if '-' in code or len(code) == 8:
-        code_valid, _ = verify_and_consume_backup_code(account_id, code)
-    elif tf_status.get('method') == 'email':
-        code_valid, _ = verify_email_2fa_code(account_id, code)
-    else:
-        code_valid, _ = verify_totp(account_id, code)
-
-    if not code_valid:
-        return jsonify(success=False, message="Invalid verification code."), 400
-
-    success, msg = disable_two_factor(account_id)
-    if success:
-        return jsonify(success=True, message="Two-factor authentication has been disabled.")
-    return jsonify(success=False, message=msg), 500
-
-
-@user.route('/2fa/backup-codes/regenerate', methods=['POST'])
-@login_required
-@limiter.limit('3 per minute')
-def two_factor_regenerate_backup_codes():
-    """Rotate emergency backup recovery codes with password and 2FA authentication."""
-    account_id = session.get('account_id')
-    if not account_id:
-        return jsonify(success=False, message="Unauthorized"), 401
-
-    data = request.get_json(silent=True) or request.form
-    password = data.get('password', '')
-    code = data.get('code', '').strip()
-
-    if not password or not code:
-        return jsonify(success=False, message="Password and verification code are both required."), 400
-
-    # 1. Verify password
-    user_row = DatabaseManager.execute_query(
-        "SELECT password FROM users WHERE id = %s", (account_id,)
-    )
-    if not user_row:
-        return jsonify(success=False, message="User not found."), 404
-
-    try:
-        pw_matched = bcrypt.checkpw(password.encode('utf-8'), user_row[0].encode('utf-8'))
-    except (ValueError, TypeError):
-        pw_matched = False
-
-    if not pw_matched:
-        return jsonify(success=False, message="Incorrect password."), 400
-
-    # 2. Verify 2FA code
-    tf_status = get_two_factor_status(account_id)
-    if not tf_status.get('is_enabled'):
-        return jsonify(success=False, message="Two-factor authentication is not enabled."), 400
-
-    code_valid = False
-    if '-' in code or len(code) == 8:
-        code_valid, _ = verify_and_consume_backup_code(account_id, code)
-    elif tf_status.get('method') == 'email':
-        code_valid, _ = verify_email_2fa_code(account_id, code)
-    else:
-        code_valid, _ = verify_totp(account_id, code)
-
-    if not code_valid:
-        return jsonify(success=False, message="Invalid verification code."), 400
-
-    # 3. Generate and store new backup codes
-    plaintext_codes, hashed_codes = generate_backup_codes(count=8)
-    success, msg = replace_backup_codes(account_id, hashed_codes)
-    if success:
-        return jsonify(
-            success=True,
-            backup_codes=plaintext_codes,
-            message="New backup codes generated successfully."
-        )
-    return jsonify(success=False, message=msg), 500
 
