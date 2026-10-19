@@ -82,6 +82,70 @@
             background: rgba(2, 6, 23, 0.55);
             border: 1px solid rgba(148, 163, 184, 0.15);
         }
+        .tf-qr-box {
+            background: #ffffff;
+            padding: 12px;
+            border-radius: 0.125rem;
+            display: inline-block;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+            margin: 0 auto;
+        }
+        .tf-qr-box img, .tf-qr-box canvas {
+            display: block;
+            margin: 0 auto;
+        }
+        .tf-backup-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.5rem;
+        }
+        .tf-backup-code {
+            background: #090d16;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 0.125rem;
+            padding: 0.45rem 0.6rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.85rem;
+            letter-spacing: 0.08em;
+            text-align: center;
+            color: #93c5fd;
+            user-select: all;
+        }
+        .tf-tab-btn {
+            flex: 1;
+            padding: 0.65rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border-radius: 0.125rem;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(15, 23, 42, 0.6);
+            color: #94a3b8;
+            transition: all 0.15s ease;
+            cursor: pointer;
+        }
+        .tf-tab-btn.active {
+            background: #2563eb;
+            border-color: #3b82f6;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+        }
+        .tf-input-field {
+            width: 100% !important;
+            padding: 0.75rem 1rem !important;
+            background: #090d16 !important;
+            border: 1px solid rgba(148, 163, 184, 0.25) !important;
+            border-radius: 0.125rem !important;
+            color: #f8fafc !important;
+            font-size: 0.95rem !important;
+            outline: none !important;
+            box-sizing: border-box !important;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease !important;
+        }
+        .tf-input-field:focus {
+            border-color: #3b82f6 !important;
+            background: #0f172a !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22) !important;
+        }
     </style>
     </head>
     <body data-dashboard-account="{{ session['account_id'] }}" data-dashboard-inventory-url="{{ url_for('user.dashboard_servers_data', server_page=request.args.get('server_page', 1, type=int)) }}" data-inventory-ready="{{ 'true' if servers_ready else 'false' }}" data-inventory-refreshing="{{ 'true' if inventory_state.refreshing else 'false' }}" class="bg-slate-950 text-white min-h-screen relative overflow-x-hidden" style="font-family: Lunes Sans,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
@@ -524,6 +588,108 @@
                 </div>
             </section>
 
+            <section id="TwoFactorArea" class="panel-section mb-10" aria-labelledby="twofactor-heading">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 section-heading mb-6">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-shield-halved fa-2xl text-blue-400"></i>
+                        <div>
+                            <p class="text-sm uppercase tracking-wider text-blue-300/80">Security</p>
+                            <h2 id="twofactor-heading" class="text-2xl font-semibold">Two-Factor Authentication</h2>
+                        </div>
+                    </div>
+                    {% if two_factor_status and two_factor_status.is_enabled %}
+                        <span class="badge-chip status">
+                            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                            Enabled ({{ 'Authenticator App' if two_factor_status.method == 'totp' else 'Email' }})
+                        </span>
+                    {% else %}
+                        <span class="badge-chip">
+                            <i class="fa-solid fa-shield text-slate-400"></i>
+                            Not Enabled
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div class="panel-card webhook-card rounded-sm p-6 sm:p-8 space-y-6">
+                    <div class="grid gap-6 lg:grid-cols-3 items-start">
+                        <div class="lg:col-span-1 space-y-3">
+                            <h3 class="text-xl font-bold text-white">Account Protection</h3>
+                            <p class="text-sm text-slate-400 leading-relaxed">
+                                Protect your account and game servers with a cryptographically enforced secondary check. When enabled, signing in requires both your password and a live one-time code.
+                            </p>
+                        </div>
+
+                        <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="webhook-feature-badge">
+                                <i class="fa-solid fa-mobile-screen text-blue-400"></i>
+                                <div>
+                                    <strong class="block text-sm font-semibold text-white">Zero Phone Required</strong>
+                                    <span class="text-xs text-slate-400">Supports desktop password managers and email codes</span>
+                                </div>
+                            </div>
+                            <div class="webhook-feature-badge">
+                                <i class="fa-solid fa-key text-amber-400"></i>
+                                <div>
+                                    <strong class="block text-sm font-semibold text-white">Emergency Recovery</strong>
+                                    <span class="text-xs text-slate-400">8 single-use hashed recovery backup keys</span>
+                                </div>
+                            </div>
+                            <div class="webhook-feature-badge">
+                                <i class="fa-solid fa-lock text-emerald-400"></i>
+                                <div>
+                                    <strong class="block text-sm font-semibold text-white">Encrypted at Rest</strong>
+                                    <span class="text-xs text-slate-400">Authenticated stream cipher isolates all secret keys</span>
+                                </div>
+                            </div>
+                            <div class="webhook-feature-badge">
+                                <i class="fa-solid fa-shield text-purple-400"></i>
+                                <div>
+                                    <strong class="block text-sm font-semibold text-white">Replay &amp; DoS Proof</strong>
+                                    <span class="text-xs text-slate-400">Timestep tracking with non-blocking rate limits</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if two_factor_status and two_factor_status.is_enabled %}
+                        <div class="webhook-status-bar">
+                            <div class="flex items-center gap-2">
+                                <span class="indicator success"></span>
+                                <span class="text-xs text-slate-300">
+                                    Method: <strong class="text-white">{{ 'Authenticator App (RFC 6238 TOTP)' if two_factor_status.method == 'totp' else 'Email Verification Code' }}</strong>
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs text-slate-400">
+                                    Backup Codes: <strong class="{% if two_factor_status.backup_codes_count <= 2 %}text-amber-400{% else %}text-white{% endif %}">{{ two_factor_status.backup_codes_count }} of 8 remaining</strong>
+                                </span>
+                                {% if two_factor_status.enabled_at %}
+                                    <span class="text-xs text-slate-500 font-mono">Enabled: {{ two_factor_status.enabled_at }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-3 pt-2">
+                            <button type="button" onclick="openRegenerateBackupModal()" class="action-btn secondary">
+                                <i class="fa-solid fa-key"></i>
+                                <span>Regenerate Backup Codes</span>
+                            </button>
+                            <button type="button" onclick="open2FADisableModal()" class="action-btn danger">
+                                <i class="fa-solid fa-trash"></i>
+                                <span>Disable 2FA</span>
+                            </button>
+                        </div>
+                    {% else %}
+                        <div class="pt-2">
+                            <button type="button" onclick="open2FASetupModal()" class="action-btn primary">
+                                <i class="fa-solid fa-shield-halved"></i>
+                                <span>Enable Two-Factor Authentication</span>
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+
             <section class="panel-section" aria-labelledby="other-heading">
                 <div class="flex items-center gap-3 section-heading mb-6">
                     <i class="fa-solid fa-barcode fa-2xl text-blue-400"></i>
@@ -591,6 +757,173 @@
             </div>
         </div>
     </div>
+
+    <!-- 2FA Setup Modal -->
+    <div id="twoFactorSetupModal" class="modal" style="display: none;">
+        <div class="modal-content bg-gray-900 border border-blue-500/40 shadow-2xl max-w-lg">
+            <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-blue-400"></i>
+                    <h3 class="text-lg font-bold text-white">Setup Two-Factor Authentication</h3>
+                </div>
+                <button type="button" onclick="close2FASetupModal()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+            </div>
+
+            <!-- Method Switcher Tabs -->
+            <div class="flex gap-2 mb-4">
+                <button type="button" id="tabMethodTotp" onclick="switch2FAMethod('totp')" class="tf-tab-btn active">
+                    <i class="fa-solid fa-mobile-screen mr-1.5"></i>Authenticator App
+                </button>
+                <button type="button" id="tabMethodEmail" onclick="switch2FAMethod('email')" class="tf-tab-btn">
+                    <i class="fa-solid fa-envelope mr-1.5"></i>Email Verification
+                </button>
+            </div>
+
+            <!-- TOTP Section -->
+            <div id="sectionSetupTotp" class="space-y-4">
+                <p class="text-xs text-slate-300">
+                    Scan this QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, Bitwarden, 1Password, Aegis, etc.):
+                </p>
+                <div class="flex justify-center my-3">
+                    <div id="setupQrCodeContainer" class="tf-qr-box"></div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Manual entry key (for desktop / browser apps):</label>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="setupSecretKeyDisplay" readonly class="tf-input-field font-mono text-xs text-blue-300" onclick="this.select()">
+                        <button type="button" onclick="copySecretKey()" class="action-btn secondary text-xs py-2 px-3 whitespace-nowrap">
+                            <i class="fa-solid fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email Section -->
+            <div id="sectionSetupEmail" class="space-y-4" style="display: none;">
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    A 6-digit one-time passcode will be sent to your email (<strong class="text-white">{{ email }}</strong>) each time you log in. No phone or authenticator app needed.
+                </p>
+                <div class="pt-1">
+                    <button type="button" id="btnSendTestEmail" onclick="sendSetupEmailCode()" class="action-btn secondary text-xs w-full py-2.5">
+                        <i class="fa-solid fa-envelope mr-1.5"></i>
+                        <span id="btnSendTestEmailText">Send Verification Code to Email</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Backup Codes Display -->
+            <div class="mt-4 pt-3 border-t border-white/10 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-200">Emergency Backup Codes (Save these now):</span>
+                    <button type="button" onclick="copyBackupCodes()" class="text-xs text-blue-400 hover:text-blue-300">
+                        <i class="fa-solid fa-copy mr-1"></i>Copy all
+                    </button>
+                </div>
+                <div id="setupBackupCodesContainer" class="tf-backup-grid"></div>
+                <p class="text-[11px] text-amber-400/90 leading-tight">
+                    <i class="fa-solid fa-circle-exclamation mr-1"></i>Save these single-use codes in a secure place. If you ever lose access to your authenticator or email, they are your only recovery option.
+                </p>
+            </div>
+
+            <!-- Confirm Code Input -->
+            <div class="mt-4 pt-3 border-t border-white/10 space-y-2">
+                <label for="setupConfirmCode" class="block text-xs font-semibold text-slate-200">
+                    Enter the 6-digit verification code to confirm:
+                </label>
+                <input type="text" id="setupConfirmCode" maxlength="6" placeholder="000000" class="tf-input-field font-mono text-center tracking-widest text-lg" autocomplete="one-time-code">
+            </div>
+
+            <div class="flex justify-end gap-2 mt-5">
+                <button type="button" onclick="close2FASetupModal()" class="action-btn secondary text-xs py-2 px-4">Cancel</button>
+                <button type="button" id="btnConfirm2FA" onclick="confirm2FASetup()" class="action-btn primary text-xs py-2 px-4">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Verify &amp; Activate 2FA</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2FA Disable Modal -->
+    <div id="twoFactorDisableModal" class="modal" style="display: none;">
+        <div class="modal-content bg-gray-900 border border-red-500/40 shadow-2xl max-w-md">
+            <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-shield text-red-400"></i>
+                    <h3 class="text-lg font-bold text-white">Disable Two-Factor Authentication</h3>
+                </div>
+                <button type="button" onclick="close2FADisableModal()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                To disable two-factor authentication, confirm your account password and provide a valid 6-digit code or emergency backup recovery code.
+            </p>
+            <div class="space-y-3">
+                <div>
+                    <label for="disablePassword" class="block text-xs font-semibold text-slate-200 mb-1">Account Password</label>
+                    <input type="password" id="disablePassword" required class="tf-input-field">
+                </div>
+                <div>
+                    <label for="disableCode" class="block text-xs font-semibold text-slate-200 mb-1">Security Code (Authenticator / Email / Backup Code)</label>
+                    <input type="text" id="disableCode" required placeholder="000000 or XXXX-XXXX" class="tf-input-field font-mono text-center tracking-widest">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-5">
+                <button type="button" onclick="close2FADisableModal()" class="action-btn secondary text-xs py-2 px-4">Cancel</button>
+                <button type="button" id="btnConfirmDisable" onclick="submit2FADisable()" class="action-btn danger text-xs py-2 px-4">
+                    <i class="fa-solid fa-trash"></i>
+                    <span>Disable 2FA</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2FA Regenerate Backup Codes Modal -->
+    <div id="twoFactorRegenerateModal" class="modal" style="display: none;">
+        <div class="modal-content bg-gray-900 border border-blue-500/40 shadow-2xl max-w-md">
+            <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-key text-amber-400"></i>
+                    <h3 class="text-lg font-bold text-white">Regenerate Backup Codes</h3>
+                </div>
+                <button type="button" onclick="closeRegenerateBackupModal()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+            </div>
+
+            <div id="regenInputForm" class="space-y-3">
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Generating new backup recovery codes will immediately invalidate all prior backup codes. Confirm your password and current 2FA code to proceed:
+                </p>
+                <div>
+                    <label for="regenPassword" class="block text-xs font-semibold text-slate-200 mb-1">Account Password</label>
+                    <input type="password" id="regenPassword" required class="tf-input-field">
+                </div>
+                <div>
+                    <label for="regenCode" class="block text-xs font-semibold text-slate-200 mb-1">Current 2FA Code</label>
+                    <input type="text" id="regenCode" required placeholder="000000" class="tf-input-field font-mono text-center tracking-widest">
+                </div>
+                <div class="flex justify-end gap-2 mt-5">
+                    <button type="button" onclick="closeRegenerateBackupModal()" class="action-btn secondary text-xs py-2 px-4">Cancel</button>
+                    <button type="button" id="btnSubmitRegen" onclick="submitRegenerateBackup()" class="action-btn primary text-xs py-2 px-4">
+                        <i class="fa-solid fa-rotate"></i>
+                        <span>Generate New Codes</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="regenResultSection" style="display: none;" class="space-y-4">
+                <p class="text-xs text-emerald-400 font-semibold">
+                    <i class="fa-solid fa-circle-check mr-1"></i>New backup codes generated! Save them immediately:
+                </p>
+                <div id="regenBackupCodesContainer" class="tf-backup-grid"></div>
+                <button type="button" onclick="copyRegenBackupCodes()" class="action-btn secondary text-xs w-full py-2">
+                    <i class="fa-solid fa-copy mr-1"></i>Copy All Codes
+                </button>
+                <div class="flex justify-end pt-2">
+                    <button type="button" onclick="window.location.reload()" class="action-btn primary text-xs py-2 px-4">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script src="{{ url_for('static', filename='js/qrcode.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
 <script>
 function sendTestWebhook() {
@@ -630,6 +963,294 @@ function deleteWebhook() {
     })
     .then(() => window.location.reload())
     .catch(err => alert('Error removing webhook: ' + err));
+}
+
+let currentSetupMethod = 'totp';
+let currentBackupCodes = [];
+
+function open2FASetupModal() {
+    const modal = document.getElementById('twoFactorSetupModal');
+    if (!modal) return;
+    modal.style.display = 'block';
+    load2FASetup('totp');
+}
+
+function close2FASetupModal() {
+    const modal = document.getElementById('twoFactorSetupModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function switch2FAMethod(method) {
+    currentSetupMethod = method;
+    const tabTotp = document.getElementById('tabMethodTotp');
+    const tabEmail = document.getElementById('tabMethodEmail');
+    const sectionTotp = document.getElementById('sectionSetupTotp');
+    const sectionEmail = document.getElementById('sectionSetupEmail');
+
+    if (method === 'totp') {
+        tabTotp.classList.add('active');
+        tabEmail.classList.remove('active');
+        sectionTotp.style.display = 'block';
+        sectionEmail.style.display = 'none';
+    } else {
+        tabTotp.classList.remove('active');
+        tabEmail.classList.add('active');
+        sectionTotp.style.display = 'none';
+        sectionEmail.style.display = 'block';
+    }
+    load2FASetup(method);
+}
+
+function load2FASetup(method) {
+    fetch("{{ url_for('user.two_factor_setup') }}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest"
+        },
+        body: JSON.stringify({ method: method })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) {
+            alert(data.message || "Failed to initialize 2FA setup.");
+            return;
+        }
+        currentBackupCodes = data.backup_codes || [];
+
+        const qrContainer = document.getElementById('setupQrCodeContainer');
+        qrContainer.innerHTML = '';
+        if (typeof QRCode !== 'undefined' && data.uri) {
+            new QRCode(qrContainer, {
+                text: data.uri,
+                width: 160,
+                height: 160,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        }
+
+        const secretField = document.getElementById('setupSecretKeyDisplay');
+        if (secretField) {
+            secretField.value = data.secret || '';
+        }
+
+        renderBackupCodes('setupBackupCodesContainer', currentBackupCodes);
+    })
+    .catch(err => {
+        alert("Error loading 2FA setup: " + err);
+    });
+}
+
+function renderBackupCodes(containerId, codes) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    codes.forEach(code => {
+        const div = document.createElement('div');
+        div.className = 'tf-backup-code';
+        div.textContent = code;
+        container.appendChild(div);
+    });
+}
+
+function copySecretKey() {
+    const field = document.getElementById('setupSecretKeyDisplay');
+    if (!field) return;
+    navigator.clipboard.writeText(field.value).then(() => {
+        alert("Secret key copied to clipboard!");
+    }).catch(() => {
+        field.select();
+        document.execCommand('copy');
+        alert("Secret key copied!");
+    });
+}
+
+function copyBackupCodes() {
+    if (!currentBackupCodes.length) return;
+    const text = currentBackupCodes.join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+        alert("All backup codes copied to clipboard! Save them in a secure place.");
+    }).catch(() => {
+        alert("Codes:\n" + text);
+    });
+}
+
+function sendSetupEmailCode() {
+    const btn = document.getElementById('btnSendTestEmail');
+    const btnText = document.getElementById('btnSendTestEmailText');
+    if (btn) btn.disabled = true;
+    if (btnText) btnText.textContent = "Sending code...";
+
+    fetch("{{ url_for('user.two_factor_send_test_email') }}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message || (data.success ? "Verification code sent to your email!" : "Failed to send code."));
+        if (btnText) btnText.textContent = "Send Verification Code to Email";
+        if (btn) btn.disabled = false;
+    })
+    .catch(err => {
+        alert("Error sending email: " + err);
+        if (btnText) btnText.textContent = "Send Verification Code to Email";
+        if (btn) btn.disabled = false;
+    });
+}
+
+function confirm2FASetup() {
+    const codeInput = document.getElementById('setupConfirmCode');
+    const code = codeInput ? codeInput.value.trim() : '';
+    if (!code) {
+        alert("Please enter the 6-digit verification code.");
+        if (codeInput) codeInput.focus();
+        return;
+    }
+
+    const btn = document.getElementById('btnConfirm2FA');
+    if (btn) btn.disabled = true;
+
+    fetch("{{ url_for('user.two_factor_confirm') }}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest"
+        },
+        body: JSON.stringify({ code: code })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || "Two-factor authentication successfully enabled!");
+            window.location.reload();
+        } else {
+            alert(data.message || "Invalid verification code.");
+            if (btn) btn.disabled = false;
+        }
+    })
+    .catch(err => {
+        alert("Error confirming 2FA: " + err);
+        if (btn) btn.disabled = false;
+    });
+}
+
+function open2FADisableModal() {
+    const modal = document.getElementById('twoFactorDisableModal');
+    if (modal) modal.style.display = 'block';
+}
+
+function close2FADisableModal() {
+    const modal = document.getElementById('twoFactorDisableModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function submit2FADisable() {
+    const password = document.getElementById('disablePassword').value;
+    const code = document.getElementById('disableCode').value.trim();
+
+    if (!password) {
+        alert("Please enter your current account password.");
+        return;
+    }
+    if (!code) {
+        alert("Please enter a verification code or backup code.");
+        return;
+    }
+
+    const btn = document.getElementById('btnConfirmDisable');
+    if (btn) btn.disabled = true;
+
+    fetch("{{ url_for('user.two_factor_disable') }}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest"
+        },
+        body: JSON.stringify({ password: password, code: code })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || "2FA disabled successfully.");
+            window.location.reload();
+        } else {
+            alert(data.message || "Failed to disable 2FA.");
+            if (btn) btn.disabled = false;
+        }
+    })
+    .catch(err => {
+        alert("Error disabling 2FA: " + err);
+        if (btn) btn.disabled = false;
+    });
+}
+
+let regenCodesList = [];
+function openRegenerateBackupModal() {
+    const modal = document.getElementById('twoFactorRegenerateModal');
+    if (!modal) return;
+    document.getElementById('regenInputForm').style.display = 'block';
+    document.getElementById('regenResultSection').style.display = 'none';
+    document.getElementById('regenPassword').value = '';
+    document.getElementById('regenCode').value = '';
+    modal.style.display = 'block';
+}
+
+function closeRegenerateBackupModal() {
+    const modal = document.getElementById('twoFactorRegenerateModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function submitRegenerateBackup() {
+    const password = document.getElementById('regenPassword').value;
+    const code = document.getElementById('regenCode').value.trim();
+
+    if (!password || !code) {
+        alert("Please enter both your password and 2FA code.");
+        return;
+    }
+
+    const btn = document.getElementById('btnSubmitRegen');
+    if (btn) btn.disabled = true;
+
+    fetch("{{ url_for('user.two_factor_regenerate_backup_codes') }}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest"
+        },
+        body: JSON.stringify({ password: password, code: code })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            regenCodesList = data.backup_codes || [];
+            document.getElementById('regenInputForm').style.display = 'none';
+            document.getElementById('regenResultSection').style.display = 'block';
+            renderBackupCodes('regenBackupCodesContainer', regenCodesList);
+        } else {
+            alert(data.message || "Failed to regenerate backup codes.");
+            if (btn) btn.disabled = false;
+        }
+    })
+    .catch(err => {
+        alert("Error regenerating backup codes: " + err);
+        if (btn) btn.disabled = false;
+    });
+}
+
+function copyRegenBackupCodes() {
+    if (!regenCodesList.length) return;
+    const text = regenCodesList.join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+        alert("New backup codes copied to clipboard!");
+    }).catch(() => {
+        alert("Codes:\n" + text);
+    });
 }
 </script>
 </body>
