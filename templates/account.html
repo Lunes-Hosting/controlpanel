@@ -325,6 +325,88 @@
 
             <div id="store-data" class="sr-only" data-products='{{ products | tojson | safe }}' data-checkout-template="{{ url_for('store.create_checkout_session', price_link='__PRICE_LINK__') }}"></div>
 
+            <section id="WebhooksArea" class="panel-section mb-10" aria-labelledby="webhooks-heading">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 section-heading mb-6">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-satellite-dish fa-2xl text-blue-400"></i>
+                        <div>
+                            <p class="text-sm uppercase tracking-wider text-blue-300/80">Integrations</p>
+                            <h2 id="webhooks-heading" class="text-2xl font-semibold">Outbound Webhooks</h2>
+                        </div>
+                    </div>
+                    {% if user_webhook and user_webhook.is_active %}
+                        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            Active & Connected
+                        </span>
+                    {% else %}
+                        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700">
+                            <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                            Not Configured
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div class="panel-card rounded-sm border border-white/10 p-6 bg-slate-900/60 backdrop-blur-sm space-y-5">
+                    <div>
+                        <p class="text-sm text-gray-300">
+                            Configure a Discord or HTTP webhook to receive instant notifications when servers finish provisioning, run low on credits, get suspended, or shut down unexpectedly.
+                        </p>
+                    </div>
+
+                    <form action="{{ url_for('user.save_webhook') }}" method="POST" class="space-y-4">
+                        <div>
+                            <label for="webhook_url" class="block text-sm font-medium text-gray-200 mb-2">
+                                Webhook URL
+                            </label>
+                            <input 
+                                type="url" 
+                                id="webhook_url" 
+                                name="url" 
+                                required
+                                value="{{ user_webhook.url if user_webhook else '' }}"
+                                placeholder="https://discord.com/api/webhooks/..." 
+                                class="w-full bg-slate-950/80 border border-white/10 rounded-sm px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                            >
+                        </div>
+
+                        {% if user_webhook and user_webhook.last_delivery_status %}
+                            <div class="p-3 rounded-sm bg-slate-950/60 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                <span class="text-gray-400">
+                                    Last delivery: <span class="text-emerald-400 font-mono">{{ user_webhook.last_delivery_status }}</span>
+                                    {% if user_webhook.last_delivery_at %}
+                                        <span class="text-gray-500">({{ user_webhook.last_delivery_at }})</span>
+                                    {% endif %}
+                                </span>
+                                {% if user_webhook.last_error %}
+                                    <span class="text-red-400 truncate max-w-sm" title="{{ user_webhook.last_error }}">
+                                        Last error: {{ user_webhook.last_error }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        <div class="flex flex-wrap items-center gap-3 pt-1">
+                            <button type="submit" class="action-btn primary inline-flex items-center gap-2">
+                                <i class="fa-solid fa-floppy-disk"></i>
+                                Save Webhook
+                            </button>
+
+                            {% if user_webhook %}
+                                <button type="button" onclick="sendTestWebhook()" id="testWebhookBtn" class="action-btn secondary inline-flex items-center gap-2">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                    Send Test Webhook
+                                </button>
+                                <button type="button" onclick="deleteWebhook()" class="action-btn ghost inline-flex items-center gap-2 text-red-400 hover:text-red-300">
+                                    <i class="fa-solid fa-trash"></i>
+                                    Remove
+                                </button>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </section>
+
             <section class="panel-section" aria-labelledby="other-heading">
                 <div class="flex items-center gap-3 section-heading mb-6">
                     <i class="fa-solid fa-barcode fa-2xl text-blue-400"></i>
@@ -393,5 +475,45 @@
         </div>
     </div>
 <script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
+<script>
+function sendTestWebhook() {
+    const btn = document.getElementById('testWebhookBtn');
+    if (!btn) return;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending Test...';
+
+    fetch("{{ url_for('user.test_webhook') }}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message || (data.success ? 'Test webhook sent successfully!' : 'Failed to send test webhook.'));
+        window.location.reload();
+    })
+    .catch(err => {
+        alert('Network error testing webhook: ' + err);
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
+function deleteWebhook() {
+    if (!confirm('Are you sure you want to remove your outbound webhook?')) return;
+    fetch("{{ url_for('user.delete_webhook') }}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest"
+        }
+    })
+    .then(() => window.location.reload())
+    .catch(err => alert('Error removing webhook: ' + err));
+}
+</script>
 </body>
 </html>

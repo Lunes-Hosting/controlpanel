@@ -67,4 +67,7 @@ def get_server_suspension(server_id):
     return {"reason": row[0], "source": row[1], "active": bool(row[2])} if row else None
 
 
-ensure_suspension_schema()
+try:
+    ensure_suspension_schema()
+except Exception:
+    pass
