@@ -69,7 +69,7 @@ from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY
 from managers.server_creation_lock import (serialized_server_creation, pending_server_creations,
                                           reserve_server_creation, finish_server_creation)
-from display_cache import display_cache
+from runtime.display_cache import display_cache
 
 servers = Blueprint('servers', __name__)
 

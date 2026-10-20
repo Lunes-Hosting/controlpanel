@@ -12,9 +12,9 @@ from unittest.mock import Mock, patch
 from flask import Flask, Blueprint, request, jsonify, redirect, url_for, flash
 import requests
 
-from display_cache import DisplayCache
-from stats_snapshot import StatsSnapshot
-from test_credit_transactions import load_functions
+from runtime.display_cache import DisplayCache
+from runtime.stats_snapshot import StatsSnapshot
+from tests.test_credit_transactions import load_functions
 
 
 def wait_for_snapshot(snapshot):
@@ -73,7 +73,7 @@ class SnapshotTests(unittest.TestCase):
         self.assertTrue(result['error'])
         self.assertIsNone(result['data'])
         snapshot = StatsSnapshot(Mock())
-        with patch('stats_snapshot.Thread') as thread:
+        with patch('runtime.stats_snapshot.Thread') as thread:
             thread.return_value.start.side_effect = RuntimeError('cannot start')
             result = snapshot.get()
         self.assertTrue(result['error'])

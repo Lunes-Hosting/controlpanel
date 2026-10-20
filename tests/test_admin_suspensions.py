@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import Mock
 
 from flask import Flask, request, session, jsonify, flash, redirect
-from test_credit_transactions import load_functions
+from tests.test_credit_transactions import load_functions
 
 
 class AdminReasonTests(unittest.TestCase):

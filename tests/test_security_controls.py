@@ -16,8 +16,8 @@ from unittest.mock import Mock
 from flask import Flask, session, request, redirect, url_for, flash, current_app, g
 from mysql.connector import IntegrityError
 
-from test_credit_transactions import load_functions
-import test_credit_transactions as credit_tests
+from tests.test_credit_transactions import load_functions
+from tests import test_credit_transactions as credit_tests
 
 
 class SessionTests(unittest.TestCase):
@@ -228,7 +228,7 @@ class SuspensionTests(unittest.TestCase):
         self.api = Mock()
         self.api.post.return_value.status_code = 204
         self.ns = load_functions('managers/suspension_manager.py', {})
-        self.ns.update(DatabaseManager=SimpleNamespace(transaction=transaction, execute_query=Mock(return_value=('user@example.com',))), requests=self.api,
+        self.ns.update(DatabaseManager=SimpleNamespace(transaction=transaction, execute_query=Mock(return_value=(7, 'user@example.com'))), requests=self.api,
                        display_cache=SimpleNamespace(clear=Mock()),
                        PTERODACTYL_URL='https://example.invalid/', HEADERS={}, datetime=datetime,
                        get_server_information=lambda _: {'attributes': {'user': 7}},

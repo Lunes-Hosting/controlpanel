@@ -7,8 +7,8 @@ import unittest
 
 from flask import Flask, Blueprint, request, jsonify, flash, redirect, url_for
 
-from display_cache import DisplayCache
-from test_credit_transactions import load_functions
+from runtime.display_cache import DisplayCache
+from tests.test_credit_transactions import load_functions
 
 
 class ActivityLogTests(unittest.TestCase):

@@ -20,8 +20,8 @@ Configuration:
 from flask import Flask, request
 from flask_apscheduler import APScheduler
 from flask_limiter import Limiter
-from rate_limits import limiter
-from request_security import client_ip
+from runtime.rate_limits import limiter
+from runtime.request_security import client_ip
 import config as panel_config
 from flask_mail import Mail, Message
 from managers.maintenance import sync_users_script
@@ -44,7 +44,7 @@ from cacheext import cache
 from threading import Thread
 import datetime
 from scripts.add_performance_indexes import ensure_performance_indexes
-from web_performance import install_performance
+from runtime.web_performance import install_performance
 
 # Optional performance upgrades run automatically and never block startup on a
 # missing ALTER privilege. All settings continue to have backwards-compatible defaults.

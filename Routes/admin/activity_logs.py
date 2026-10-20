@@ -28,7 +28,7 @@ from flask import render_template, request, session, redirect, url_for, flash, j
 from managers.authentication import admin_required
 from Routes.admin import admin
 from managers.database_manager import DatabaseManager
-from display_cache import DisplayCache
+from runtime.display_cache import DisplayCache
 import json
 
 log_count_cache = DisplayCache(max_entries=64)

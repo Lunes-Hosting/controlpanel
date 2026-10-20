@@ -8,8 +8,8 @@ import unittest
 from unittest.mock import Mock
 
 from flask import Flask, Blueprint, request, session, flash, redirect, url_for
-from test_credit_transactions import load_functions
-from request_security import login_credentials, peer_ip, login_limit_key
+from tests.test_credit_transactions import ROOT, load_functions
+from runtime.request_security import login_credentials, peer_ip, login_limit_key
 
 
 class ReviewTests(unittest.TestCase):
@@ -134,7 +134,7 @@ with patch('socket.socket.connect', side_effect=AssertionError('Unexpected netwo
 loop.close()
 '''
         result = subprocess.run([sys.executable, '-c', textwrap.dedent(script)],
-                                capture_output=True, text=True, timeout=30)
+                                capture_output=True, text=True, timeout=30, cwd=ROOT)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
