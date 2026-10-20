@@ -2,16 +2,16 @@
 import gzip
 from collections import OrderedDict
 from threading import Lock
-from display_cache import DisplayCache
+from runtime.display_cache import DisplayCache
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 from flask import Flask, session, request, jsonify
-from web_performance import install_performance, asset_version
-from stats_snapshot import StatsSnapshot
-from test_credit_transactions import load_functions
+from runtime.web_performance import install_performance, asset_version
+from runtime.stats_snapshot import StatsSnapshot
+from tests.test_credit_transactions import load_functions
 
 class DeliveryTests(unittest.TestCase):
     def setUp(self):

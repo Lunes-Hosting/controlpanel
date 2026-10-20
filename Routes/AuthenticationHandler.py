@@ -48,10 +48,10 @@ import json
 import datetime
 import requests
 import bcrypt
-from auth_http import auth_requests, verify_turnstile, blocked_email_list
+from runtime.auth_http import auth_requests, verify_turnstile, blocked_email_list
 
 from flask_limiter import Limiter
-from rate_limits import limiter
+from runtime.rate_limits import limiter
 from security import safe_requests
 from urllib.parse import urlparse, urljoin
 
@@ -64,8 +64,8 @@ from managers.signup_location import connection_details
 from managers.alt_settings import alt_detection_enabled
 from managers.account_sessions import establish_session
 from managers.suspension_manager import get_user_suspension
-from request_security import client_ip, peer_ip, login_limit_key, login_credentials
-from rate_limits import limiter
+from runtime.request_security import client_ip, peer_ip, login_limit_key, login_credentials
+from runtime.rate_limits import limiter
 from managers.dashboard_inventory import dashboard_inventory
 from managers.email_manager import send_email, generate_verification_token, send_verification_email, generate_reset_token, send_reset_email
 from managers.user_manager import account_get_information, get_id, get_name, instantly_delete_user, get_ptero_id

@@ -23,7 +23,7 @@ from managers.authentication import admin_required
 from managers.database_manager import DatabaseManager
 from managers.credit_manager import convert_to_product
 from managers.server_manager import iter_statistics_servers
-from stats_snapshot import StatsSnapshot
+from runtime.stats_snapshot import StatsSnapshot
 
 def shorten_number(n):
     """

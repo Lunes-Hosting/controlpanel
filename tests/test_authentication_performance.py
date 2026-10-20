@@ -7,8 +7,8 @@ from unittest.mock import Mock, patch
 import unittest
 import requests
 from flask import Flask, request, flash, current_app, redirect
-import auth_http
-from test_credit_transactions import load_functions
+from runtime import auth_http
+from tests.test_credit_transactions import load_functions
 
 class DependencyTests(unittest.TestCase):
     def test_connections_are_reused_per_thread_and_posts_are_not_retried(self):

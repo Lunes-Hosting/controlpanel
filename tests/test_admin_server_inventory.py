@@ -7,8 +7,8 @@ from unittest.mock import Mock
 from flask import Flask, Blueprint, request
 import requests
 
-from display_cache import DisplayCache
-from test_credit_transactions import load_functions
+from runtime.display_cache import DisplayCache
+from tests.test_credit_transactions import load_functions
 
 
 class InventoryTests(unittest.TestCase):

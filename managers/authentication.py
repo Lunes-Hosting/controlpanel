@@ -15,7 +15,7 @@ import bcrypt
 import requests
 import threading
 import logging
-from auth_http import auth_requests, blocked_email_list
+from runtime.auth_http import auth_requests, blocked_email_list
 from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 from managers.database_manager import DatabaseManager
 from .logging import webhook_log

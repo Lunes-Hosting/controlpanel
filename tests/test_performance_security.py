@@ -19,9 +19,9 @@ from flask_limiter import Limiter
 import mysql.connector
 from werkzeug.datastructures import MultiDict
 
-from display_cache import DisplayCache
-from request_security import client_ip, peer_ip, login_limit_key, login_credentials
-from test_credit_transactions import load_functions
+from runtime.display_cache import DisplayCache
+from runtime.request_security import client_ip, peer_ip, login_limit_key, login_credentials
+from tests.test_credit_transactions import ROOT, load_functions
 
 
 class DisplayCacheTests(unittest.TestCase):
@@ -41,9 +41,9 @@ class DisplayCacheTests(unittest.TestCase):
 
     def test_expiry_eviction_and_failed_loads(self):
         cache = DisplayCache(max_entries=2)
-        with patch('display_cache.monotonic', return_value=0):
+        with patch('runtime.display_cache.monotonic', return_value=0):
             cache.get_or_load('a', lambda: 1, ttl=1)
-        with patch('display_cache.monotonic', return_value=2):
+        with patch('runtime.display_cache.monotonic', return_value=2):
             self.assertEqual(cache.get_or_load('a', lambda: 2), 2)
         cache.get_or_load('b', lambda: 3)
         cache.get_or_load('c', lambda: 4)
@@ -109,7 +109,7 @@ class DatabasePerformanceTests(unittest.TestCase):
         migration.assert_called_once()
 
     def test_connections_reuse_pool_and_keep_process_and_database_separate(self):
-        node = next(n for n in ast.parse(Path('managers/database_manager.py').read_text()).body
+        node = next(n for n in ast.parse((ROOT / 'managers/database_manager.py').read_text()).body
                     if isinstance(n, ast.ClassDef))
         factory = Mock()
         ns = dict(BaseManager=object, contextmanager=contextmanager, os=os, threading=threading,

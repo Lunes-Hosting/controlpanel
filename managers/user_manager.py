@@ -20,7 +20,7 @@ from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 from managers.database_manager import DatabaseManager
 from .logging import webhook_log
 from flask import g, has_request_context
-from display_cache import DisplayCache
+from runtime.display_cache import DisplayCache
 
 last_seen_updates = DisplayCache(max_entries=4096)
 
