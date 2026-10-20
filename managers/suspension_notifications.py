@@ -77,22 +77,19 @@ def kick_suspension_email_delivery():
         print("Suspension email delivery deferred to the scheduled retry.")
 
 
-try:
-    DatabaseManager.execute_query("""
-        CREATE TABLE IF NOT EXISTS suspension_email_outbox (
-            id VARCHAR(36) PRIMARY KEY,
-            dedup_key VARCHAR(191) UNIQUE DEFAULT NULL,
-            entity_type VARCHAR(16) NOT NULL,
-            entity_id BIGINT UNSIGNED NOT NULL,
-            recipient VARCHAR(320) NOT NULL,
-            subject VARCHAR(191) NOT NULL,
-            body TEXT NOT NULL,
-            status VARCHAR(16) NOT NULL DEFAULT 'pending',
-            attempts INT UNSIGNED NOT NULL DEFAULT 0,
-            last_attempt TIMESTAMP NULL DEFAULT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            KEY delivery_status (status, last_attempt)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-    """)
-except Exception:
-    pass
+DatabaseManager.execute_query("""
+    CREATE TABLE IF NOT EXISTS suspension_email_outbox (
+        id VARCHAR(36) PRIMARY KEY,
+        dedup_key VARCHAR(191) UNIQUE DEFAULT NULL,
+        entity_type VARCHAR(16) NOT NULL,
+        entity_id BIGINT UNSIGNED NOT NULL,
+        recipient VARCHAR(320) NOT NULL,
+        subject VARCHAR(191) NOT NULL,
+        body TEXT NOT NULL,
+        status VARCHAR(16) NOT NULL DEFAULT 'pending',
+        attempts INT UNSIGNED NOT NULL DEFAULT 0,
+        last_attempt TIMESTAMP NULL DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        KEY delivery_status (status, last_attempt)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+""")

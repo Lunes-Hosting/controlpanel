@@ -163,8 +163,6 @@ def use_credits():
         user_email = user_response.json()['attributes']['email']
         
         # Process each server individually
-        active_servers_count = 0
-        total_hourly_burn = 0.0
         for server in servers:
             # Skip suspended servers
             if server['attributes']['suspended']:
@@ -173,8 +171,6 @@ def use_credits():
             # Get product info based on server specs
             product = convert_to_product(server)
             hourly_cost = float(product['price'])/30.0/24.0
-            active_servers_count += 1
-            total_hourly_burn += hourly_cost
             
             # Debit against the live, locked balance, including concurrent purchases.
             if bill_server_hour(user_email, hourly_cost, server['attributes']['id'], billing_hour) == "SUSPEND":
@@ -183,26 +179,6 @@ def use_credits():
                 server_name = server['attributes']['name']
                 webhook_log(f"User {user_email} can't afford server {server_name} (ID: {server_id}). Suspending.", database_log=True)
                 threading.Thread(target=suspend_server, args=(server_id, "Insufficient credits to pay for this server.", "billing")).start()
-
-        # Check if user's remaining balance is low (< 24 hours of runtime)
-        if total_hourly_burn > 0:
-            remaining_balance = get_credits(user_email)
-            if remaining_balance > 0:
-                hours_left = remaining_balance / total_hourly_burn
-                if hours_left <= 24.0:
-                    user_row = DatabaseManager.execute_query("SELECT id FROM users WHERE email = %s", (user_email,))
-                    if user_row:
-                        try:
-                            from managers.webhook_manager import notify_low_credits
-                            notify_low_credits(
-                                user_id=user_row[0],
-                                balance=remaining_balance,
-                                hourly_cost=total_hourly_burn,
-                                hours_left=hours_left,
-                                server_count=active_servers_count
-                            )
-                        except Exception:
-                            pass
         
 
 
