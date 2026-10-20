@@ -680,20 +680,6 @@ def create_server_submit():
         finish_server_creation(creation_request_id, created_server_id)
         if isinstance(created_server_id, int) and created_server_id > 0:
             webhook_log(f"Server was just created: ```{res}```", database_log=True)
-            try:
-                from managers.webhook_manager import notify_server_provisioned
-                notify_server_provisioned(
-                    session.get('account_id'),
-                    {
-                        "server_id": created_server_id,
-                        "server_name": request.form.get('name', 'Game Server'),
-                        "node": node_id,
-                        "memory": (main_product.get('limits') or {}).get('memory', 'N/A'),
-                        "disk": (main_product.get('limits') or {}).get('disk', 'N/A'),
-                    }
-                )
-            except Exception:
-                pass
             return redirect(url_for('servers.server', server_id=created_server_id))
     webhook_log(f"Server was just created: ```{res}```", database_log=True)
     return redirect(url_for('user.index'))

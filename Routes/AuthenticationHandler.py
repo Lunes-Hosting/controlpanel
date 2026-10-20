@@ -51,7 +51,6 @@ import bcrypt
 from auth_http import auth_requests, verify_turnstile, blocked_email_list
 
 from flask_limiter import Limiter
-from rate_limits import limiter
 from security import safe_requests
 from urllib.parse import urlparse, urljoin
 
@@ -257,10 +256,6 @@ def index():
         key=lambda x: x[1],
     )
 
-    from managers.webhook_manager import get_user_webhook
-    account_id = session.get('account_id')
-    user_webhook = get_user_webhook(account_id) if account_id else None
-
     return render_template(
         "account.html", 
         credits=int(current_credits), 
@@ -271,7 +266,6 @@ def index():
         subscription_credit_options=subscription_credit_options,
         verified=verified,
         suspended=suspended,
-        user_webhook=user_webhook,
         **inventory,
     )
 
@@ -846,60 +840,3 @@ def delete_account():
         return redirect(url_for('index'))
         
     return redirect(url_for('user.login_user'))
-
-
-@user.route('/webhook/save', methods=['POST'])
-@login_required
-@limiter.limit("10 per minute; 30 per hour")
-def save_webhook():
-    account_id = session.get('account_id')
-    if not account_id:
-        flash("Invalid session. Please log in again.")
-        return redirect(url_for('user.index'))
-
-    url = request.form.get('url', '').strip()
-
-    from managers.webhook_manager import save_user_webhook
-    success, message = save_user_webhook(account_id, url)
-
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
-        return jsonify(success=success, message=message), (200 if success else 400)
-
-    flash(message)
-    return redirect(url_for('user.index') + "#WebhooksArea")
-
-
-@user.route('/webhook/test', methods=['POST'])
-@login_required
-@limiter.limit("5 per minute; 20 per hour")
-def test_webhook():
-    account_id = session.get('account_id')
-    if not account_id:
-        return jsonify(success=False, message="Invalid session."), 401
-
-    from managers.webhook_manager import test_user_webhook
-    success, message = test_user_webhook(account_id)
-
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
-        return jsonify(success=success, message=message), (200 if success else 400)
-
-    flash(message)
-    return redirect(url_for('user.index') + "#WebhooksArea")
-
-
-@user.route('/webhook/delete', methods=['POST'])
-@login_required
-def delete_webhook():
-    account_id = session.get('account_id')
-    if not account_id:
-        return redirect(url_for('user.index'))
-
-    from managers.webhook_manager import delete_user_webhook
-    deleted = delete_user_webhook(account_id)
-
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
-        return jsonify(success=deleted, message="Webhook removed."), 200
-
-    flash("Webhook configuration removed.")
-    return redirect(url_for('user.index') + "#WebhooksArea")
-
