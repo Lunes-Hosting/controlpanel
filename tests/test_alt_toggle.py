@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import Mock
 
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_functions(path, namespace):
@@ -61,6 +61,7 @@ class AltToggleTests(unittest.TestCase):
                 safe_requests.get.return_value.text = ''
                 requests.post.return_value.json.return_value = {'errors': [{'detail': 'API reached'}]}
                 ns = load_functions('managers/authentication.py', {
+                    'canonical_email': __import__('runtime.email_identity',fromlist=['canonical_email']).canonical_email,
                     'alt_detection_enabled': lambda: enabled, 'DatabaseManager': database,
                     'requests': requests, 'auth_requests': requests, 'blocked_email_list': Mock(get=lambda: ()), 'safe_requests': safe_requests, 'bcrypt': Mock(),
                     'ThreadWithReturnValue': Mock(), 'webhook_log': Mock(),

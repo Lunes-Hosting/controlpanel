@@ -8,8 +8,8 @@ import unittest
 from unittest.mock import Mock
 
 from flask import Flask, Blueprint, request, session, flash, redirect, url_for
-from test_credit_transactions import load_functions
-from request_security import login_credentials, peer_ip, login_limit_key
+from tests.test_credit_transactions import ROOT, load_functions
+from runtime.request_security import login_credentials, peer_ip, login_limit_key
 
 
 class ReviewTests(unittest.TestCase):
@@ -29,7 +29,7 @@ class ReviewTests(unittest.TestCase):
                       peer_ip=peer_ip, login_limit_key=login_limit_key,
                       redirect=redirect, url_for=url_for, DEBUG_FRONTEND_MODE=True,
                       RECAPTCHA_SECRET_KEY='test', RECAPTCHA_SITE_KEY='test',
-                      _get_client_ip=lambda _: '192.0.2.1', login=lambda *a: (7,),
+                      _get_client_ip=lambda _: '192.0.2.1', login=lambda *a: (7,None,None,None,None,None,None,'user@example.com'),
                       establish_session=establish, render_template=lambda *a, **kw: 'Login',
                       is_safe_url=lambda value: value.startswith('/') and not value.startswith('//'))
             load_functions('Routes/AuthenticationHandler.py', ns, {'login_user'})
@@ -112,7 +112,8 @@ with patch('socket.socket.connect', side_effect=AssertionError('Unexpected netwo
     import managers
     for name in ('account_sessions', 'payment_manager', 'server_creation_lock',
                  'suspension_manager', 'suspension_notifications', 'ticket_ids', 'ticket_discord_manager',
-                 'checkout_manager', 'invoice_manager'):
+                 'checkout_manager', 'invoice_manager', 'password_resets', 'email_identity',
+                 'billing_identity', 'bandwidth_manager'):
         importlib.import_module('managers.' + name)
     from managers.server_manager import delete_server
     database.DatabaseManager.execute_query = Mock(side_effect=query)
@@ -134,7 +135,7 @@ with patch('socket.socket.connect', side_effect=AssertionError('Unexpected netwo
 loop.close()
 '''
         result = subprocess.run([sys.executable, '-c', textwrap.dedent(script)],
-                                capture_output=True, text=True, timeout=30)
+                                capture_output=True, text=True, timeout=30, cwd=ROOT)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 

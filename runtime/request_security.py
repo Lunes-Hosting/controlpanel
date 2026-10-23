@@ -4,6 +4,7 @@ import ipaddress
 import re
 import hashlib
 from flask import request
+from runtime.email_identity import canonical_email
 
 _email = re.compile(r"[^\s@\x00-\x1f\x7f]+@[^\s@\x00-\x1f\x7f]+\.[^\s@\x00-\x1f\x7f]+\Z")
 
@@ -55,7 +56,10 @@ def login_credentials(req):
         return None
     if len(req.form.getlist('email')) != 1 or len(req.form.getlist('password')) != 1:
         return None
-    email = req.form.get('email', '').strip().lower()
+    try:
+        email = canonical_email(req.form.get('email', ''))
+    except ValueError:
+        return None
     password = req.form.get('password', '')
     captcha = req.form.get('g-recaptcha-response', '')
     if (len(email) > 191 or not _email.fullmatch(email) or not password

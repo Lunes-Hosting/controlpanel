@@ -27,7 +27,7 @@ import datetime
 from .suspension_manager import require_reason
 from .suspension_notifications import (queue_suspension_email, clear_suspension_email_keys,
                                        kick_suspension_email_delivery)
-from display_cache import display_cache
+from runtime.display_cache import display_cache
 
 # Initialize cache
 cache = PteroCache()

@@ -23,10 +23,10 @@ from email.mime.text import MIMEText
 
 from flask import Flask, Blueprint, request, session, flash, redirect, url_for
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from test_credit_transactions import load_functions
-from request_security import login_credentials, peer_ip, login_limit_key
+from tests.test_credit_transactions import load_functions
+from runtime.request_security import login_credentials, peer_ip, login_limit_key
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_class(path, name, ns):

@@ -8,8 +8,8 @@
     {% with asset_bundle='dashboard.css' %}{% include 'partials/compiled_assets.html' %}{% endwith %}
     <script defer src="{{ url_for('static', filename='js/deferred-ads.js') }}"></script>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/Lunes.svg') }}">
-    
-    
+
+
     </head>
     <body data-dashboard-account="{{ session['account_id'] }}" data-dashboard-inventory-url="{{ url_for('user.dashboard_servers_data', server_page=request.args.get('server_page', 1, type=int)) }}" data-inventory-ready="{{ 'true' if servers_ready else 'false' }}" data-inventory-refreshing="{{ 'true' if inventory_state.refreshing else 'false' }}" class="bg-slate-950 text-white min-h-screen relative overflow-x-hidden" style="font-family: Lunes Sans,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
     <div class="background-blob blob-one"></div>
@@ -21,7 +21,7 @@
     {% include 'partials/flash_messages.html' %}
 
     {% if not verified %}
-    
+
     <div class="bg-yellow-950 text-white px-4 py-2 rounded-sm mb-6 flex items-center gap-2 text-black max-w-5xl mx-auto">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
@@ -29,7 +29,7 @@
         <span>Your email is not verified yet. <a href="{{ url_for('user.resend_confirmation_email') }}" class="text-blue-300 hover:underline">Click here to resend verification email</a></span>
     </div>
     {% elif suspended %}
-    
+
     <div class="bg-yellow-950 text-white px-4 py-2 rounded-sm mb-6 flex items-center gap-2 text-black max-w-5xl mx-auto">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
@@ -58,7 +58,7 @@
                         <div class="profile-header">
                             <img width="80" height="80" decoding="async" loading="lazy" class="profile-avatar" src="https://gravatar.com/avatar/{{ hash }}" alt="User avatar">
                             <div class="profile-copy">
-                                
+
                                 <h2 class="hero-title">Welcome back, {{ username }}.</h2>
                                 <p class="hero-subtitle">{{ email }}</p>
                             </div>
@@ -137,7 +137,7 @@
             </section>
 
 
-            
+
             {% if verified and not suspended %}
             <section class="panel-section" aria-labelledby="servers-heading">
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 section-heading mb-6">
@@ -387,7 +387,7 @@
             </div>
             <div class="flex justify-end gap-2">
                 <button onclick="closeDeleteModal()" style="cursor: pointer;" class="bg-gray-500 text-white px-4 py-2 rounded-sm hover:bg-gray-600 transition-colors duration-200">Cancel</button>
-    
+
                 <a href="{{ url_for('user.delete_account') }}" class="bg-red-500 text-white px-4 py-2 rounded-sm hover:bg-red-600 transition-colors duration-200">Delete</a>
             </div>
         </div>

@@ -23,7 +23,7 @@ import datetime
 from mysql.connector import IntegrityError
 from flask import Flask, Blueprint, request, session, flash, redirect, url_for
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_functions(path, namespace, names=None):
@@ -157,9 +157,11 @@ class CreditTransactionTests(unittest.TestCase):
             ThreadWithReturnValue=Mock(), threading=threads,
             send_email=Mock(), suspend_server=Mock(), current_app=Mock(),
         )
-        load_functions('managers/credit_manager.py', self.ns, {'use_credits'})
+        load_functions('managers/credit_manager.py', self.ns, {'use_credits', 'get_credits'})
         self.ns.update(__package__='managers',datetime=datetime)
-        with patch.dict(sys.modules,{'managers.payment_manager':SimpleNamespace(bill_server_hour=self.ns['bill_server_hour'])}):
+        with patch.dict(sys.modules, {
+            'managers.payment_manager': SimpleNamespace(bill_server_hour=self.ns['bill_server_hour']),
+        }):
             self.ns['use_credits']()
         self.assertEqual(self.balance(), 3)
         threads.Thread.assert_called_once_with(target=self.ns['suspend_server'],
@@ -227,7 +229,8 @@ class CreditTransactionTests(unittest.TestCase):
         stripe.checkout.Session.retrieve.return_value = checkout
         stripe.Webhook.construct_event.return_value = {
             'type': 'checkout.session.completed', 'data': {'object': checkout}}
-        self.ns.update(store=Blueprint('store', __name__), login_required=lambda f: f,
+        self.ns.update(store=Blueprint('store', __name__), login_required=lambda f: f, verified_billing_required=lambda f:f,
+                       get_stripe_customer=lambda _: 'cus_test',
                        request=request, session=session, flash=flash, redirect=redirect,
                        url_for=url_for, stripe=stripe, STRIPE_WEBHOOK_SECRET='test',
                        products=[{'price_link': 'price-1', 'price': 25}],
@@ -371,6 +374,18 @@ class CreditTransactionTests(unittest.TestCase):
         self.assertEqual(self.balance(),35)
         url=self.ns['checkout_success_url']('https://example.invalid/store/success?from=store#done')
         self.assertEqual(url,'https://example.invalid/store/success?from=store&session_id={CHECKOUT_SESSION_ID}#done')
+
+    def test_saved_purchase_credits_original_account_after_stripe_email_changes(self):
+        client, stripe = self.store_client()
+        self.ns['remember_checkout']('checkout-1',1,'user@example.com','price-1',1000)
+        checkout = stripe.checkout.Session.retrieve.return_value
+        checkout['customer_email'] = None
+        checkout['customer_details'] = {'email':'changed-in-stripe@example.com'}
+        checkout['customer'] = 'cus_test'
+        self.assertEqual(client.get('/store/success').status_code,302)
+        self.assertEqual(self.balance(),1010)
+        self.assertFalse(self.ns['fulfill_checkout']('checkout-1'))
+        self.assertEqual(self.balance(),1010)
 
     def test_checkout_is_recorded_before_redirect_with_individual_return_id(self):
         client,stripe=self.store_client()

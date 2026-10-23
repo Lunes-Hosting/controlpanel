@@ -18,7 +18,7 @@ from jinja2 import Environment, FileSystemLoader
 from typing import Optional
 
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_functions(path, namespace):

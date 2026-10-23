@@ -15,11 +15,13 @@ import bcrypt
 import requests
 import threading
 import logging
-from auth_http import auth_requests, blocked_email_list
+from runtime.auth_http import auth_requests, blocked_email_list
 from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 from managers.database_manager import DatabaseManager
 from .logging import webhook_log
 from .user_manager import update_ip, update_last_seen
+from .email_identity import find_user_by_email
+from runtime.email_identity import canonical_email
 from functools import wraps
 from flask import session, redirect, url_for, current_app, render_template, request
 from urllib.parse import quote
@@ -140,10 +142,10 @@ def login(email: str, password: str, ip: str):
         None: If login fails
     """
     # Get user from database
-    query = "SELECT * FROM users WHERE email = %s"
-    result = DatabaseManager.execute_query(query, (email,))
+    result = find_user_by_email(email)
     
     if result:
+        email = result[7]
         # Get hashed password from database
         hashed_password = result[9]
         # Verify password
@@ -234,7 +236,7 @@ def register(email: str, password: str, name: str, ip: str, needs_review: bool =
     """
     
     # Clean and normalize inputs
-    email = email.strip().lower()
+    email = canonical_email(email)
     name = name.strip().lower()
     salt = bcrypt.gensalt(rounds=14)
     passthread = ThreadWithReturnValue(target=bcrypt.hashpw, args=(password.encode('utf-8'), salt))
