@@ -311,7 +311,7 @@ def suspend_server(server_id: int, reason: str, source: str = "manual"):
     # Otherwise a missing local owner would roll back the saved reason after
     # Pterodactyl had already suspended the server.
     owner = DatabaseManager.execute_query(
-        "SELECT id, email FROM users WHERE pterodactyl_id=%s", (info['attributes']['user'],)
+        "SELECT email FROM users WHERE pterodactyl_id=%s", (info['attributes']['user'],)
     )
     if not owner:
         raise ValueError("Server owner account not found")
@@ -336,20 +336,9 @@ def suspend_server(server_id: int, reason: str, source: str = "manual"):
             "UPDATE server_suspensions SET reason=%s, source=%s, active=1 WHERE server_id=%s",
             (reason, source, int(server_id)),
         )
-        queue_suspension_email(cursor, "server", server_id, owner[1], reason,
+        queue_suspension_email(cursor, "server", server_id, owner[0], reason,
                                label=info['attributes'].get('name'), source=source)
     kick_suspension_email_delivery()
-    try:
-        from managers.webhook_manager import notify_server_suspended
-        notify_server_suspended(
-            user_id=owner[0],
-            server_id=int(server_id),
-            server_name=info['attributes'].get('name', f"Server #{server_id}"),
-            reason=reason,
-            source=source
-        )
-    except Exception:
-        pass
     display_cache.clear()
     return response.status_code
 

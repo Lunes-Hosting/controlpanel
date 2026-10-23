@@ -159,15 +159,11 @@ class CreditTransactionTests(unittest.TestCase):
         )
         load_functions('managers/credit_manager.py', self.ns, {'use_credits', 'get_credits'})
         self.ns.update(__package__='managers',datetime=datetime)
-        notify_low_credits = Mock()
         with patch.dict(sys.modules, {
             'managers.payment_manager': SimpleNamespace(bill_server_hour=self.ns['bill_server_hour']),
-            'managers.webhook_manager': SimpleNamespace(notify_low_credits=notify_low_credits),
         }):
             self.ns['use_credits']()
         self.assertEqual(self.balance(), 3)
-        notify_low_credits.assert_called_once()
-        self.assertEqual(notify_low_credits.call_args.kwargs['balance'], 3)
         threads.Thread.assert_called_once_with(target=self.ns['suspend_server'],
             args=(2, "Insufficient credits to pay for this server.", "billing"))
 

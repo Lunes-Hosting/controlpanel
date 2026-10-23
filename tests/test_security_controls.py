@@ -229,7 +229,7 @@ class SuspensionTests(unittest.TestCase):
         self.api = Mock()
         self.api.post.return_value.status_code = 204
         self.ns = load_functions('managers/suspension_manager.py', {})
-        self.ns.update(DatabaseManager=SimpleNamespace(transaction=transaction, execute_query=Mock(return_value=(7, 'user@example.com'))), requests=self.api,
+        self.ns.update(DatabaseManager=SimpleNamespace(transaction=transaction, execute_query=Mock(return_value=('user@example.com',))), requests=self.api,
                        creation_limits=creation_limits, display_cache=SimpleNamespace(clear=Mock()),
                        PTERODACTYL_URL='https://example.invalid/', HEADERS={}, datetime=datetime,
                        get_server_information=lambda _: {'attributes': {'user': 7}},

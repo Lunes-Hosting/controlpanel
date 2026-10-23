@@ -113,7 +113,7 @@ with patch('socket.socket.connect', side_effect=AssertionError('Unexpected netwo
     for name in ('account_sessions', 'payment_manager', 'server_creation_lock',
                  'suspension_manager', 'suspension_notifications', 'ticket_ids', 'ticket_discord_manager',
                  'checkout_manager', 'invoice_manager', 'password_resets', 'email_identity',
-                 'billing_identity', 'webhook_manager', 'bandwidth_manager'):
+                 'billing_identity', 'bandwidth_manager'):
         importlib.import_module('managers.' + name)
     from managers.server_manager import delete_server
     database.DatabaseManager.execute_query = Mock(side_effect=query)

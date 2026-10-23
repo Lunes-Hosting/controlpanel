@@ -1,8 +1,7 @@
-"""Security regressions; no live SMTP, Stripe, database or internal requests."""
+"""Email and billing regressions without live SMTP, Stripe or a database."""
 import copy
 import hashlib
 import hmac
-import socket
 import sqlite3
 import threading
 import unicodedata
@@ -10,11 +9,10 @@ from contextlib import contextmanager
 from functools import wraps
 from types import SimpleNamespace
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from flask import Flask, flash, redirect, session, url_for, request, current_app
 from runtime.email_identity import canonical_email, email_lookup_candidates
-from runtime import webhook_http
 from tests.test_credit_transactions import load_functions
 
 
@@ -146,56 +144,6 @@ class ResetTokenTests(TestCase):
         for thread in threads:thread.start()
         for thread in threads:thread.join()
         self.assertEqual(outcomes.count('ok'),1);update.assert_called_once()
-
-
-class WebhookTransportTests(TestCase):
-    def test_delivery_messages_never_include_remote_bodies_or_exception_details(self):
-        ns=load_functions('managers/webhook_manager.py',dict(time=__import__('time'),
-            _rate_limit_lock=threading.Lock(),_webhook_url_cooldowns={},
-            post_webhook=Mock(return_value=(302,None)),_record_db_status=Mock()),{'_execute_delivery'})
-        ok,message=ns['_execute_delivery'](1,1,'https://example.com',False,{})
-        self.assertFalse(ok);self.assertIn('302',message)
-        ns['post_webhook'].side_effect=OSError('secret internal-only-value at 127.0.0.1')
-        ok,message=ns['_execute_delivery'](1,1,'https://example.com',False,{})
-        self.assertFalse(ok);self.assertNotIn('secret',message);self.assertNotIn('127.0.0.1',message)
-
-    def addresses(self, ip):
-        family=socket.AF_INET6 if ':' in ip else socket.AF_INET
-        return [(family,socket.SOCK_STREAM,6,'',(ip,443,0,0) if family==socket.AF_INET6 else (ip,443))]
-
-    def test_private_metadata_and_mixed_dns_answers_are_rejected(self):
-        for ip in ('127.0.0.1','10.0.0.1','169.254.169.254','100.100.100.200','::1','::ffff:127.0.0.1','168.63.129.16','224.0.0.1'):
-            with self.subTest(ip=ip), patch.object(webhook_http.socket,'getaddrinfo',return_value=self.addresses(ip)):
-                with self.assertRaises(ValueError):webhook_http.public_addresses('example.com',443)
-        with patch.object(webhook_http.socket,'getaddrinfo',return_value=self.addresses('8.8.8.8')+self.addresses('127.0.0.1')):
-            with self.assertRaises(ValueError):webhook_http.public_addresses('example.com',443)
-
-    def test_rebinding_is_rechecked_at_every_delivery(self):
-        with patch.object(webhook_http.socket,'getaddrinfo',side_effect=[self.addresses('8.8.8.8'),self.addresses('127.0.0.1')]), patch.object(webhook_http,'PinnedConnection') as connection:
-            webhook_http.public_addresses('example.com',443) # save-time check
-            with self.assertRaises(ValueError):webhook_http.post_webhook('https://example.com/hook',{})
-            connection.assert_not_called()
-
-    def test_redirect_is_not_followed_and_body_is_not_read(self):
-        with patch.object(webhook_http.socket,'getaddrinfo',return_value=self.addresses('8.8.8.8')), patch.object(webhook_http,'PinnedConnection') as factory:
-            response=factory.return_value.getresponse.return_value
-            response.status=302;response.getheader.return_value=None
-            self.assertEqual(webhook_http.post_webhook('https://example.com/hook',{}),(302,None))
-            factory.assert_called_once();factory.return_value.request.assert_called_once()
-            response.read.assert_not_called();response.close.assert_called_once()
-            factory.return_value.close.assert_called_once()
-
-    def test_pinned_socket_preserves_tls_hostname_and_never_resolves_again(self):
-        connection=webhook_http.PinnedConnection('example.com',443,self.addresses('8.8.8.8'),True)
-        with patch.object(webhook_http.socket,'socket') as factory, patch.object(webhook_http.socket,'getaddrinfo') as dns, patch.object(webhook_http.ssl,'create_default_context') as context:
-            connection.connect()
-            factory.return_value.connect.assert_called_once_with(('8.8.8.8',443))
-            context.return_value.wrap_socket.assert_called_once_with(factory.return_value,server_hostname='example.com')
-            dns.assert_not_called()
-
-    def test_invalid_url_forms_are_rejected(self):
-        for url in ('file:///tmp/x','http://user:pass@example.com','http://example.com/#secret','http://example.com:0','http://example.com:99999','http://example.com/\r\nx'):
-            with self.subTest(url=url),self.assertRaises(ValueError):webhook_http.destination(url)
 
 
 class BillingIdentityTests(TestCase):
