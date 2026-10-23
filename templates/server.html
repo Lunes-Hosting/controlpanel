@@ -242,6 +242,37 @@
             color: #f1f5f9;
         }
 
+        .bandwidth-details {
+            margin-top: 1.5rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid rgba(148, 163, 184, 0.18);
+        }
+
+        .bandwidth-details h3 {
+            margin: 0 0 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .bandwidth-details .info-row {
+            min-height: 2.5rem;
+        }
+
+        .bandwidth-details [data-bandwidth-value] {
+            font-variant-numeric: tabular-nums;
+            overflow-wrap: anywhere;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
+        .bandwidth-note {
+            margin: 0.75rem 0 0;
+            min-height: 6rem;
+            color: #cbd5e1;
+            font-size: 0.8rem;
+            line-height: 1.5;
+        }
+
         .panel-card h2 i {
             color: #60a5fa;
         }
@@ -636,6 +667,18 @@
                             <span>{{ info['attributes']['limits']['allocations'] }}</span>
                         </div>
                     </div>
+                    <section class="bandwidth-details" aria-labelledby="bandwidth-heading"
+                             data-bandwidth-url="{{ url_for('servers.server_bandwidth', server_id=info['attributes']['id']) }}">
+                        <h3 id="bandwidth-heading">Outbound bandwidth</h3>
+                        <div class="info-list">
+                            <div class="info-row"><span>Monthly allowance</span><span data-bandwidth-value="allowance">Not available yet</span></div>
+                            <div class="info-row"><span>Used this cycle</span><span data-bandwidth-value="usage">Not available yet</span></div>
+                            <div class="info-row"><span>Normal speed</span><span data-bandwidth-value="speed">Not available yet</span></div>
+                            <div class="info-row"><span>After allowance</span><span data-bandwidth-value="overage">Not available yet</span></div>
+                        </div>
+                        <p class="bandwidth-note" data-bandwidth-note>Monthly outbound usage uses decimal GB and resets on this server's monthly creation anniversary.</p>
+                        <noscript><p class="bandwidth-note">Enable JavaScript to view the current bandwidth policy and usage.</p></noscript>
+                    </section>
                 </section>
             </div>
         {% endif %}
@@ -681,6 +724,7 @@
         </div>
     </div>
 
+    <script defer src="{{ url_for('static', filename='js/server-bandwidth.js') }}"></script>
     <script>
         function openTransferModal() {
             document.getElementById('transferModal').style.display = 'block';

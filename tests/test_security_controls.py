@@ -16,6 +16,7 @@ from unittest.mock import Mock
 from flask import Flask, session, request, redirect, url_for, flash, current_app, g
 from mysql.connector import IntegrityError
 
+from runtime.bandwidth import creation_limits
 from tests.test_credit_transactions import load_functions
 from tests import test_credit_transactions as credit_tests
 
@@ -138,7 +139,7 @@ class QuotaTests(unittest.TestCase):
             'uuid4': __import__('uuid').uuid4,
         })
         self.ns.update(
-            display_cache=SimpleNamespace(clear=Mock()),
+            creation_limits=creation_limits, display_cache=SimpleNamespace(clear=Mock()),
             servers=SimpleNamespace(route=lambda *a, **kw: lambda f: f), login_required=lambda f: f,
             request=request, session=session, flash=flash, redirect=lambda x: x, url_for=lambda *a, **kw: '/servers/' + str(kw['server_id']) if a[0] == 'servers.server' else '/',
             get_user_verification_status=lambda _: True, _has_server_creation_approval=lambda _: True,
@@ -228,8 +229,8 @@ class SuspensionTests(unittest.TestCase):
         self.api = Mock()
         self.api.post.return_value.status_code = 204
         self.ns = load_functions('managers/suspension_manager.py', {})
-        self.ns.update(DatabaseManager=SimpleNamespace(transaction=transaction, execute_query=Mock(return_value=(7, 'user@example.com'))), requests=self.api,
-                       display_cache=SimpleNamespace(clear=Mock()),
+        self.ns.update(DatabaseManager=SimpleNamespace(transaction=transaction, execute_query=Mock(return_value=('user@example.com',))), requests=self.api,
+                       creation_limits=creation_limits, display_cache=SimpleNamespace(clear=Mock()),
                        PTERODACTYL_URL='https://example.invalid/', HEADERS={}, datetime=datetime,
                        get_server_information=lambda _: {'attributes': {'user': 7}},
                        queue_suspension_email=Mock(), clear_suspension_email_keys=Mock(),

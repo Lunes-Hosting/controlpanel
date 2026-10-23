@@ -9,6 +9,7 @@ from unittest.mock import Mock
 
 from flask import Flask, Blueprint, request, session, flash, redirect, url_for
 
+from runtime.bandwidth import creation_limits
 from tests.test_credit_transactions import load_functions
 
 
@@ -31,7 +32,7 @@ class ServerVerificationTests(unittest.TestCase):
         database = Mock()
         database.execute_query.side_effect = [('client',), (None,), ('client',)]
         self.ns.update(
-            display_cache=SimpleNamespace(clear=Mock()),
+            creation_limits=creation_limits, display_cache=SimpleNamespace(clear=Mock()),
             servers=Blueprint('servers', __name__), flash=flash,
             serialized_server_creation=lambda f: f,
             pending_server_creations=lambda *a: 0,

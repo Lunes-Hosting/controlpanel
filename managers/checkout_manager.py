@@ -64,10 +64,13 @@ def checkout_details(checkout, order=None):
         raise ValueError('Paid checkout has missing or unexpected line items')
     price_id = (items[0].get('price') or {}).get('id')
     quantity = items[0].get('quantity', 1)
-    if not price_id or not isinstance(quantity, int) or isinstance(quantity,bool) or quantity < 1 or not email:
+    if not price_id or not isinstance(quantity, int) or isinstance(quantity,bool) or quantity < 1 or (not order and not email):
         raise ValueError('Paid checkout has invalid purchase details')
     if order:
-        if price_id != order['price_id'] or email != order['email'] or quantity != 1:
+        # The locally recorded Checkout ID binds this purchase to its account.
+        # Stripe customer emails can change through the billing portal; they
+        # must not override that binding or prevent a paid order being credited.
+        if price_id != order['price_id'] or quantity != 1:
             raise ValueError('Paid checkout does not match its saved order')
         recipient = DatabaseManager.execute_query('SELECT email FROM users WHERE id=%s', (order['user_id'],))
         if not recipient:

@@ -63,11 +63,14 @@ from managers.signup_signals import (collect_signals, device_token, find_matches
 from managers.signup_location import connection_details
 from managers.alt_settings import alt_detection_enabled
 from managers.account_sessions import establish_session
+from managers.email_identity import find_user_by_email
+from runtime.email_identity import canonical_email
+from managers.password_resets import issue_password_reset, apply_password_reset, InvalidResetToken
 from managers.suspension_manager import get_user_suspension
 from runtime.request_security import client_ip, peer_ip, login_limit_key, login_credentials
 from runtime.rate_limits import limiter
 from managers.dashboard_inventory import dashboard_inventory
-from managers.email_manager import send_email, generate_verification_token, send_verification_email, generate_reset_token, send_reset_email
+from managers.email_manager import send_email, generate_verification_token, send_verification_email, send_reset_email
 from managers.user_manager import account_get_information, get_id, get_name, instantly_delete_user, get_ptero_id
 from managers.server_manager import improve_list_servers, display_servers, delete_server as manager_delete_server
 from managers.credit_manager import convert_to_product
@@ -182,7 +185,7 @@ def login_user():
 
             if response:
                 raw_next = request.form.get('next') or request.args.get('next') or session.get("next")
-                establish_session(email, response)
+                establish_session(response[7], response)
                 # Keeping your front door locked tight against open redirects, cutie.
                 if raw_next and is_safe_url(raw_next):
                     next_page = raw_next
@@ -257,10 +260,6 @@ def index():
         key=lambda x: x[1],
     )
 
-    from managers.webhook_manager import get_user_webhook
-    account_id = session.get('account_id')
-    user_webhook = get_user_webhook(account_id) if account_id else None
-
     return render_template(
         "account.html", 
         credits=int(current_credits), 
@@ -271,7 +270,6 @@ def index():
         subscription_credit_options=subscription_credit_options,
         verified=verified,
         suspended=suspended,
-        user_webhook=user_webhook,
         **inventory,
     )
 
@@ -326,7 +324,7 @@ def reset_password():
     Process:
         1. Validate email exists in database
         2. Generate secure reset token
-        3. Cache token with email for 30 minutes
+        3. Persist a hashed, account-bound token for 30 minutes
         4. Send reset email with token link
         
     Returns:
@@ -348,16 +346,12 @@ def reset_password():
             flash("Failed captcha please try again")
             return render_template("reset_password.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
-        email = request.form.get('email')
-
-        # Generate a reset token
-        reset_token = generate_reset_token()
-
-        # Store the reset token in the cache with the email as the key
-        cache.set(email, reset_token, timeout=TOKEN_EXPIRATION_TIME)
-        # Compose and send the reset email
-        email_thread = threading.Thread(target=send_reset_email, args=(str(email), reset_token, current_app._get_current_object()), daemon=True)
-        email_thread.start()
+        account = find_user_by_email(request.form.get('email'))
+        if account:
+            reset_token = issue_password_reset(account, TOKEN_EXPIRATION_TIME)
+            email_thread = threading.Thread(target=send_reset_email,
+                args=(account[7], reset_token, current_app._get_current_object()), daemon=True)
+            email_thread.start()
         flash('An email with instructions to reset your password has been sent.')
         return redirect(url_for('user.login_user'))
 
@@ -386,10 +380,10 @@ def reset_password_confirm(token):
         - reset_password_confirm.html: New password form
         
     Process:
-        1. Validate token matches cached token
-        2. Update password in local database
-        3. Update password in Pterodactyl panel
-        4. Clear reset token from cache
+        1. Lock and validate the persistent account-bound token
+        2. Update the account's password in Pterodactyl
+        3. Update the local password by account ID
+        4. Consume the token in the same database transaction
         
     Returns:
         GET: template: reset_password_confirm.html
@@ -400,56 +394,34 @@ def reset_password_confirm(token):
         - update_panel_password(): Updates Pterodactyl password
     """
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        if not password or len(password.encode('utf-8')) > 72 or password != confirm_password:
+            flash('Passwords must match and contain between 1 and 72 bytes.')
+            return render_template('reset_password_confirm.html', token=token), 400
 
-        token_cache = cache.get(email)
+        def update_panel(ptero_id, registered_email, new_password):
+            info_response = auth_requests.get(
+                f"{PTERODACTYL_URL}api/application/users/{ptero_id}", headers=HEADERS, timeout=(3, 10))
+            info_response.raise_for_status()
+            info = info_response.json()['attributes']
+            body = {key: info[key] for key in ('username', 'email', 'first_name', 'last_name')}
+            body['password'] = new_password
+            panel_response = auth_requests.patch(
+                f"{PTERODACTYL_URL}api/application/users/{ptero_id}", headers=HEADERS,
+                json=body, timeout=(3, 10))
+            panel_response.raise_for_status()
 
-        if token_cache and token and token_cache == token:
-            if password == confirm_password:
-                salt = bcrypt.gensalt(rounds=14)
-                password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
-
-                ptero_id = get_ptero_id(email)
-                if ptero_id is None:
-                    flash('Error: User not found in Pterodactyl panel')
-                    return redirect(url_for('user.login_user'))
-                
-                # Update password in panel
-                try:
-                    info_response = auth_requests.get(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, timeout=(3, 10))
-                    info_response.raise_for_status()
-                    info = info_response.json()['attributes']
-                    body = {
-                        "username": info['username'],
-                        "email": info['email'],
-                        "first_name": info['first_name'],
-                        "last_name": info['last_name'],
-                        "password": password
-                    }
-
-                    panel_response = auth_requests.patch(f"{PTERODACTYL_URL}api/application/users/{ptero_id[0]}", headers=HEADERS, json=body, timeout=(3, 10))
-                    panel_response.raise_for_status()
-
-                except (requests.RequestException, ValueError, KeyError):
-                    flash('The hosting panel is temporarily unavailable. Your reset link is still valid; please try again.')
-                    return render_template('reset_password_confirm.html', token=token), 503
-
-                DatabaseManager.execute_query(
-                    "UPDATE users SET password = %s WHERE email = %s",
-                    (password_hash.decode(), email)
-                )
-
-                # Wiping the token by email the second it's used so nobody gets to replay your keys.
-                cache.delete(email)
-
-                flash('Your password has been successfully reset.')
-                return redirect(url_for('user.login_user'))
-            else:
-                flash('Passwords do not match.')
-        else:
+        try:
+            apply_password_reset(token, password, update_panel)
+        except InvalidResetToken:
             flash('Invalid or expired reset token.')
+            return render_template('reset_password_confirm.html', token=token), 400
+        except (requests.RequestException, ValueError, KeyError):
+            flash('The hosting panel is temporarily unavailable. Your reset link is still valid; please try again.')
+            return render_template('reset_password_confirm.html', token=token), 503
+        flash('Your password has been successfully reset.')
+        return redirect(url_for('user.login_user'))
 
     return render_template('reset_password_confirm.html', token=token)
 
@@ -505,7 +477,11 @@ def register_user():
         
 
         data = request.form
-        email = (data.get('email') or '').strip().lower()
+        try:
+            email = canonical_email(data.get('email'))
+        except ValueError:
+            flash('Please enter a valid email address.')
+            return render_template('register.html', RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY), 400
         password = data.get('password') or ''
         name = (data.get('username') or '').strip()
         ip = _get_client_ip(request)
@@ -846,60 +822,3 @@ def delete_account():
         return redirect(url_for('index'))
         
     return redirect(url_for('user.login_user'))
-
-
-@user.route('/webhook/save', methods=['POST'])
-@login_required
-@limiter.limit("10 per minute; 30 per hour")
-def save_webhook():
-    account_id = session.get('account_id')
-    if not account_id:
-        flash("Invalid session. Please log in again.")
-        return redirect(url_for('user.index'))
-
-    url = request.form.get('url', '').strip()
-
-    from managers.webhook_manager import save_user_webhook
-    success, message = save_user_webhook(account_id, url)
-
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
-        return jsonify(success=success, message=message), (200 if success else 400)
-
-    flash(message)
-    return redirect(url_for('user.index') + "#WebhooksArea")
-
-
-@user.route('/webhook/test', methods=['POST'])
-@login_required
-@limiter.limit("5 per minute; 20 per hour")
-def test_webhook():
-    account_id = session.get('account_id')
-    if not account_id:
-        return jsonify(success=False, message="Invalid session."), 401
-
-    from managers.webhook_manager import test_user_webhook
-    success, message = test_user_webhook(account_id)
-
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
-        return jsonify(success=success, message=message), (200 if success else 400)
-
-    flash(message)
-    return redirect(url_for('user.index') + "#WebhooksArea")
-
-
-@user.route('/webhook/delete', methods=['POST'])
-@login_required
-def delete_webhook():
-    account_id = session.get('account_id')
-    if not account_id:
-        return redirect(url_for('user.index'))
-
-    from managers.webhook_manager import delete_user_webhook
-    deleted = delete_user_webhook(account_id)
-
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
-        return jsonify(success=deleted, message="Webhook removed."), 200
-
-    flash("Webhook configuration removed.")
-    return redirect(url_for('user.index') + "#WebhooksArea")
-

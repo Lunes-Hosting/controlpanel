@@ -53,6 +53,7 @@ import sys
 from threadedreturn import ThreadWithReturnValue
 sys.path.append("..")
 from managers.authentication import login_required
+from managers.billing_identity import verified_billing_required, get_stripe_customer
 from managers.user_manager import get_ptero_id, get_id
 from managers.payment_manager import credit_payment
 from managers.invoice_manager import remember_invoice, fulfill_invoice, invoice_snapshot, invoice_subscription
@@ -79,6 +80,7 @@ store = Blueprint('store', __name__)
 
 @store.route("/")
 @login_required
+@verified_billing_required
 def storepage():
     """
     Display the store page with available products.
@@ -122,6 +124,7 @@ def storepage():
 
 @store.route('/subscribe/<price_link>', methods=['POST', 'GET'])
 @login_required
+@verified_billing_required
 def create_subscription_checkout_session(price_link: str):
     if price_link not in SUBSCRIPTION_CREDIT_PRICES:
         flash("not valid subscription")
@@ -146,11 +149,12 @@ def create_subscription_checkout_session(price_link: str):
         mode='subscription',
         success_url=success_url,
         cancel_url=cancel_url,
-        customer_email=user_email,
+        customer=get_stripe_customer(session['account_id']),
         subscription_data={
             'metadata': {
                 'user_email': user_email,
                 'user_id': str(session['account_id']),
+                'panel_origin': HOSTED_URL.rstrip('/'),
                 'credits_per_month': str(credits_per_month),
                 'price_link': price_link,
             }
@@ -162,18 +166,14 @@ def create_subscription_checkout_session(price_link: str):
 
 @store.route('/portal', methods=['GET'])
 @login_required
+@verified_billing_required
 def billing_portal():
     user_email = str(session.get('email', '')).strip().lower()
     if not user_email:
         flash("not valid user")
         return redirect(url_for("user.index"))
 
-    customers = stripe.Customer.list(email=user_email, limit=1)
-    if customers and customers.get('data'):
-        customer_id = customers['data'][0]['id']
-    else:
-        customer = stripe.Customer.create(email=user_email)
-        customer_id = customer['id']
+    customer_id = get_stripe_customer(session['account_id'])
 
     portal_session = stripe.billing_portal.Session.create(
         customer=customer_id,
@@ -191,6 +191,7 @@ def checkout_success_url(base):
 
 @store.route('/checkout/<price_link>', methods=['POST', 'GET'])
 @login_required
+@verified_billing_required
 def create_checkout_session(price_link: str):
     """
     Create a Stripe checkout session for product purchase.
@@ -251,7 +252,7 @@ def create_checkout_session(price_link: str):
         mode='payment',
         success_url=checkout_success_url(YOUR_SUCCESS_URL),
         cancel_url=YOUR_CANCEL_URL,
-        customer_email=str(session['email']).strip().lower()
+        customer=get_stripe_customer(session['account_id'])
     )
     # Save before redirecting the buyer, so reconciliation survives restarts and
     # does not depend on the browser cookie or webhook delivery.
@@ -333,6 +334,7 @@ def stripe_webhook():
 
 @store.route('/success', methods=['GET'])
 @login_required
+@verified_billing_required
 def success():
     # Each Stripe return URL carries its own ID; starting another purchase must
     # not make this callback settle the newer purchase instead.
@@ -364,6 +366,8 @@ def success():
 
 
 @store.route('/cancel', methods=['GET'])
+@login_required
+@verified_billing_required
 def cancel():
     """
     Handle cancelled payment callback from Stripe.

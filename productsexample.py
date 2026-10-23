@@ -17,6 +17,25 @@ Required Fields:
         disk (int): Storage space in MB
         io (int): I/O limit (500 default)
         cpu (int): CPU limit percentage (0 for unmetered)
+
+        Optional Outbound Bandwidth addon fields (all server plans support these):
+        bandwidth_gb (int): Monthly outbound GB (decimal), 0-1,000,000.
+            Missing or 0 disables BOTH the quota and network speed cap and
+            explicitly overrides fleet defaults with an unlimited policy.
+        network_speed_mbps (int): Normal outbound Mbps, 0-100,000; 0 is unlimited.
+        bandwidth_overage_action (str): "block" or "throttle" (default "block").
+        bandwidth_overage_mbps (int): Throttled Mbps, 1-100,000 (default 1).
+            Only used with "throttle" and a nonzero bandwidth_gb.
+
+        Example inside a plan's limits in products.py:
+            "bandwidth_gb": 1000,
+            "network_speed_mbps": 100,
+            "bandwidth_overage_action": "throttle",
+            "bandwidth_overage_mbps": 5
+
+        Requires the Outbound Bandwidth addon on the Pterodactyl panel/node.
+        Policies apply on creation and plan changes. Editing this file alone
+        does not change existing servers or reset their current usage cycle.
     
     product_limits (dict): Additional feature limits
         databases (int): Number of databases allowed
@@ -45,7 +64,11 @@ products = [
             "swap": 0,
             "disk": 512,
             "io": 500,
-            "cpu": 15
+            "cpu": 15,
+            "bandwidth_gb": 0,
+            "network_speed_mbps": 0,
+            "bandwidth_overage_action": "block",
+            "bandwidth_overage_mbps": 1
         },
         "product_limits": {
             "databases": 0,

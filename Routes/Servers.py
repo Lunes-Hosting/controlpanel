@@ -70,6 +70,8 @@ from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY
 from managers.server_creation_lock import (serialized_server_creation, pending_server_creations,
                                           reserve_server_creation, finish_server_creation)
 from runtime.display_cache import display_cache
+from runtime.bandwidth import creation_limits, resource_limits, plan_bandwidth
+from managers.bandwidth_manager import read_bandwidth, update_plan, serialized_plan_update
 
 servers = Blueprint('servers', __name__)
 
@@ -288,6 +290,24 @@ def server(server_id):
     suspension_reason = (suspension['reason'] if suspension and suspension['active'] else
                          "A reason was not recorded for this suspension. Please contact support.")
     return render_template('server.html', info=info, products=products_local, nodes=tuple(nodes), verified=verified, credits=int(credits), current_product=current_product, suspension_reason=suspension_reason)
+
+
+@servers.route('/<int:server_id>/bandwidth', methods=['GET'])
+@login_required
+def server_bandwidth(server_id):
+    owner = get_ptero_id(session['email'])
+    info = get_server_information(server_id)
+    if not info:
+        return jsonify(error='Server unavailable.'), 404
+    if not owner or info['attributes']['user'] != owner[0]:
+        return jsonify(error='You cannot view this server.'), 403
+    try:
+        response = jsonify(read_bandwidth(server_id))
+        response.headers['Cache-Control'] = 'private, no-store'
+        return response
+    except Exception:
+        return jsonify(error='Bandwidth information is temporarily unavailable.'), 503
+
 
 @servers.route("/create", methods=["GET"])
 @login_required
@@ -638,6 +658,12 @@ def create_server_submit():
         return ("Your Account has been suspended for breaking our TOS, if you believe this is a mistake you can submit "
                 "appeal at panel@lunes.host")
 
+    try:
+        limits = creation_limits(main_product)
+    except ValueError:
+        webhook_log(f"Invalid bandwidth configuration for plan {main_product['id']}", database_log=True)
+        return "This plan is temporarily unavailable. Please contact support.", 503
+
     creation_request_id = reserve_server_creation(session['account_id'])
     try:
         debit = remove_credits(session['email'], credits_used)
@@ -656,7 +682,7 @@ def create_server_submit():
         "egg": egg_id,
         "docker_image": docker_image,
         "startup": startup,
-        "limits": main_product['limits'],
+        "limits": limits,
         "feature_limits": main_product['product_limits'],
         "allocation": {
             "default": alloac_id
@@ -680,20 +706,6 @@ def create_server_submit():
         finish_server_creation(creation_request_id, created_server_id)
         if isinstance(created_server_id, int) and created_server_id > 0:
             webhook_log(f"Server was just created: ```{res}```", database_log=True)
-            try:
-                from managers.webhook_manager import notify_server_provisioned
-                notify_server_provisioned(
-                    session.get('account_id'),
-                    {
-                        "server_id": created_server_id,
-                        "server_name": request.form.get('name', 'Game Server'),
-                        "node": node_id,
-                        "memory": (main_product.get('limits') or {}).get('memory', 'N/A'),
-                        "disk": (main_product.get('limits') or {}).get('disk', 'N/A'),
-                    }
-                )
-            except Exception:
-                pass
             return redirect(url_for('servers.server', server_id=created_server_id))
     webhook_log(f"Server was just created: ```{res}```", database_log=True)
     return redirect(url_for('user.index'))
@@ -763,6 +775,12 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
             )
             return "You can't update this server you dont own it!"
 
+    return _update_server_plan(server_id, target_attrs, bypass_owner_only)
+
+
+@serialized_plan_update
+def _update_server_plan(server_id, target_attrs, bypass_owner_only=False):
+    # Only authorized owners/admins acquire the cross-worker mutation lock.
     target_is_free_tier = target_attrs.get('limits', {}).get('memory') == 128
 
     products_local = list(products)
@@ -789,23 +807,32 @@ def update_server_submit(server_id, bypass_owner_only: bool = False):
                 
                 is_free_plan = main_product['limits']['memory'] == 128
                 
-                if bypass_owner_only is False and not is_free_plan:
-                    res = remove_credits(session['email'], credits_used)
-                    if res == "SUSPEND":
-                        flash("You are out of credits")
-                        return redirect(url_for('index'))
     except (ValueError, TypeError):
         return "Invalid plan ID"
 
     if not found_product:
         return "You already have free server"
 
-    body = main_product['limits']
-    body["feature_limits"] = main_product['product_limits']
-    body['allocation'] = resp['attributes']['allocation']
-    _resp2 = requests.patch(f"{PTERODACTYL_URL}api/application/servers/{int(server_id)}/build", headers=HEADERS,
-                           json=body, timeout=60)
-    return redirect(url_for('index'))
+    try:
+        bandwidth = plan_bandwidth(main_product)
+        body = resource_limits(main_product)
+    except ValueError:
+        return "This plan is temporarily unavailable. Please contact support.", 503
+    charged = bypass_owner_only is False and not is_free_plan
+    if charged and remove_credits(session['email'], credits_used) == 'SUSPEND':
+        flash("You are out of credits")
+        return redirect(url_for('user.index'))
+
+    body["feature_limits"] = dict(main_product['product_limits'])
+    body['allocation'] = target_attrs['allocation']
+    try:
+        update_plan(server_id, body, bandwidth)
+    except Exception:
+        if charged:
+            add_credits(session['email'], credits_used, False)
+        webhook_log(f"Plan update could not be confirmed for server {int(server_id)}; staff review may be required", database_log=True)
+        return "The plan update could not be confirmed. Reload the server page or contact support before retrying.", 503
+    return redirect(url_for('servers.server', server_id=server_id))
 
 @servers.route('/transfer/<server_id>')
 @login_required

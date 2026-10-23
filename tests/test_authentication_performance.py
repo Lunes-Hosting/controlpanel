@@ -8,6 +8,7 @@ import unittest
 import requests
 from flask import Flask, request, flash, current_app, redirect
 from runtime import auth_http
+from runtime.email_identity import canonical_email
 from tests.test_credit_transactions import load_functions
 
 class DependencyTests(unittest.TestCase):
@@ -60,11 +61,11 @@ class DependencyTests(unittest.TestCase):
 class LoginTests(unittest.TestCase):
     def test_success_uses_one_activity_write_and_still_checks_password_and_suspension(self):
         account=[None]*16
-        account[0]=7;account[1]='A';account[2]='member';account[9]='hash';account[15]=False
-        database=Mock();database.execute_query.side_effect=[account,None,None]
+        account[0]=7;account[1]='A';account[2]='member';account[7]='a@example.com';account[9]='hash';account[15]=False
+        database=Mock();database.execute_query.side_effect=[None,None]
         bcrypt=Mock();bcrypt.checkpw.return_value=True
         alt=Mock(return_value={'allowed':True})
-        ns=dict(__package__='managers',DatabaseManager=database,bcrypt=bcrypt,webhook_log=Mock(),logging=logging)
+        ns=dict(find_user_by_email=Mock(return_value=account),__package__='managers',DatabaseManager=database,bcrypt=bcrypt,webhook_log=Mock(),logging=logging)
         load_functions('managers/authentication.py',ns,{'login'})
         with patch.dict(sys.modules,{'managers.alt_detection':SimpleNamespace(check_login_ip=alt)}):
             self.assertIs(ns['login']('a@example.com','password','8.8.8.8'),account)
@@ -73,7 +74,7 @@ class LoginTests(unittest.TestCase):
         self.assertIn('last_seen = NOW(), ip = %s',writes[0].args[0])
         bcrypt.checkpw.assert_called_once_with(b'password',b'hash')
         alt.assert_called_once()
-        account[15]=True;database.execute_query.side_effect=[account];alt.reset_mock()
+        account[15]=True;database.execute_query.side_effect=[None];alt.reset_mock()
         self.assertEqual(ns['login']('a@example.com','password','8.8.8.8'),'suspended')
         alt.assert_not_called()
 
@@ -82,7 +83,7 @@ class RegistrationIdentityTests(unittest.TestCase):
         database=Mock()
         api=Mock();api.post.return_value.json.return_value={'attributes':{'id':77}}
         thread=Mock();thread.return_value.join.return_value=b'hashed'
-        ns=dict(DatabaseManager=database,auth_requests=api,blocked_email_list=Mock(get=lambda:()),bcrypt=Mock(),
+        ns=dict(canonical_email=canonical_email,DatabaseManager=database,auth_requests=api,blocked_email_list=Mock(get=lambda:()),bcrypt=Mock(),
                 ThreadWithReturnValue=thread,webhook_log=Mock(),alt_detection_enabled=lambda:False,
                 requires_manual_server_approval=lambda _:False,HEADERS={},PTERODACTYL_URL='https://example.invalid/')
         load_functions('managers/authentication.py',ns,{'register'})
@@ -99,7 +100,12 @@ class ResetTests(unittest.TestCase):
         self.api=Mock();self.api.get.return_value.json.return_value={'attributes':dict(username='a',email='a@example.com',first_name='A',last_name='A')}
         self.cache=Mock();self.cache.get.return_value='valid-token'
         self.database=Mock();self.bcrypt=Mock();self.bcrypt.hashpw.return_value=b'hashed'
-        self.ns=dict(user=SimpleNamespace(route=lambda *a,**kw:lambda f:f),request=request,flash=flash,
+        self.invalid=type('InvalidResetToken',(ValueError,),{})
+        def apply(token,password,update_panel):
+            if token != 'valid-token':raise self.invalid()
+            update_panel(7,'a@example.com',password)
+        self.apply=Mock(side_effect=apply)
+        self.ns=dict(apply_password_reset=self.apply,InvalidResetToken=self.invalid,user=SimpleNamespace(route=lambda *a,**kw:lambda f:f),request=request,flash=flash,
                      cache=self.cache,bcrypt=self.bcrypt,get_ptero_id=lambda _: (7,),DatabaseManager=self.database,
                      auth_requests=self.api,requests=requests,HEADERS={},PTERODACTYL_URL='https://example.invalid/',
                      redirect=redirect,url_for=lambda *a,**kw:'/login',render_template=lambda *a,**kw:'Reset')
@@ -110,9 +116,7 @@ class ResetTests(unittest.TestCase):
     def test_reset_checks_remote_success_before_local_update_and_consumes_token(self):
         result=self.submit()
         self.assertEqual(result.status_code,302)
-        self.bcrypt.gensalt.assert_called_once_with(rounds=14)
-        self.database.execute_query.assert_called_once()
-        self.cache.delete.assert_called_once_with('a@example.com')
+        self.assertEqual(self.apply.call_args.args[:2],('valid-token','new-password'))
         self.assertEqual(self.api.patch.call_args.kwargs['timeout'],(3,10))
     def test_remote_failure_keeps_local_password_and_reset_token(self):
         self.api.patch.return_value.raise_for_status.side_effect=requests.HTTPError()
