@@ -8,20 +8,18 @@ Delivers notifications to Discord and HTTP endpoints for:
 - Unexpected server shutdowns / crashes
 - Webhook verification tests
 
-Includes strict anti-spam rate limiting, SSRF protection via DNS inspection,
+Includes strict anti-spam rate limiting, SSRF protection via pinned public IPs,
 and Discord 429 backoff management to prevent abuse and panel-wide rate limits.
 """
 
 import collections
 import datetime
-import ipaddress
 import json
 import logging
-import socket
 import threading
 import time
 import urllib.parse
-import requests
+from runtime.webhook_http import destination, public_addresses, post_webhook
 from managers.database_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
@@ -32,7 +30,6 @@ LUNES_ICON = "https://cdn.discordapp.com/avatars/1054831148557160639/b2c68aac086
 # Anti-spam and rate limiting controls
 USER_TEST_COOLDOWN_SECONDS = 30
 GLOBAL_MAX_TESTS_PER_MINUTE = 20
-MAX_RESPONSE_BYTES = 512
 
 _rate_limit_lock = threading.Lock()
 _user_test_timestamps: dict[int, float] = {}
@@ -66,8 +63,7 @@ def is_discord_webhook(url: str) -> bool:
     """Return True if URL is a Discord webhook."""
     try:
         parsed = urllib.parse.urlparse(url.strip())
-        netloc = parsed.netloc.lower()
-        return any(host in netloc for host in DISCORD_HOSTS) and "/api/webhooks" in parsed.path.lower()
+        return parsed.scheme == "https" and parsed.hostname in DISCORD_HOSTS and parsed.path.startswith("/api/webhooks/")
     except Exception:
         return False
 
@@ -75,22 +71,10 @@ def is_discord_webhook(url: str) -> bool:
 def _verify_safe_ip(hostname: str) -> tuple[bool, str]:
     """Resolve hostname and ensure it does not point to internal/private IP ranges."""
     try:
-        addr_info = socket.getaddrinfo(hostname, None)
-        for item in addr_info:
-            ip_str = item[4][0]
-            ip = ipaddress.ip_address(ip_str)
-            if (
-                ip.is_private
-                or ip.is_loopback
-                or ip.is_link_local
-                or ip.is_multicast
-                or ip.is_reserved
-                or ip.is_unspecified
-            ):
-                return False, f"Target IP ({ip}) is in a restricted range."
+        public_addresses(hostname, 443)
         return True, ""
-    except Exception as exc:
-        return False, f"Could not resolve destination host: {exc}"
+    except Exception:
+        return False, "Destination is unavailable or in a restricted network."
 
 
 def validate_webhook_url(url: str) -> tuple[bool, str]:
@@ -103,16 +87,9 @@ def validate_webhook_url(url: str) -> tuple[bool, str]:
         return False, "Webhook URL exceeds 1024 characters."
 
     try:
-        parsed = urllib.parse.urlparse(url)
-    except Exception:
-        return False, "Invalid URL format."
-
-    if parsed.scheme not in ("http", "https"):
-        return False, "URL must start with http:// or https://"
-
-    hostname = (parsed.hostname or "").lower()
-    if not hostname:
-        return False, "Invalid URL: missing domain."
+        parsed, hostname, port = destination(url)
+    except ValueError:
+        return False, "Invalid webhook URL. Use HTTP(S) without credentials or fragments."
 
     # DNS check to prevent SSRF against loopback / private IP / cloud metadata
     safe, err = _verify_safe_ip(hostname)
@@ -376,7 +353,7 @@ def _build_generic_payload(event_type: str, user_id: int, data: dict) -> dict:
 
 def _execute_delivery(webhook_id: int, user_id: int, url: str, is_discord: bool, payload: dict) -> tuple[bool, str]:
     """
-    POST payload to webhook URL with timeout, size limits, and 429 rate limit backoff.
+    POST with pinned DNS, no redirects or response bodies, and 429 backoff.
     """
     now = time.time()
     # Check if this specific URL is in a backoff period from a Discord 429
@@ -386,49 +363,28 @@ def _execute_delivery(webhook_id: int, user_id: int, url: str, is_discord: bool,
             wait_sec = int(blocked_until - now) + 1
             return False, f"Destination webhook is currently rate-limited. Retry in {wait_sec}s."
 
-    headers = {
-        "Content-Type": "application/json",
-        "User-Agent": "LunesHosting-Webhook/1.0"
-    }
-
     try:
-        # Tight connect and read timeouts so slow endpoints never tie up threads
-        response = requests.post(url, json=payload, headers=headers, timeout=(3.0, 5.0), stream=True)
-        status_text = f"HTTP {response.status_code}"
-
-        # Discord rate limit response handling (429)
-        if response.status_code == 429:
-            retry_after = 5.0
+        status, retry_header = post_webhook(url, payload)
+        status_text = f"HTTP {status}"
+        if status == 429:
             try:
-                data = response.json()
-                retry_after = float(data.get("retry_after", response.headers.get("Retry-After", 5.0)))
-            except Exception:
-                pass
+                retry_after = max(1.0, min(float(retry_header), 60.0))
+            except (TypeError, ValueError):
+                retry_after = 5.0
             with _rate_limit_lock:
-                _webhook_url_cooldowns[url] = time.time() + min(retry_after, 60.0)
-
-            err_msg = f"Rate limited by destination endpoint (retry after {retry_after:.1f}s)"
-            _record_db_status(user_id, status_text, err_msg)
-            return False, err_msg
-
-        # Read only up to MAX_RESPONSE_BYTES to prevent memory bloat/infinite streams
-        content_preview = ""
-        for chunk in response.iter_content(chunk_size=MAX_RESPONSE_BYTES):
-            content_preview = chunk.decode("utf-8", errors="replace")[:MAX_RESPONSE_BYTES]
-            break
-
-        if response.status_code in (200, 201, 204):
+                _webhook_url_cooldowns[url] = time.time() + retry_after
+            message = "Destination is rate limited. Please try again later."
+        elif 200 <= status < 300:
             _record_db_status(user_id, status_text, None)
             return True, f"Delivered successfully ({status_text})"
         else:
-            err_msg = f"Delivery failed ({status_text}): {content_preview[:200]}"
-            _record_db_status(user_id, status_text, err_msg)
-            return False, err_msg
-
-    except Exception as exc:
-        err_msg = f"Connection error: {str(exc)[:200]}"
-        _record_db_status(user_id, "ERROR", err_msg)
-        return False, err_msg
+            message = f"Delivery failed ({status_text}). Redirects are not followed."
+        _record_db_status(user_id, status_text, message)
+        return False, message
+    except Exception:
+        message = "Webhook destination is unavailable or blocked."
+        _record_db_status(user_id, "ERROR", message)
+        return False, message
 
 
 def _record_db_status(user_id: int, status_text: str, err_msg: str | None):
