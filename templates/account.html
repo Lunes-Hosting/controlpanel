@@ -11,7 +11,7 @@
 
 
     </head>
-    <body data-dashboard-account="{{ session['account_id'] }}" data-dashboard-inventory-url="{{ url_for('user.dashboard_servers_data', server_page=request.args.get('server_page', 1, type=int)) }}" data-inventory-ready="{{ 'true' if servers_ready else 'false' }}" data-inventory-refreshing="{{ 'true' if inventory_state.refreshing else 'false' }}" class="bg-slate-950 text-white min-h-screen relative overflow-x-hidden" style="font-family: Lunes Sans,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
+    <body data-dashboard-account="{{ session['account_id'] }}" data-dashboard-inventory-url="{{ url_for('user.dashboard_servers_data', server_page=current_server_page) }}" data-inventory-ready="{{ 'true' if servers_ready else 'false' }}" data-inventory-refreshing="{{ 'true' if inventory_state.refreshing else 'false' }}" class="bg-slate-950 text-white min-h-screen relative overflow-x-hidden" style="font-family: Lunes Sans,ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;">
     <div class="background-blob blob-one"></div>
     <div class="background-blob blob-two"></div>
     <div class="noise-overlay"></div>
