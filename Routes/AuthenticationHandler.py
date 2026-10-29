@@ -278,7 +278,11 @@ def dashboard_server_page(state, page=1):
     data = state['data']
     count = data['server_count'] if data is not None else None
     total_pages = max(1, ((count or 0) + 19) // 20)
-    page = min(total_pages, max(1, page))
+    page = max(1, page)
+    # Preserve a direct page link while inventory loads in the background.
+    # Only clamp to the last page once the actual server count is known.
+    if data is not None:
+        page = min(total_pages, page)
     start = (page - 1) * 20
     return dict(servers=(data['servers'][start:start + 20] if data else []),
                 server_count=count, monthly_usage=data['monthly_usage'] if data else None,
