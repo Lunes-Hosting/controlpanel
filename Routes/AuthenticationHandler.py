@@ -33,10 +33,8 @@ Session Variables:
 - pterodactyl_id: User's Pterodactyl panel ID
 - verified: Email verification status
 
-Cache Keys:
----------
-- [email]: Stores email verification tokens
-- reset_[token]: Stores password reset tokens
+Verification and reset tokens are stored hashed in the database and bound to
+account IDs rather than to browser sessions or shared cache keys.
 """
 
 import asyncio
@@ -66,11 +64,13 @@ from managers.account_sessions import establish_session
 from managers.email_identity import find_user_by_email
 from runtime.email_identity import canonical_email
 from managers.password_resets import issue_password_reset, apply_password_reset, InvalidResetToken
+from managers.email_verification import (issue_email_verification, validate_email_verification,
+                                         InvalidVerificationToken)
 from managers.suspension_manager import get_user_suspension
 from runtime.request_security import client_ip, peer_ip, login_limit_key, login_credentials
 from runtime.rate_limits import limiter
 from managers.dashboard_inventory import dashboard_inventory
-from managers.email_manager import send_email, generate_verification_token, send_verification_email, send_reset_email
+from managers.email_manager import send_email, send_verification_email, send_reset_email
 from managers.user_manager import account_get_information, get_id, get_name, instantly_delete_user, get_ptero_id
 from managers.server_manager import improve_list_servers, display_servers, delete_server as manager_delete_server
 from managers.credit_manager import convert_to_product
@@ -78,7 +78,6 @@ from managers.utils import HEADERS
 from managers.logging import webhook_log
 from products import products
 
-from cacheext import cache
 from managers.database_manager import DatabaseManager
 from config import PTERODACTYL_URL, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY, SUBSCRIPTION_CREDIT_PRICES
 
@@ -463,7 +462,7 @@ def register_user():
     Related Functions:
         - register(): Creates user accounts
         - send_verification_email(): Sends email verification
-        - generate_verification_token(): Creates secure token
+        - issue_email_verification(): Creates an account-bound verification link
     """
     if request.method == "GET":
         blocked_email_list.preload()
@@ -565,12 +564,11 @@ def register_user():
         except Exception as exc:
             pass
 
-        verification_token = generate_verification_token()
-        cache.set(verification_token, email, timeout=TOKEN_EXPIRATION_TIME)
+        verification_token, verification_email = issue_email_verification(user_id, TOKEN_EXPIRATION_TIME)
 
         email_thread = threading.Thread(
             target=send_verification_email, 
-            args=(email, verification_token, current_app._get_current_object()), 
+            args=(verification_email, verification_token, current_app._get_current_object()),
             daemon=True
         )
         email_thread.start()
@@ -623,7 +621,7 @@ def register_user():
             )
         else:
             flash('A verification email has been sent. Please check your inbox and spam to verify your email.')
-        return redirect(url_for('index'))
+        return redirect(url_for('user.login_user'))
     if 'email' in session:
         return redirect(url_for("user.index"))
     device_token()
@@ -641,82 +639,65 @@ def resend_confirmation_email():
         
     Process:
         1. Generate new verification token
-        2. Cache token with email
+        2. Persist a hashed token bound to the account ID and registered email
         3. Send verification email
         
     Returns:
         redirect: To account page with confirmation
         
     Related Functions:
-        - generate_verification_token(): Creates new token
+        - issue_email_verification(): Creates an account-bound verification link
         - send_verification_email(): Sends verification email
     """
 
-    verification_token = generate_verification_token()
-
-    cache.set(verification_token, session["email"], timeout=TOKEN_EXPIRATION_TIME )
-
-    email_thread = threading.Thread(
-        target=send_verification_email, 
-        args=(session['email'], verification_token, current_app._get_current_object()), 
-        daemon=True
-    )
-    email_thread.start()
-
-    flash("Sent a verification email")
-    return redirect(url_for('index'))
+    try:
+        issued = issue_email_verification(session['account_id'], TOKEN_EXPIRATION_TIME)
+    except Exception:
+        return 'Email verification is temporarily unavailable. Please try again.', 503
+    if issued is None:
+        flash('Your email address is already verified.')
+        return redirect(url_for('user.index'))
+    verification_token, email = issued
+    threading.Thread(target=send_verification_email,
+        args=(email, verification_token, current_app._get_current_object()), daemon=True).start()
+    flash('Sent a verification email. Only the newest link can be used.')
+    return redirect(url_for('user.index'))
 
 
 @user.route('/verify_email/<token>', methods=['GET', 'POST'])
 @login_required
 def verify_email(token):
-    """
-    Verify user's email address.
-    
-    Args:
-        token: Email verification token
-        
-    Process:
-        1. Get email from cache using token
-        2. Verify token matches and is valid
-        3. Update user's verified status
-        4. Clear verification token from cache
-        5. Log verification in webhook
-        
-    Returns:
-        redirect: To account page with status message
-        
-    Related Functions:
-        - webhook_log(): Logs verification event
-    """
+    def check_token(consume=False):
+        return validate_email_verification(token, session['account_id'], consume=consume)
 
-    # Require CAPTCHA before verifying email
+    try:
+        check_token()
+    except PermissionError:
+        return ('This link belongs to a different account. Sign out and sign in with the '
+                'account that requested it, then reopen the link. The link has not been used.'), 403
+    except InvalidVerificationToken:
+        return 'Invalid or expired verification link. Sign in and request a new verification email.', 400
+    except Exception:
+        return 'Email verification is temporarily unavailable. Please try again.', 503
     if request.method == 'GET':
         return render_template('verify_email.html', RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY, token=token)
-
-    # POST: validate Turnstile/Recaptcha
-    recaptcha_response = request.form.get('g-recaptcha-response')
-    data = {
-        'secret': RECAPTCHA_SECRET_KEY,
-        'response': recaptcha_response
-    }
-    response = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data, timeout=60)
-    result = response.json()
-    if not result.get('success'):
+    try:
+        success = verify_turnstile(request.form.get('g-recaptcha-response'), RECAPTCHA_SECRET_KEY)
+    except (requests.RequestException, ValueError):
+        return 'Verification temporarily unavailable. Your link has not been used; please try again.', 503
+    if not success:
         flash('Failed captcha please try again')
-        return render_template('verify_email.html', RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY, token=token)
-
-    email = cache.get(token)
-    if email:
-        DatabaseManager.execute_query(
-            "UPDATE users SET email_verified_at = %s WHERE email = %s",
-            (datetime.datetime.now(), email)
-        )
-        cache.delete(token)
-        flash('Your email has been successfully verified.')
-    else:
-        flash('Invalid or expired verification token.')
-    return redirect(url_for('index'))
+        return render_template('verify_email.html', RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY, token=token), 400
+    try:
+        check_token(consume=True)
+    except PermissionError:
+        return 'Sign in with the account this verification link belongs to.', 403
+    except InvalidVerificationToken:
+        return 'Invalid or expired verification link. Please request a new verification email.', 400
+    except Exception:
+        return 'Email verification is temporarily unavailable. Please try again.', 503
+    flash('Your email has been successfully verified.')
+    return redirect(url_for('user.index'))
 
 @user.route('/logout', methods=['GET'])
 @login_required
