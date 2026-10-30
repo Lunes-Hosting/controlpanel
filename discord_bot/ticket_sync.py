@@ -82,6 +82,7 @@ async def create_discord_ticket_channel(
                 opener_email,
                 initial_message,
                 ticket_url,
+                ticket_id=ticket_id,
             )
             await _apply_ticket_channel_status(channel, ticket_id)
             return
@@ -99,6 +100,7 @@ async def create_discord_ticket_channel(
         opener_email,
         initial_message,
         ticket_url,
+        ticket_id=ticket_id,
     )
     await _apply_ticket_channel_status(channel, ticket_id)
 
@@ -110,6 +112,7 @@ async def send_ticket_open_message(
     opener_email: str,
     message: str,
     ticket_url: str,
+    ticket_id: Optional[str] = None,
 ) -> None:
     embed = discord.Embed(
         title=title,
@@ -120,6 +123,9 @@ async def send_ticket_open_message(
     embed.add_field(name="Opened By", value=f"{opener_name}\n`{opener_email}`", inline=False)
     embed.add_field(name="Ticket Link", value=ticket_url, inline=False)
     await channel.send(embed=embed)
+    if ticket_id is not None:
+        from discord_bot.account_approval import post_ticket_account_review
+        await post_ticket_account_review(channel, ticket_id)
 
 
 async def send_discord_ticket_message(
