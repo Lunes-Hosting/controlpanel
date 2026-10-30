@@ -235,6 +235,8 @@ class DiscordReviewTests(unittest.IsolatedAsyncioTestCase):
         calls=channel.send.call_args_list
         self.assertEqual(calls[0].kwargs['embed'].author.name,'New Ticket Created')
         self.assertEqual(calls[1].kwargs['embed'].title,'Free account review')
+        self.assertEqual(calls[1].kwargs['embed'].description,"This free account hasn't been approved yet.")
+        self.assertEqual(len(calls[1].kwargs['embed'].fields),0)
         self.assertEqual(calls[1].kwargs['view'].user_id,1) # ticket owner, not staff
         self.assertEqual([child.label for child in calls[1].kwargs['view'].children],['Approve','Deny'])
 

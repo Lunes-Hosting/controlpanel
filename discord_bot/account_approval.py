@@ -69,7 +69,7 @@ class AccountApprovalView(discord.ui.View):
             await interaction.followup.send('Could not save the review. Please try again.', ephemeral=True)
             return
         # A stale button always reflects the saved result and cannot override it.
-        await _edit_review_message(interaction.message, state)
+        await _edit_review_message(interaction.message, state, ticket=bool(self.ticket_id))
         if state['changed']:
             try:
                 await asyncio.to_thread(webhook_log,
@@ -86,8 +86,22 @@ def _status_text(state):
             'not_required': 'Manual approval is not required'}.get(state['status'], 'Unavailable')
 
 
-async def _edit_review_message(message, state):
+def _ticket_review_embed(status='pending'):
+    description = {
+        'pending': "This free account hasn't been approved yet.",
+        'approved': 'This free account has been approved.',
+        'denied': 'Free server approval was denied.',
+    }.get(status, 'This account no longer needs free server approval.')
+    color = (discord.Color.orange() if status == 'pending' else
+             discord.Color.red() if status == 'denied' else discord.Color.green())
+    return discord.Embed(title='Free account review', description=description, color=color)
+
+
+async def _edit_review_message(message, state, ticket=False):
     if message is None:
+        return
+    if ticket:
+        await message.edit(embed=_ticket_review_embed(state['status']), view=None)
         return
     embed = discord.Embed.from_dict(message.embeds[0].to_dict()) if message.embeds else _review_embed(
         state['user_id'], state['name'], state['email'])
@@ -109,14 +123,14 @@ async def sync_account_review_messages(bot, user_id=None):
     except Exception:
         logger.exception('Could not load account review messages')
         return
-    for owner, channel_id, message_id, _ in rows:
+    for owner, channel_id, message_id, ticket_id in rows:
         try:
             state = await asyncio.to_thread(get_account_review, owner)
             if not state or state['pending']:
                 continue
             channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
             message = await channel.fetch_message(message_id)
-            await _edit_review_message(message, state)
+            await _edit_review_message(message, state, ticket=ticket_id is not None)
         except discord.NotFound:
             await asyncio.to_thread(DatabaseManager.execute_query,
                 'DELETE FROM account_review_messages WHERE message_id=%s', (message_id,))
@@ -134,13 +148,13 @@ async def post_ticket_account_review(channel, ticket_id):
     state = await asyncio.to_thread(get_account_review, row[0])
     if not state or not state['pending']:
         return
-    message = await channel.send(embed=_review_embed(state['user_id'],state['name'],state['email']),
+    message = await channel.send(embed=_ticket_review_embed(),
                                  view=AccountApprovalView(state['user_id'],ticket_id))
     await asyncio.to_thread(track_review_message,state['user_id'],channel.id,message.id,ticket_id)
     # Handle a decision made on the web while Discord was sending the message.
     latest = await asyncio.to_thread(get_account_review, state['user_id'])
     if latest and not latest['pending']:
-        await _edit_review_message(message, latest)
+        await _edit_review_message(message, latest, ticket=True)
 
 
 def _email_domain(email):
