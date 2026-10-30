@@ -338,6 +338,25 @@
             background: linear-gradient(110deg, #047857, #059669);
         }
 
+        .account-review {
+            padding: clamp(1.25rem, 3vw, 1.75rem);
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 0.125rem;
+        }
+
+        .account-review h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+        .account-review p { margin: 0.5rem 0; color: #cbd5e1; overflow-wrap: anywhere; }
+        .account-review-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
+        .account-review-actions button {
+            min-height: 44px; padding: 0.7rem 1.25rem; border: 1px solid #64748b;
+            border-radius: 0.125rem; background: #166534; color: #fff;
+            font: inherit; font-weight: 600; cursor: pointer;
+        }
+        .account-review-actions button[value="denied"] { background: #991b1b; }
+        .account-review-actions button:hover { border-color: #f8fafc; }
+        .account-review-actions button:focus-visible { outline: 2px solid #93c5fd; outline-offset: 3px; }
+
         #loading-overlay {
             position: fixed;
             inset: 0;
@@ -423,6 +442,27 @@
                 </div>
             </div>
         </section>
+
+        {% if account_review and account_review.status != 'not_required' %}
+        <section class="account-review" aria-labelledby="account-review-heading">
+            <h2 id="account-review-heading">Free server approval</h2>
+            {% if account_review.pending %}
+            <p>This account needs manual approval to create a free server.</p>
+            <p>{{ account_review.name }} · {{ account_review.email }}</p>
+            <form class="account-review-actions" method="post" action="{{ url_for('tickets.review_ticket_account', ticket_id=info['id']) }}">
+                <input type="hidden" name="review_token" value="{{ review_token }}">
+                <button type="submit" name="decision" value="approved">Approve</button>
+                <button type="submit" name="decision" value="denied">Deny</button>
+            </form>
+            {% elif account_review.status == 'denied' %}
+            <p>Denied. Free server creation remains blocked.</p>
+            {% elif account_review.status == 'purchased' %}
+            <p>Approval is no longer needed because this account has purchased credits.</p>
+            {% else %}
+            <p>This account has already been approved.</p>
+            {% endif %}
+        </section>
+        {% endif %}
 
         <section class="conversation">
             <h2 class="conversation-heading">Conversation</h2>

@@ -50,6 +50,8 @@ Message Formatting:
 
 from hashlib import sha256
 from uuid import uuid4
+import secrets
+import hmac
 from flask import Blueprint, request, render_template, session, flash, current_app, redirect, url_for, abort
 import sys, time, datetime
 from threadedreturn import ThreadWithReturnValue
@@ -60,6 +62,7 @@ from managers.email_manager import send_email
 from managers.logging import webhook_log
 from managers.database_manager import DatabaseManager
 from managers.ticket_ids import ensure_ticket_id_schema, ensure_comment_auto_increment
+from managers.account_review import get_account_review, decide_account_review
 
 ensure_ticket_id_schema()
 ensure_comment_auto_increment()
@@ -70,6 +73,7 @@ try:
         schedule_ticket_channel_deletion,
         schedule_ticket_message,
         schedule_ticket_channel_status_update,
+        schedule_account_review_refresh,
     )
 except Exception:
     def schedule_ticket_channel_creation(*args, **kwargs):
@@ -82,6 +86,9 @@ except Exception:
         return None
 
     def schedule_ticket_channel_status_update(*args, **kwargs):
+        return None
+
+    def schedule_account_review_refresh(*args, **kwargs):
         return None
 
 tickets = Blueprint('tickets', __name__)
@@ -261,7 +268,47 @@ def ticket(ticket_id):
         "id": info[0]
     }
     
-    return render_template("ticket.html", messages=messages, info=real_info)
+    account_review = get_account_review(info[1]) if is_admin(session['email']) else None
+    review_token = None
+    if account_review and account_review['pending']:
+        review_token = session.setdefault('ticket_review_token', secrets.token_urlsafe(32))
+    return render_template("ticket.html", messages=messages, info=real_info,
+                           account_review=account_review, review_token=review_token)
+
+
+@tickets.route('/<ticket_id>/account-approval', methods=['POST'])
+@login_required
+def review_ticket_account(ticket_id):
+    if not is_admin(session['email']):
+        abort(403)
+    token = request.form.get('review_token', '')
+    expected = session.get('ticket_review_token')
+    if not expected or len(token) > 128 or not token.isascii() or not hmac.compare_digest(token, expected):
+        abort(403)
+    row = DatabaseManager.execute_query('SELECT user_id FROM tickets WHERE id=%s', (ticket_id,))
+    if not row:
+        abort(404)
+    try:
+        state = decide_account_review(row[0], request.form.get('decision'),
+                                      f"web:{session['account_id']}", ticket_id)
+    except ValueError:
+        abort(400)
+    except (LookupError, PermissionError):
+        abort(409)
+    try:
+        schedule_account_review_refresh(row[0])
+    except Exception:
+        # The decision is already durable; Discord refresh must not undo it.
+        current_app.logger.exception('Could not schedule account review refresh')
+    if state['changed']:
+        try:
+            webhook_log(f"Account ID {row[0]} {state['status']} by {state['reviewer']} via ticket {ticket_id}", database_log=True)
+        except Exception:
+            current_app.logger.exception('Could not mirror the saved account review to the activity log')
+        flash('Free server approval saved: ' + state['status'] + '.')
+    else:
+        flash('This account has already been reviewed or no longer needs approval.')
+    return redirect(url_for('tickets.ticket', ticket_id=ticket_id))
 
 @tickets.route('/toggle/<ticket_id>', methods=['POST'])
 @login_required

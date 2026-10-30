@@ -6,7 +6,10 @@ from typing import Optional
 
 import discord  # type: ignore
 
-from config import ACCOUNT_APPROVAL_CHANNEL_ID
+from config import ACCOUNT_APPROVAL_CHANNEL_ID, DISCORD_GUILD_ID
+from managers.account_review import (get_account_review, decide_account_review,
+                                     ensure_review_schema, track_review_message, review_messages)
+from managers.ticket_discord_manager import get_ticket_id
 from managers.database_manager import DatabaseManager
 from managers.logging import webhook_log
 from .utils.logger import logger
@@ -20,131 +23,124 @@ _restored_views = False
 
 
 class AccountApprovalView(discord.ui.View):
-    """Persistent green approve/red deny controls for one account."""
+    """Persistent account controls, optionally bound to a linked ticket channel."""
 
-    def __init__(self, user_id: int):
+    def __init__(self, user_id: int, ticket_id=None):
         super().__init__(timeout=None)
         self.user_id = int(user_id)
-
-        approve_button = discord.ui.Button(
-            label="Approve",
-            style=discord.ButtonStyle.success,
-            custom_id=f"account-approval:approve:{self.user_id}",
-        )
-        deny_button = discord.ui.Button(
-            label="Deny",
-            style=discord.ButtonStyle.danger,
-            custom_id=f"account-approval:deny:{self.user_id}",
-        )
-        approve_button.callback = self._approve
-        deny_button.callback = self._deny
-        self.add_item(approve_button)
-        self.add_item(deny_button)
+        self.ticket_id = str(ticket_id) if ticket_id is not None else None
+        suffix = f"{self.user_id}:{self.ticket_id}" if self.ticket_id else str(self.user_id)
+        for label, action, style, callback in (
+            ('Approve', 'approve', discord.ButtonStyle.success, self._approve),
+            ('Deny', 'deny', discord.ButtonStyle.danger, self._deny)):
+            button = discord.ui.Button(label=label, style=style, custom_id=f"account-approval:{action}:{suffix}")
+            button.callback = callback
+            self.add_item(button)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        permissions = getattr(interaction.user, "guild_permissions", None)
-        if not permissions or not (permissions.administrator or permissions.manage_guild):
-            await interaction.response.send_message(
-                "You need Manage Server permission to review accounts.",
-                ephemeral=True,
-            )
+        guild = getattr(interaction, 'guild', None)
+        permissions = getattr(interaction.user, 'guild_permissions', None)
+        if (not guild or not DISCORD_GUILD_ID or guild.id != int(DISCORD_GUILD_ID)
+                or not permissions or not (permissions.administrator or permissions.manage_guild)):
+            await interaction.response.send_message('Only authorized server managers can review accounts here.', ephemeral=True)
             return False
+        if self.ticket_id:
+            linked = await asyncio.to_thread(get_ticket_id, interaction.channel_id)
+            if linked != self.ticket_id:
+                await interaction.response.send_message('This review does not belong to this ticket channel.', ephemeral=True)
+                return False
         return True
 
-    def _disable_buttons(self):
-        for child in self.children:
-            if isinstance(child, discord.ui.Button):
-                child.disabled = True
-
-    def _get_account(self):
-        return DatabaseManager.execute_query(
-            "SELECT name, email, role FROM users WHERE id = %s",
-            (self.user_id,),
-        )
-
     async def _approve(self, interaction: discord.Interaction):
-        account = self._get_account()
-        if not account:
-            await interaction.response.send_message("Account no longer exists.", ephemeral=True)
-            return
-
-        name, email, role = account
-        if role == "sketchy":
-            DatabaseManager.execute_query(
-                "UPDATE users SET role = 'member' WHERE id = %s AND role = 'sketchy'",
-                (self.user_id,),
-            )
-            status = "Approved"
-            color = discord.Color.green()
-            webhook_log(
-                f"Account ID {self.user_id} approved by Discord staff member {interaction.user}",
-                database_log=True,
-            )
-        elif role == "client":
-            status = "Already approved by purchase"
-            color = discord.Color.green()
-        else:
-            status = f"Already resolved ({role})"
-            color = discord.Color.light_grey()
-
-        self._disable_buttons()
-        if interaction.message and interaction.message.embeds:
-            embed = interaction.message.embeds[0]
-            embed.color = color
-            for i, field in enumerate(embed.fields):
-                if field.name == "Status":
-                    embed.set_field_at(i, name="Status", value=status, inline=False)
-                    break
-        else:
-            embed = _review_embed(
-                self.user_id,
-                name,
-                email,
-                status=status,
-                color=color,
-            )
-        embed.set_footer(text=f"Reviewed by {interaction.user}")
-        await interaction.response.edit_message(embed=embed, view=self)
+        await self._decide(interaction, 'approved')
 
     async def _deny(self, interaction: discord.Interaction):
-        account = self._get_account()
-        if not account:
-            await interaction.response.send_message("Account no longer exists.", ephemeral=True)
+        await self._decide(interaction, 'denied')
+
+    async def _decide(self, interaction, decision):
+        if not await self.interaction_check(interaction):
             return
+        await interaction.response.defer()
+        try:
+            state = await asyncio.to_thread(decide_account_review, self.user_id, decision,
+                f'discord:{interaction.user.id}', self.ticket_id)
+        except Exception:
+            logger.exception('Account review failed for account %s', self.user_id)
+            await interaction.followup.send('Could not save the review. Please try again.', ephemeral=True)
+            return
+        # A stale button always reflects the saved result and cannot override it.
+        await _edit_review_message(interaction.message, state)
+        if state['changed']:
+            try:
+                await asyncio.to_thread(webhook_log,
+                    f"Account ID {self.user_id} {decision} by {state['reviewer']}", database_log=True)
+            except Exception:
+                logger.exception('Could not mirror the saved account review to the activity log')
+        await sync_account_review_messages(interaction.client, self.user_id)
 
-        name, email, role = account
-        if role == "sketchy":
-            status = "Denied - account remains blocked from server creation"
-            color = discord.Color.red()
-            webhook_log(
-                f"Account ID {self.user_id} denied by Discord staff member {interaction.user}",
-                database_log=True,
-            )
-        elif role == "client":
-            status = "Not denied - account has purchased credits"
-            color = discord.Color.gold()
-        else:
-            status = f"Already resolved ({role})"
-            color = discord.Color.light_grey()
 
-        self._disable_buttons()
-        if interaction.message and interaction.message.embeds:
-            embed = interaction.message.embeds[0]
-            embed.color = color
-            for i, field in enumerate(embed.fields):
-                if field.name == "Status":
-                    embed.set_field_at(i, name="Status", value=status, inline=False)
-                    break
-        else:
-            embed = _review_embed(
-                self.user_id,
-                name,
-                email,
-                status=status,
-                color=color,
-            )
-        embed.set_footer(text=f"Reviewed by {interaction.user}")
-        await interaction.response.edit_message(embed=embed, view=self)
+def _status_text(state):
+    return {'pending': 'Pending review', 'approved': 'Approved',
+            'denied': 'Denied - free server creation remains blocked',
+            'purchased': 'Already approved by purchase',
+            'not_required': 'Manual approval is not required'}.get(state['status'], 'Unavailable')
+
+
+async def _edit_review_message(message, state):
+    if message is None:
+        return
+    embed = discord.Embed.from_dict(message.embeds[0].to_dict()) if message.embeds else _review_embed(
+        state['user_id'], state['name'], state['email'])
+    embed.color = (discord.Color.red() if state['status'] == 'denied' else discord.Color.green())
+    for index, field in enumerate(embed.fields):
+        if field.name == 'Status':
+            embed.set_field_at(index, name='Status', value=_status_text(state), inline=False)
+            break
+    else:
+        embed.add_field(name='Status', value=_status_text(state), inline=False)
+    if state.get('reviewer'):
+        embed.set_footer(text=f"Reviewed by {state['reviewer']}")
+    await message.edit(embed=embed, view=None)
+
+
+async def sync_account_review_messages(bot, user_id=None):
+    try:
+        rows = await asyncio.to_thread(review_messages, user_id)
+    except Exception:
+        logger.exception('Could not load account review messages')
+        return
+    for owner, channel_id, message_id, _ in rows:
+        try:
+            state = await asyncio.to_thread(get_account_review, owner)
+            if not state or state['pending']:
+                continue
+            channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
+            message = await channel.fetch_message(message_id)
+            await _edit_review_message(message, state)
+        except discord.NotFound:
+            await asyncio.to_thread(DatabaseManager.execute_query,
+                'DELETE FROM account_review_messages WHERE message_id=%s', (message_id,))
+        except Exception:
+            logger.exception('Could not refresh account review message %s', message_id)
+
+
+async def post_ticket_account_review(channel, ticket_id):
+    # Resolve the ticket owner by ID: lazy channel creation may be triggered by a
+    # staff reply, whose author/email must never become the account being reviewed.
+    row = await asyncio.to_thread(DatabaseManager.execute_query,
+        'SELECT user_id FROM tickets WHERE id=%s', (ticket_id,))
+    if not row:
+        return
+    state = await asyncio.to_thread(get_account_review, row[0])
+    if not state or not state['pending']:
+        return
+    message = await channel.send(embed=_review_embed(state['user_id'],state['name'],state['email']),
+                                 view=AccountApprovalView(state['user_id'],ticket_id))
+    await asyncio.to_thread(track_review_message,state['user_id'],channel.id,message.id,ticket_id)
+    # Handle a decision made on the web while Discord was sending the message.
+    latest = await asyncio.to_thread(get_account_review, state['user_id'])
+    if latest and not latest['pending']:
+        await _edit_review_message(message, latest)
 
 
 def _email_domain(email):
@@ -197,7 +193,10 @@ async def _post_account_review(user_id, name, email, reason, alt_ip=None, main_a
     if channel is None:
         channel = await _bot.fetch_channel(channel_id)
 
-    await channel.send(
+    state = await asyncio.to_thread(get_account_review, user_id)
+    if not state or not state["pending"]:
+        return
+    message = await channel.send(
         embed=_review_embed(
             user_id,
             name,
@@ -208,6 +207,10 @@ async def _post_account_review(user_id, name, email, reason, alt_ip=None, main_a
         ),
         view=AccountApprovalView(user_id),
     )
+    await asyncio.to_thread(track_review_message,user_id,channel.id,message.id)
+    latest = await asyncio.to_thread(get_account_review, user_id)
+    if latest and not latest["pending"]:
+        await _edit_review_message(message, latest)
 
 
 def queue_account_review(
@@ -257,10 +260,14 @@ def restore_pending_approval_views(bot: discord.Bot):
     if _restored_views:
         return
 
+    ensure_review_schema()
     pending = DatabaseManager.execute_query(
-        "SELECT id FROM users WHERE role = 'sketchy'",
-        fetch_all=True,
-    ) or []
+        "SELECT u.id FROM users u LEFT JOIN account_reviews r ON r.user_id=u.id "
+        "WHERE u.role='sketchy' AND r.user_id IS NULL", fetch_all=True) or []
     for row in pending:
         bot.add_view(AccountApprovalView(row[0]))
+    for user_id, _, message_id, ticket_id in review_messages():
+        if ticket_id:
+            bot.add_view(AccountApprovalView(user_id,ticket_id), message_id=message_id)
     _restored_views = True
+    asyncio.get_running_loop().create_task(sync_account_review_messages(bot))
