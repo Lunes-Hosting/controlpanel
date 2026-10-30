@@ -72,6 +72,9 @@ def _submit_task(task_type: str, args: Tuple[Any, ...], kwargs: Dict[str, Any]) 
         coro = delete_discord_ticket_channel(_bot, *args, **kwargs)
     elif task_type == "status":
         coro = update_ticket_channel_status(_bot, *args, **kwargs)
+    elif task_type == "account-review":
+        from discord_bot.account_approval import sync_account_review_messages
+        coro = sync_account_review_messages(_bot, *args, **kwargs)
     else:
         logger.error("Discord ticket bridge: unknown task type %s", task_type)
         return
@@ -117,3 +120,7 @@ def schedule_ticket_channel_deletion(ticket_id: str, reason: str) -> None:
 def schedule_ticket_channel_status_update(ticket_id: str) -> None:
     logger.debug("Scheduling Discord ticket channel status update for ticket %s", ticket_id)
     _submit_task("status", (ticket_id,), {})
+
+
+def schedule_account_review_refresh(user_id: int) -> None:
+    _submit_task('account-review', (int(user_id),), {})
