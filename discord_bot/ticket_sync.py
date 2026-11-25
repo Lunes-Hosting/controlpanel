@@ -143,8 +143,9 @@ async def send_discord_ticket_message(
     if guild is None:
         return
     channel_id = get_channel_id(ticket_id)
-    if not channel_id:
-        # If no channel, create one now
+    channel = guild.get_channel(channel_id) if channel_id else None
+    if not isinstance(channel, discord.TextChannel):
+        # No channel yet, or it was deleted in Discord: create one now
         title_row = DatabaseManager.execute_query(
             "SELECT title FROM tickets WHERE id = %s",
             (ticket_id,),
@@ -160,11 +161,6 @@ async def send_discord_ticket_message(
             message,
             f"https://betadash.lunes.host/tickets/{ticket_id}",
         )
-        return
-
-    channel = guild.get_channel(channel_id)
-    if not isinstance(channel, discord.TextChannel):
-        logger.debug("Discord ticket bridge: ignoring non-text channel message in %s", message.channel.id)
         return
 
     embed = discord.Embed(

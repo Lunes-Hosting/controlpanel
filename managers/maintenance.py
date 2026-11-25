@@ -21,7 +21,8 @@ from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 from managers.database_manager import DatabaseManager
 from .logging import webhook_log
 from .user_manager import get_ptero_id, update_last_seen
-from .server_manager import improve_list_servers, delete_server
+from .server_manager import (improve_list_servers, delete_server, suspend_server, job_failures,
+                             delete_server_and_report)
 from .email_manager import send_email
 from security import safe_requests
 
@@ -248,15 +249,23 @@ def delete_inactive_free_servers():
 
                     # Delete after 17+ days of inactivity
                     if inactivity > datetime.timedelta(days=17):
-                        from managers.server_manager import delete_server
-                        delete_server(server_id)
-                        webhook_log(f"Deleted free tier server {server_name} (ID: {server_id}) due to owner inactivity (17+ days)", database_log=True)
+                        if job_failures.begin(('delete', server_id)):
+                            delete_server_and_report(
+                                server_id,
+                                f"Deleted free tier server {server_name} (ID: {server_id}) due to owner inactivity (17+ days)",
+                                f"Failed to delete free tier server {server_name} (ID: {server_id}) due to owner inactivity (17+ days)",
+                            )
 
                     # Suspend after 15+ days of inactivity (grace period), only if not already suspended
                     elif inactivity > datetime.timedelta(days=15):
-                        if not server['attributes'].get('suspended', False):
-                            from managers.server_manager import suspend_server
-                            status = suspend_server(server_id, "Free-tier owner inactive for more than 15 days.", "inactivity")
+                        if not server['attributes'].get('suspended', False) and job_failures.begin(('suspend', server_id)):
+                            try:
+                                status = suspend_server(server_id, "Free-tier owner inactive for more than 15 days.", "inactivity")
+                            except Exception as e:
+                                if job_failures.failed(('suspend', server_id)):
+                                    webhook_log(f"Failed to suspend free tier server {server_name} (ID: {server_id}) due to owner inactivity (15+ days): {str(e)}", status=2, database_log=True)
+                                continue
+                            job_failures.succeeded(('suspend', server_id))
                             if status not in (200, 204):
                                 continue
                             webhook_log(f"Suspended free tier server {server_name} (ID: {server_id}) due to owner inactivity (15+ days)", database_log=True)

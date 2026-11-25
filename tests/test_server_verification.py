@@ -44,6 +44,7 @@ class ServerVerificationTests(unittest.TestCase):
             get_ptero_id=lambda _: (7,), secrets=secrets, datetime=datetime,
             improve_list_servers=lambda _: {'attributes': {'relationships': {'servers': {'data': []}}}},
             get_eggs=lambda: [{'egg_id': 1, 'docker_image': 'test', 'startup': 'test'}],
+            get_nodes=lambda: [{'node_id': 1, 'name': 'Node 1'}],
             safe_requests=SimpleNamespace(get=Mock(return_value=Mock(json=lambda: {
                 'data': [{'attributes': {'assigned': False, 'id': 1}}]}))),
             products=[{'id': 1, 'enabled': True, 'price': 0, 'limits': {'memory': 128}, 'product_limits': {}}],

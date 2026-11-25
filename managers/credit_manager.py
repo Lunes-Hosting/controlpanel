@@ -19,7 +19,8 @@ from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 from products import products
 from .logging import webhook_log
 from .email_manager import send_email
-from .server_manager import suspend_server, unsuspend_server, delete_server
+from .server_manager import (suspend_server, job_failures, delete_server_and_report,
+                             unsuspend_server_and_report)
 from .user_manager import check_if_user_suspended
 from .suspension_manager import get_server_suspension
 from security import safe_requests
@@ -153,33 +154,56 @@ def use_credits():
         user_servers[user_id].append(server)
     
     # Process each user's servers
+    unlinked_owners = []
+    failed_owners = []
+    consecutive_failures = 0
     for user_id, servers in user_servers.items():
-        # Get user email from Pterodactyl
-        user_response = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60)
-        if user_response.status_code != 200:
-            webhook_log(f"Failed to get user {user_id} for credit processing: {user_response.status_code}", database_log=False)
+        # Skip suspended servers
+        servers = [server for server in servers if not server['attributes']['suspended']]
+        if not servers:
             continue
-            
-        user_email = user_response.json()['attributes']['email']
-        
-        # Process each server individually
-        for server in servers:
-            # Skip suspended servers
-            if server['attributes']['suspended']:
+
+        # An account that cannot be billed must not stop billing for everyone after it
+        try:
+            # The panel account linked to the Pterodactyl user pays for its servers
+            account = DatabaseManager.execute_query("SELECT email FROM users WHERE pterodactyl_id = %s", (user_id,))
+            if not account:
+                unlinked_owners.append(user_id)
                 continue
-                
-            # Get product info based on server specs
-            product = convert_to_product(server)
-            hourly_cost = float(product['price'])/30.0/24.0
-            
-            # Debit against the live, locked balance, including concurrent purchases.
-            if bill_server_hour(user_email, hourly_cost, server['attributes']['id'], billing_hour) == "SUSPEND":
-                # User can't afford this server, suspend it
-                server_id = server['attributes']['id']
-                server_name = server['attributes']['name']
-                webhook_log(f"User {user_email} can't afford server {server_name} (ID: {server_id}). Suspending.", database_log=True)
-                threading.Thread(target=suspend_server, args=(server_id, "Insufficient credits to pay for this server.", "billing")).start()
-        
+            user_email = account[0]
+
+            # Process each server individually
+            for server in servers:
+                # Get product info based on server specs
+                product = convert_to_product(server)
+                hourly_cost = float(product['price'])/30.0/24.0
+
+                # Debit against the live, locked balance, including concurrent purchases.
+                if bill_server_hour(user_email, hourly_cost, server['attributes']['id'], billing_hour) == "SUSPEND":
+                    # User can't afford this server, suspend it
+                    server_id = server['attributes']['id']
+                    server_name = server['attributes']['name']
+                    webhook_log(f"User {user_email} can't afford server {server_name} (ID: {server_id}). Suspending.", database_log=True)
+                    threading.Thread(target=suspend_server, args=(server_id, "Insufficient credits to pay for this server.", "billing")).start()
+            consecutive_failures = 0
+        except Exception as e:
+            print(f"Credit processing failed for Pterodactyl user {user_id}: {e}")
+            failed_owners.append(user_id)
+            consecutive_failures += 1
+            if consecutive_failures >= 5:
+                # Nothing is working, most likely the database; do not grind through every account
+                break
+
+    if unlinked_owners and job_failures.failed(('unlinked-owners', tuple(unlinked_owners))):
+        webhook_log(f"Credit processing skipped {len(unlinked_owners)} Pterodactyl user(s) with running servers but no linked panel account: {_id_list(unlinked_owners)}", 1, database_log=True)
+    if consecutive_failures >= 5:
+        webhook_log(f"Credit processing stopped after {consecutive_failures} accounts in a row could not be billed, starting with Pterodactyl user {failed_owners[-consecutive_failures]}", 2, database_log=True)
+    elif failed_owners:
+        webhook_log(f"Credit processing failed for {len(failed_owners)} Pterodactyl user(s) this hour: {_id_list(failed_owners)}", 2, database_log=True)
+
+def _id_list(ids, limit=20):
+    """Keeps a log message readable when many IDs are involved."""
+    return ", ".join(str(item) for item in ids[:limit]) + (" ..." if len(ids) > limit else "")
 
 
 def check_to_unsuspend():
@@ -203,9 +227,11 @@ def check_to_unsuspend():
         return
 
     if response.status_code != 200:
-        threading.Thread(target=webhook_log, args=(f"Failed to get servers for unsuspension check: {response.status_code}", 2)).start()
+        if job_failures.failed('unsuspension-check-servers'):
+            threading.Thread(target=webhook_log, args=(f"Failed to get servers for unsuspension check: {response.status_code}", 2)).start()
         return
-        
+    job_failures.succeeded('unsuspension-check-servers')
+
     servers = response.json()
     if 'data' not in servers:
         return
@@ -225,23 +251,16 @@ def check_to_unsuspend():
     
     # Process each user's suspended servers
     for user_id, suspended_servers in user_suspended_servers.items():
-        # Get user email from Pterodactyl
-        try:
-            user_response = safe_requests.get(f"{PTERODACTYL_URL}api/application/users/{user_id}", headers=HEADERS, timeout=60)
-        except requests.exceptions.RequestException as e:
-            print(f"Skipping user {user_id} during unsuspension check: {e}")
+        # The panel account linked to the Pterodactyl user pays for its servers
+        account = DatabaseManager.execute_query(
+            "SELECT email, credits, suspended FROM users WHERE pterodactyl_id = %s",
+            (user_id,)
+        )
+        if account is None or account[2]:
             continue
+        user_email = account[0]
+        user_credits = float(account[1])
 
-        if user_response.status_code != 200:
-            threading.Thread(target=webhook_log, args=(f"Failed to get user {user_id} for unsuspension check: {user_response.status_code}", 2)).start()
-            continue
-            
-        account_suspended = check_if_user_suspended(user_id)
-        if account_suspended is None or bool(account_suspended):
-            continue
-        user_email = user_response.json()['attributes']['email']
-        user_credits = float(get_credits(user_email))
-        
         # Sort servers by cost (cheapest first) to maximize number of servers that can be unsuspended
         sorted_servers = sorted(suspended_servers, key=lambda s: convert_to_product(s)['price'])
         
@@ -278,9 +297,9 @@ def check_to_unsuspend():
             # Check if user has enough credits for this server
             if remaining_credits >= hourly_cost:
                 # User can afford this server, unsuspend it
-                webhook_log(f"Unsuspending server {server_name} (ID: {server_id}) for user {user_email} (has {remaining_credits:.2f} credits)", database_log=True)
-                threading.Thread(target=unsuspend_server, args=(server_id,), kwargs={"automatic": True}).start()
-                
+                if job_failures.begin(('unsuspend', server_id)):
+                    threading.Thread(target=unsuspend_server_and_report, args=(server_id, server_name, user_email, remaining_credits)).start()
+
                 # Deduct credits for this server
                 remaining_credits -= hourly_cost
             elif suspension["source"] == "billing":
@@ -290,9 +309,12 @@ def check_to_unsuspend():
                     suspension_time = datetime.datetime.strptime(suspended_at, "%Y-%m-%dT%H:%M:%S+00:00")
                     suspension_duration = datetime.datetime.now() - suspension_time
 
-                    if suspension_duration.days > 3:
-                        webhook_log(f"Deleting server {server_name} (ID: {server_id}) due to suspension for more than 3 days", database_log=True)
-                        threading.Thread(target=delete_server, args=(server_id,)).start()
+                    if suspension_duration.days > 3 and job_failures.begin(('delete', server_id)):
+                        threading.Thread(target=delete_server_and_report, args=(
+                            server_id,
+                            f"Deleted server {server_name} (ID: {server_id}) due to suspension for more than 3 days",
+                            f"Failed to delete server {server_name} (ID: {server_id}) due to suspension for more than 3 days",
+                        )).start()
                 except (ValueError, KeyError) as e:
                     threading.Thread(target=webhook_log, args=(f"Error processing suspension duration for server {server_id}: {str(e)}", 1)).start()
 
@@ -316,9 +338,11 @@ def delete_suspended_users_servers():
         return
 
     if response.status_code != 200:
-        threading.Thread(target=webhook_log, args=(f"Failed to get servers for suspension check: {response.status_code}", 2)).start()
+        if job_failures.failed('suspended-users-check-servers'):
+            threading.Thread(target=webhook_log, args=(f"Failed to get servers for suspension check: {response.status_code}", 2)).start()
         return
-        
+    job_failures.succeeded('suspended-users-check-servers')
+
     servers = response.json()
     if 'data' not in servers:
         return
@@ -337,6 +361,10 @@ def delete_suspended_users_servers():
             suspension_status[user_id] = check_if_user_suspended(user_id)
         
         # Delete servers of suspended users
-        if suspension_status[user_id]:
-            threading.Thread(target=delete_server, args=(server_id,)).start()
-            threading.Thread(target=webhook_log, args=(f"Server {server_name} (ID: {server_id}) deleted due to user suspension", 1)).start()
+        if suspension_status[user_id] and job_failures.begin(('delete', server_id)):
+            threading.Thread(target=delete_server_and_report, args=(
+                server_id,
+                f"Server {server_name} (ID: {server_id}) deleted due to user suspension",
+                f"Failed to delete server {server_name} (ID: {server_id}) of a suspended user",
+                1, False,
+            )).start()

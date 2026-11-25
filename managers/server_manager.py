@@ -28,9 +28,14 @@ from .suspension_manager import require_reason
 from .suspension_notifications import (queue_suspension_email, clear_suspension_email_keys,
                                        kick_suspension_email_delivery)
 from runtime.display_cache import display_cache
+from runtime.retry_throttle import RetryThrottle
 
 # Initialize cache
 cache = PteroCache()
+
+# A scheduled server action that fails is retried after ten minutes and reported
+# once a day, instead of on every run of its job.
+job_failures = RetryThrottle(retry_after=600, report_every=86400)
 
 # API authentication headers
 HEADERS = {
@@ -529,3 +534,55 @@ def delete_server(server_id: int):
         release_deleted_server(server_id)
         return True
     return False
+
+def delete_server_and_report(server_id: int, deleted_message: str, failed_message: str,
+                             status: int = -1, database_log: bool = True):
+    """
+    Deletes a server for a scheduled job and logs what actually happened.
+    The job claims the attempt first with job_failures.begin(('delete', server_id)).
+
+    Args:
+        server_id: ID of the server to delete
+        deleted_message: Message to log once the server is deleted
+        failed_message: Message to log if the server could not be deleted
+        status: Log status of the deleted message
+        database_log: Whether the messages also go to the activity log
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        deleted = delete_server(server_id)
+    except Exception as e:
+        print(f"Scheduled deletion of server {server_id} failed: {str(e)}")
+        deleted = False
+
+    if deleted:
+        job_failures.succeeded(('delete', server_id))
+        webhook_log(deleted_message, status, database_log=database_log)
+    elif job_failures.failed(('delete', server_id)):
+        webhook_log(failed_message, 2, database_log=database_log)
+    return deleted
+
+def unsuspend_server_and_report(server_id: int, server_name: str, user_email: str, credits: float):
+    """
+    Unsuspends a server for the scheduled credit check and logs what actually happened.
+    The job claims the attempt first with job_failures.begin(('unsuspend', server_id)).
+
+    Args:
+        server_id: ID of the server to unsuspend
+        server_name: Name of the server
+        user_email: Email of the account that pays for the server
+        credits: Credits the account has available for the server
+    """
+    try:
+        status = unsuspend_server(server_id, automatic=True)
+    except Exception as e:
+        if job_failures.failed(('unsuspend', server_id)):
+            webhook_log(f"Failed to unsuspend server {server_name} (ID: {server_id}) for user {user_email}: {str(e)}", 2, database_log=True)
+        return
+
+    # 409 means the server is no longer eligible; the claim keeps it from being retried at once
+    if status in (200, 204):
+        job_failures.succeeded(('unsuspend', server_id))
+        webhook_log(f"Unsuspended server {server_name} (ID: {server_id}) for user {user_email} (has {credits:.2f} credits)", database_log=True)

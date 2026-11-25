@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock
 
-from flask import Flask, Blueprint, request
+from flask import Flask, Blueprint, request, flash, get_flashed_messages
 import requests
 
 from runtime.display_cache import DisplayCache
@@ -80,6 +80,42 @@ class InventoryTests(unittest.TestCase):
         response = self.client.get('/admin/servers?page=999')
         self.assertEqual(response.json['current_page'], 50)
         self.assertIn('page=50&per_page=20', self.api.get.call_args.args[0])
+
+
+class AdminDeletionTests(unittest.TestCase):
+    def setUp(self):
+        self.app = Flask(__name__)
+        self.app.secret_key = 'test'
+        self.delete = Mock(return_value=True)
+        self.lookup = Mock(return_value={'attributes': {'id': 21, 'name': 'Test'}})
+        self.log = Mock()
+        self.ns = load_functions('Routes/admin/servers.py', dict(
+            admin=SimpleNamespace(route=lambda *a, **kw: lambda f: f), admin_required=lambda f: f,
+            session={'email': 'admin@example.com'}, flash=flash, redirect=lambda target: target,
+            url_for=lambda endpoint, **kw: endpoint, webhook_log=self.log,
+            delete_server=self.delete, get_server_information=self.lookup,
+        ), {'admin_delete_server'})
+
+    def submit(self):
+        with self.app.test_request_context('/', method='POST'):
+            self.assertEqual(self.ns['admin_delete_server']('21'), 'admin.admin_servers')
+            return get_flashed_messages()
+
+    def test_deletion_is_recorded_with_the_admin_and_server(self):
+        self.assertEqual(self.submit(), [])
+        self.delete.assert_called_once_with('21')
+        self.log.assert_called_once_with('Admin admin@example.com deleted server Test (ID: 21)', database_log=True)
+
+    def test_failed_deletion_is_shown_to_the_admin_and_not_recorded_as_done(self):
+        self.delete.return_value = False
+        self.assertEqual(self.submit(), ['Failed to delete server. Its node may be unreachable.'])
+        self.log.assert_not_called()
+
+    def test_missing_server_is_reported_without_a_delete_request(self):
+        self.lookup.return_value = None
+        self.assertEqual(self.submit(), ['Server not found'])
+        self.delete.assert_not_called()
+        self.log.assert_not_called()
 
 
 if __name__ == '__main__':

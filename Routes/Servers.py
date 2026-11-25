@@ -580,7 +580,12 @@ def create_server_submit():
 
     node_id = request.form['node_id']
     egg_id = request.form['egg_id']
-    
+
+    # The form only offers available nodes; the submitted node must be one of them
+    if node_id not in {str(node['node_id']) for node in get_nodes() or []}:
+        flash("Selected node is not available. Please choose a different node.")
+        return redirect(url_for('servers.create_server'))
+
     # Check if we have a project_id in the session (set during create_server)
     project_id = session.get('project_id')
     
@@ -813,6 +818,17 @@ def _update_server_plan(server_id, target_attrs, bypass_owner_only=False):
     if not found_product:
         return "You already have free server"
 
+    if is_free_plan and bypass_owner_only is False:
+        # Same rule as server creation and the plan list: one free server per account
+        try:
+            inventory = improve_list_servers(target_attrs['user'])
+            owned_servers = inventory['attributes']['relationships']['servers']['data']
+            has_free_server = any(server['attributes']['limits']['memory'] == 128 for server in owned_servers)
+        except (requests.RequestException, KeyError, TypeError):
+            return "Could not verify your servers. Please try again shortly.", 503
+        if has_free_server:
+            return "You already have free server"
+
     try:
         bandwidth = plan_bandwidth(main_product)
         body = resource_limits(main_product)
@@ -942,7 +958,11 @@ def transfer_server_submit(server_id):
         return "Missing node_id in request", 400
         
     node_id = data['node_id']
-    
+
+    # The transfer page only offers available nodes; the submitted node must be one of them
+    if str(node_id) not in {str(node['node_id']) for node in get_nodes() or []}:
+        return jsonify({'message': 'Selected node is not available. Please choose a different node.'}), 400
+
     # Attempt server transfer
     status_code = transfer_server(int(server_id), int(node_id))
     

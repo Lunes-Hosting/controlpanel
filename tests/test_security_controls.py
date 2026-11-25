@@ -13,10 +13,11 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock
 
-from flask import Flask, session, request, redirect, url_for, flash, current_app, g
+from flask import Flask, session, request, redirect, url_for, flash, current_app, g, jsonify
 from mysql.connector import IntegrityError
 
 from runtime.bandwidth import creation_limits
+from runtime.retry_throttle import RetryThrottle
 from tests.test_credit_transactions import load_functions
 from tests import test_credit_transactions as credit_tests
 
@@ -148,6 +149,7 @@ class QuotaTests(unittest.TestCase):
             RECAPTCHA_SECRET_KEY='test', PTERODACTYL_URL='https://example.invalid/', HEADERS={},
             datetime=datetime, secrets=secrets,
             get_eggs=lambda: [{'egg_id': 1, 'docker_image': 'test', 'startup': 'test'}],
+            get_nodes=lambda: [{'node_id': 1, 'name': 'Node 1'}],
             safe_requests=SimpleNamespace(get=lambda *a, **kw: Mock(json=lambda: {'data': [{'attributes': {'id': 1, 'assigned': False}}]})),
             products=[{'id': 1, 'price': 10, 'enabled': True, 'limits': {'memory': 512}, 'product_limits': {}}],
             remove_credits=Mock(return_value=None), check_if_user_suspended=lambda _: False, webhook_log=Mock(),
@@ -214,11 +216,50 @@ class QuotaTests(unittest.TestCase):
         self.assertEqual(self.reservations[key][1], 'observed')
         self.assertEqual(len(self.owned), 2)
 
+    def test_node_that_is_not_offered_is_rejected_before_any_debit(self):
+        # Node 1 is no longer offered, for example because staff marked it full.
+        self.ns['get_nodes'] = lambda: [{'node_id': 2, 'name': 'Node 2'}]
+        self.assertEqual(self.submit(), '/')
+        self.assertEqual(len(self.owned), 1)
+        self.ns['remove_credits'].assert_not_called()
+        self.assertEqual(self.reservations, {})
+        self.ns['get_nodes'] = lambda: None
+        self.assertEqual(self.submit(), '/')
+        self.assertEqual(len(self.owned), 1)
+
     def test_inventory_failure_blocks_creation(self):
         self.ns['improve_list_servers'] = lambda _: None
         self.assertEqual(self.submit()[1], 503)
         self.assertEqual(len(self.owned), 1)
         self.ns['remove_credits'].assert_not_called()
+
+
+class TransferTargetTests(unittest.TestCase):
+    def setUp(self):
+        self.app = Flask(__name__)
+        self.transfer = Mock(return_value=202)
+        self.ns = dict(servers=SimpleNamespace(route=lambda *a, **kw: lambda f: f), login_required=lambda f: f,
+                       verify_server_ownership=lambda *a: True, check_if_user_suspended=lambda _: False,
+                       get_ptero_id=lambda _: (7,), session={'email': 'user@example.com'}, request=request,
+                       jsonify=jsonify, transfer_server=self.transfer,
+                       get_nodes=lambda: [{'node_id': 2, 'name': 'Node 2'}])
+        load_functions('Routes/Servers.py', self.ns, {'transfer_server_submit'})
+
+    def submit(self, node_id):
+        with self.app.test_request_context('/', method='POST', json={'node_id': node_id}):
+            return self.ns['transfer_server_submit']('5')[1]
+
+    def test_only_nodes_offered_on_the_transfer_page_are_accepted(self):
+        # Node 3 is not offered, for example because staff marked it full.
+        for node_id in (3, '3', 'abc', None, '2/../3'):
+            self.assertEqual(self.submit(node_id), 400)
+        self.transfer.assert_not_called()
+        self.assertEqual(self.submit(2), 200)
+        self.assertEqual(self.submit('2'), 200)
+        self.assertEqual(self.transfer.call_args_list[0].args, (5, 2))
+        self.ns['get_nodes'] = lambda: None
+        self.assertEqual(self.submit(2), 400)
+        self.assertEqual(self.transfer.call_count, 2)
 
 
 class SuspensionTests(unittest.TestCase):
@@ -290,14 +331,14 @@ class SuspensionTests(unittest.TestCase):
 
     def test_scheduler_never_resumes_manual_or_unknown_suspensions(self):
         server = {'attributes': {'id': 1, 'user': 7, 'name': 'Test', 'suspended': True}}
+        # The linked panel account: email, credits, suspended.
+        self.ns['DatabaseManager'].execute_query.return_value = ('user@example.com', 100, 0)
         for record in (None, {'active': True, 'source': 'manual'}, {'active': False, 'source': 'billing'}):
             api = Mock()
-            api.get.side_effect = [Mock(status_code=200, json=lambda: {'data': [server]}),
-                                   Mock(status_code=200, json=lambda: {'attributes': {'email': 'user@example.com'}})]
+            api.get.return_value = Mock(status_code=200, json=lambda: {'data': [server]})
             threads = Mock()
             self.ns.update(safe_requests=api, threading=threads, webhook_log=Mock(),
-                           get_credits=lambda _: 100, convert_to_product=lambda _: {'price': 720},
-                           check_if_user_suspended=lambda _: 0,
+                           convert_to_product=lambda _: {'price': 720}, job_failures=RetryThrottle(),
                            get_server_suspension=lambda _: record)
             load_functions('managers/credit_manager.py', self.ns, {'check_to_unsuspend'})
             self.ns['check_to_unsuspend']()

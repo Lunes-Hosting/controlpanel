@@ -13,6 +13,7 @@ from unittest.mock import Mock
 
 import requests
 from flask import Flask, Blueprint, request, session, flash, current_app, redirect, url_for
+from flask_limiter import Limiter
 from runtime.email_identity import canonical_email
 from tests.test_credit_transactions import load_functions
 
@@ -132,12 +133,15 @@ class VerificationRouteTests(VerificationFixture):
             request=request,session=session,flash=flash,current_app=current_app,
             redirect=redirect,url_for=url_for,render_template=lambda *a,**kw:'Verification form',
             verify_turnstile=self.captcha,requests=requests,RECAPTCHA_SITE_KEY='site',RECAPTCHA_SECRET_KEY='secret',
-            TOKEN_EXPIRATION_TIME=1800,threading=SimpleNamespace(Thread=self.thread),send_verification_email=Mock())
+            TOKEN_EXPIRATION_TIME=1800,threading=SimpleNamespace(Thread=self.thread),send_verification_email=Mock(),
+            limiter=Limiter(key_func=lambda:'unused',storage_uri='memory://'),client_ip=lambda:'192.0.2.1')
         self.ns['user'].add_url_rule('/',endpoint='index',view_func=lambda:'Dashboard')
         self.ns['user'].add_url_rule('/login',endpoint='login_user',view_func=lambda:'Login')
         load_functions('managers/authentication.py',self.ns,{'login_required'})
-        load_functions('Routes/AuthenticationHandler.py',self.ns,{'verify_email','resend_confirmation_email'})
-        self.app.register_blueprint(self.ns['user']);self.client=self.app.test_client()
+        load_functions('Routes/AuthenticationHandler.py',self.ns,
+            {'verify_email','resend_confirmation_email','verification_email_limit_key'})
+        self.app.register_blueprint(self.ns['user']);self.ns['limiter'].init_app(self.app)
+        self.client=self.app.test_client()
         self.token,_=self.ns['issue_email_verification'](1)
         self.login(1)
     def login(self,user_id):
@@ -189,6 +193,19 @@ class VerificationRouteTests(VerificationFixture):
         self.thread.reset_mock();self.login(2)
         self.assertEqual(self.client.get('/resend_confirmation_email').status_code,302)
         self.thread.assert_not_called()
+
+    def test_resends_are_limited_per_account_not_per_visitor(self):
+        for _ in range(3):self.assertEqual(self.client.get('/resend_confirmation_email').status_code,302)
+        for _ in range(5):
+            blocked=self.client.get('/resend_confirmation_email')
+            self.assertEqual(blocked.status_code,429)
+        self.assertIn('Too many verification emails',blocked.text)
+        self.assertEqual(self.thread.call_count,3)
+        # Another account behind the same address still gets its own allowance.
+        self.login(2)
+        self.assertEqual(self.client.get('/resend_confirmation_email').status_code,302)
+        self.login(1)
+        self.assertEqual(self.client.get('/resend_confirmation_email').status_code,429)
 
 
 if __name__=='__main__':unittest.main()

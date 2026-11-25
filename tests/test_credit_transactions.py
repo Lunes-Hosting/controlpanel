@@ -23,6 +23,8 @@ import datetime
 from mysql.connector import IntegrityError
 from flask import Flask, Blueprint, request, session, flash, redirect, url_for
 
+from runtime.retry_throttle import RetryThrottle
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -45,8 +47,8 @@ class CreditTransactionTests(unittest.TestCase):
         self.sql = []
         with closing(sqlite3.connect(self.path)) as db:
             db.executescript("""
-                CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT UNIQUE, credits REAL, role TEXT);
-                INSERT INTO users VALUES (1, 'user@example.com', 10, 'member');
+                CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT UNIQUE, credits REAL, role TEXT, pterodactyl_id INTEGER);
+                INSERT INTO users VALUES (1, 'user@example.com', 10, 'member', 7);
                 CREATE TABLE stripe_processed_checkouts (pay_id TEXT PRIMARY KEY);
                 CREATE TABLE stripe_processed_invoices (invoice_id TEXT PRIMARY KEY);
                 CREATE TABLE stripe_invoice_jobs (invoice_id TEXT PRIMARY KEY,status TEXT DEFAULT 'pending',next_check TEXT);
@@ -142,30 +144,81 @@ class CreditTransactionTests(unittest.TestCase):
             list(pool.map(change, range(16)))
         self.assertEqual(self.balance(), 18)
 
+    def bill_servers(self, servers, bill=None):
+        """Run the hourly billing job against these Pterodactyl servers."""
+        self.panel = Mock()
+        self.panel.get.return_value = Mock(status_code=200, json=lambda: {'data': servers})
+        self.threads = Mock()
+        self.ns.setdefault('job_failures', RetryThrottle())
+        self.ns.update(
+            safe_requests=self.panel, PTERODACTYL_URL='https://example.invalid/', HEADERS={},
+            convert_to_product=lambda _: {'price': 5040},
+            ThreadWithReturnValue=Mock(), threading=self.threads,
+            send_email=Mock(), suspend_server=Mock(), current_app=Mock(),
+        )
+        load_functions('managers/credit_manager.py', self.ns, {'use_credits', 'get_credits', '_id_list'})
+        # One fixed billing hour, so a second run in a test never crosses into the next hour.
+        hour = datetime.datetime(2026, 11, 25, 12, 30, tzinfo=datetime.timezone.utc)
+        self.ns.update(__package__='managers', datetime=SimpleNamespace(
+            datetime=SimpleNamespace(now=lambda zone=None: hour), timezone=datetime.timezone))
+        with patch.dict(sys.modules, {
+            'managers.payment_manager': SimpleNamespace(bill_server_hour=bill or self.ns['bill_server_hour']),
+        }):
+            self.ns['use_credits']()
+
     def test_scheduled_billing_debits_live_balance_and_suspends_unaffordable_server(self):
         servers = [{'attributes': {'id': i, 'user': 7, 'name': f'Server {i}', 'suspended': False}}
                    for i in (1, 2)]
-        api = Mock()
-        api.get.side_effect = [
-            Mock(status_code=200, json=lambda: {'data': servers}),
-            Mock(status_code=200, json=lambda: {'attributes': {'email': 'user@example.com'}}),
-        ]
-        threads = Mock()
-        self.ns.update(
-            safe_requests=api, PTERODACTYL_URL='https://example.invalid/', HEADERS={},
-            convert_to_product=lambda _: {'price': 5040},
-            ThreadWithReturnValue=Mock(), threading=threads,
-            send_email=Mock(), suspend_server=Mock(), current_app=Mock(),
-        )
-        load_functions('managers/credit_manager.py', self.ns, {'use_credits', 'get_credits'})
-        self.ns.update(__package__='managers',datetime=datetime)
-        with patch.dict(sys.modules, {
-            'managers.payment_manager': SimpleNamespace(bill_server_hour=self.ns['bill_server_hour']),
-        }):
-            self.ns['use_credits']()
+        self.bill_servers(servers)
         self.assertEqual(self.balance(), 3)
-        threads.Thread.assert_called_once_with(target=self.ns['suspend_server'],
+        self.threads.Thread.assert_called_once_with(target=self.ns['suspend_server'],
             args=(2, "Insufficient credits to pay for this server.", "billing"))
+        # The linked panel account is charged; Pterodactyl is only asked for the server list.
+        self.panel.get.assert_called_once()
+
+    def test_scheduled_billing_continues_past_accounts_that_cannot_be_billed(self):
+        with closing(sqlite3.connect(self.path)) as db:
+            db.execute("INSERT INTO users VALUES (2, 'later@example.com', 10, 'member', 9)")
+            db.execute("INSERT INTO users VALUES (3, 'broken@example.com', 10, 'member', 11)")
+            db.commit()
+        # Owner 8 has no panel account, owner 11 fails to bill, owner 12 has nothing running.
+        servers = [{'attributes': {'id': server_id, 'user': owner, 'name': f'Server {server_id}', 'suspended': suspended}}
+                   for server_id, owner, suspended in ((1, 8, False), (2, 11, False), (3, 7, False), (4, 9, False), (5, 12, True))]
+        real_bill = self.ns['bill_server_hour']
+        def bill(email, *args):
+            if email == 'broken@example.com':
+                raise RuntimeError('Injected billing failure')
+            return real_bill(email, *args)
+
+        self.bill_servers(servers, bill)
+        balances = lambda: {email: self.scalar(f"SELECT credits FROM users WHERE email='{email}'")
+                            for email in ('user@example.com', 'later@example.com', 'broken@example.com')}
+        self.assertEqual(balances(), {'user@example.com': 3, 'later@example.com': 3, 'broken@example.com': 10})
+        log = self.ns['webhook_log']
+        self.assertEqual([call.args[:2] for call in log.call_args_list], [
+            ('Credit processing skipped 1 Pterodactyl user(s) with running servers but no linked panel account: 8', 1),
+            ('Credit processing failed for 1 Pterodactyl user(s) this hour: 11', 2)])
+
+        # A later run in the same hour charges nobody twice and does not repeat the standing notice.
+        log.reset_mock()
+        self.bill_servers(servers, bill)
+        self.assertEqual(balances(), {'user@example.com': 3, 'later@example.com': 3, 'broken@example.com': 10})
+        self.assertEqual([call.args[:2] for call in log.call_args_list],
+                         [('Credit processing failed for 1 Pterodactyl user(s) this hour: 11', 2)])
+
+    def test_scheduled_billing_stops_early_when_no_account_can_be_billed(self):
+        with closing(sqlite3.connect(self.path)) as db:
+            db.executemany("INSERT INTO users VALUES (?, ?, 10, 'member', ?)",
+                           [(owner, f'user{owner}@example.com', owner) for owner in range(20, 40)])
+            db.commit()
+        servers = [{'attributes': {'id': owner, 'user': owner, 'name': f'Server {owner}', 'suspended': False}}
+                   for owner in range(20, 40)]
+        bill = Mock(side_effect=RuntimeError('Database unavailable'))
+        self.bill_servers(servers, bill)
+        self.assertEqual(bill.call_count, 5)
+        self.assertEqual([call.args[:2] for call in self.ns['webhook_log'].call_args_list], [(
+            'Credit processing stopped after 5 accounts in a row could not be billed, '
+            'starting with Pterodactyl user 20', 2)])
 
     def test_concurrent_checkout_and_invoice_replays_credit_once(self):
         for kind, table in [('checkout', 'stripe_processed_checkouts'), ('invoice', 'stripe_processed_invoices')]:

@@ -628,7 +628,14 @@ def register_user():
     return render_template("register.html", RECAPTCHA_PUBLIC_KEY=RECAPTCHA_SITE_KEY)
 
 
+def verification_email_limit_key():
+    """Count resends per account, so one account cannot flood its registered mailbox."""
+    return f"verification-email:{session.get('account_id') or client_ip()}"
+
+
 @user.route("/resend_confirmation_email")
+@limiter.limit('3 per 10 minutes; 10 per day', key_func=verification_email_limit_key,
+               error_message='Too many verification emails were requested. Please check your inbox and try again later.')
 @login_required
 def resend_confirmation_email():
     """
