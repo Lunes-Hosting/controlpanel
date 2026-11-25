@@ -251,6 +251,41 @@ class BandwidthPlanRouteTests(unittest.TestCase):
         self.submit()
         self.ns['remove_credits'].assert_not_called();self.ns['update_plan'].assert_not_called()
 
+    def switch_to_free_plan(self,owned_memory,admin=False):
+        """The owner asks to move the paid server onto the free plan."""
+        free=dict(id=0,enabled=True,name='Free Tier',price=0,limits=dict(memory=128,disk=512,cpu=15),product_limits={})
+        inventory=None if owned_memory is None else {'attributes':{'relationships':{'servers':{'data':[
+            {'attributes':{'id':index,'limits':{'memory':memory}}} for index,memory in enumerate(owned_memory)]}}}}
+        self.lookup=Mock(return_value=inventory)
+        self.ns.update(products=[free,self.product],improve_list_servers=self.lookup,requests=requests)
+        with self.app.test_request_context('/',method='POST',data={'plan':'0'}):
+            session['email']='user@example.com'
+            return self.ns['update_server_submit']('7',admin)
+
+    def test_paid_server_cannot_become_a_second_free_server(self):
+        self.assertEqual(self.switch_to_free_plan([1024,128]),'You already have free server')
+        self.lookup.assert_called_once_with(42)
+        self.ns['update_plan'].assert_not_called();self.ns['remove_credits'].assert_not_called()
+
+    def test_only_server_can_still_move_to_the_free_plan(self):
+        self.assertEqual(self.switch_to_free_plan([1024]).status_code,302)
+        self.assertEqual(self.ns['update_plan'].call_args.args[1]['memory'],128)
+        self.ns['remove_credits'].assert_not_called()
+
+    def test_free_plan_is_refused_when_the_owner_servers_cannot_be_checked(self):
+        self.assertEqual(self.switch_to_free_plan(None)[1],503)
+        self.lookup.side_effect=requests.Timeout()
+        with self.app.test_request_context('/',method='POST',data={'plan':'0'}):
+            session['email']='user@example.com'
+            self.assertEqual(self.ns['update_server_submit']('7')[1],503)
+        self.ns['update_plan'].assert_not_called()
+
+    def test_admin_plan_change_and_paid_plans_do_not_look_up_other_servers(self):
+        self.assertEqual(self.switch_to_free_plan([1024,128],admin=True).status_code,302)
+        self.lookup.assert_not_called()
+        self.assertEqual(self.submit().status_code,302)
+        self.lookup.assert_not_called()
+
 
 class PlanLockTests(unittest.TestCase):
     def test_competing_update_is_rejected_before_any_mutation_and_releases_connection(self):
