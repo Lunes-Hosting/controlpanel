@@ -21,6 +21,7 @@ from config import PTERODACTYL_URL, PTERODACTYL_ADMIN_KEY
 from managers.database_manager import DatabaseManager
 from .logging import webhook_log
 from .user_manager import get_ptero_id, update_last_seen
+from .server_manager import improve_list_servers, delete_server
 from .email_manager import send_email
 from security import safe_requests
 
@@ -31,21 +32,58 @@ HEADERS = {
     'Content-Type': 'application/json'
 }
 
+# A pending deletion that could not be completed is retried once per interval
+# instead of on every 60-second sync run. Kept in memory, so a restart retries once.
+PENDING_DELETION_RETRY_INTERVAL = datetime.timedelta(hours=24)
+# pending_deletions.id -> earliest time of the next attempt
+_pending_deletion_next_check = {}
+
+def delete_remaining_servers(ptero_id, email):
+    """
+    Deletes the servers still attached to an account that is being deleted.
+    Pterodactyl refuses (HTTP 400) to delete a user that still owns servers.
+
+    Args:
+        ptero_id: Pterodactyl user ID
+        email: User's email address
+
+    Returns:
+        list[int]: IDs of the servers that could not be deleted
+    """
+    account = improve_list_servers(ptero_id)
+    if not account:
+        return []
+
+    undeleted_servers = []
+    for server in account['attributes']['relationships']['servers']['data']:
+        server_id = server['attributes']['id']
+        if delete_server(server_id):
+            webhook_log(f"Deleted server {server['attributes']['name']} (ID: {server_id}) due to pending account deletion of {email}", database_log=True)
+        else:
+            undeleted_servers.append(server_id)
+    return undeleted_servers
+
 def sync_users_script():
     """
     Handles periodic maintenance tasks:
-    1. Process pending deletions after 15 days
+    1. Process pending deletions after 15 days, including servers left on the account
     2. Reset passwords for inactive users (180+ days)
     """
     db = DatabaseManager()
     
     # Process pending deletions after 15 days
-    cutoff_15d = datetime.datetime.now() - datetime.timedelta(days=15)
-    pending_deletions = db.execute_query(
-        "SELECT id, email, deletion_requested_time FROM pending_deletions WHERE deletion_requested_time IS NOT NULL AND deletion_requested_time < %s LIMIT 50",
-        (cutoff_15d,),
-        fetch_all=True
-    )
+    now = datetime.datetime.now()
+    cutoff_15d = now - datetime.timedelta(days=15)
+    for pending_id, next_check in list(_pending_deletion_next_check.items()):
+        if next_check <= now:
+            del _pending_deletion_next_check[pending_id]
+    query = "SELECT id, email, deletion_requested_time FROM pending_deletions WHERE deletion_requested_time IS NOT NULL AND deletion_requested_time < %s"
+    values = [cutoff_15d]
+    if _pending_deletion_next_check:
+        # Left out of the query so deletions waiting for a retry cannot fill the batch
+        query += f" AND id NOT IN ({', '.join(['%s'] * len(_pending_deletion_next_check))})"
+        values.extend(_pending_deletion_next_check)
+    pending_deletions = db.execute_query(query + " LIMIT 50", tuple(values), fetch_all=True)
     if pending_deletions:
         for pending in pending_deletions:
             pending_id = pending[0]
@@ -53,6 +91,8 @@ def sync_users_script():
             request_time = pending[2]
             
             webhook_log(f"Processing pending deletion for {email} after 15 days", database_log=True)
+            # Not attempted again until the interval has passed, unless it completes below
+            _pending_deletion_next_check[pending_id] = now + PENDING_DELETION_RETRY_INTERVAL
             
             try:
                 # First verify the user still exists locally
@@ -60,6 +100,7 @@ def sync_users_script():
                 if not user_exists:
                     webhook_log(f"User {email} already deleted, cleaning up pending deletion entry", database_log=True)
                     db.execute_query("DELETE FROM pending_deletions WHERE email = %s", (email,))
+                    _pending_deletion_next_check.pop(pending_id, None)
                     continue
                 
                 user_id = user_exists[0]
@@ -74,12 +115,15 @@ def sync_users_script():
                     ptero_success = True
                 else:
                     try:
+                        # Servers left on the account would make Pterodactyl reject the user deletion
+                        undeleted_servers = delete_remaining_servers(ptero_id, email)
                         response = requests.delete(f"{PTERODACTYL_URL}api/application/users/{ptero_id}", headers=HEADERS, timeout=60)
                         if response.status_code in [204, 404]:
                             # 204 = Successfully deleted, 404 = Already deleted on Pterodactyl
                             ptero_success = True
                         else:
-                            webhook_log(f"Failed to delete {email} from Pterodactyl - Status: {response.status_code}", status=2, database_log=True)
+                            server_details = f" (servers that could not be deleted: {', '.join(map(str, undeleted_servers))})" if undeleted_servers else ""
+                            webhook_log(f"Failed to delete {email} from Pterodactyl - Status: {response.status_code}{server_details}", status=2, database_log=True)
                     except Exception as req_err:
                         webhook_log(f"Network error deleting {email} from Pterodactyl: {str(req_err)}", status=2, database_log=True)
                 
@@ -89,6 +133,7 @@ def sync_users_script():
                     db.execute_query("DELETE FROM tickets WHERE user_id = %s", (user_id,))
                     db.execute_query("DELETE FROM users WHERE id = %s", (user_id,))
                     db.execute_query("DELETE FROM pending_deletions WHERE email = %s", (email,))
+                    _pending_deletion_next_check.pop(pending_id, None)
                     webhook_log(f"Successfully processed pending deletion for {email}", database_log=True)
                     
             except Exception as e:
