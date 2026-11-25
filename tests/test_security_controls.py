@@ -17,6 +17,7 @@ from flask import Flask, session, request, redirect, url_for, flash, current_app
 from mysql.connector import IntegrityError
 
 from runtime.bandwidth import creation_limits
+from runtime.retry_throttle import RetryThrottle
 from tests.test_credit_transactions import load_functions
 from tests import test_credit_transactions as credit_tests
 
@@ -290,14 +291,14 @@ class SuspensionTests(unittest.TestCase):
 
     def test_scheduler_never_resumes_manual_or_unknown_suspensions(self):
         server = {'attributes': {'id': 1, 'user': 7, 'name': 'Test', 'suspended': True}}
+        # The linked panel account: email, credits, suspended.
+        self.ns['DatabaseManager'].execute_query.return_value = ('user@example.com', 100, 0)
         for record in (None, {'active': True, 'source': 'manual'}, {'active': False, 'source': 'billing'}):
             api = Mock()
-            api.get.side_effect = [Mock(status_code=200, json=lambda: {'data': [server]}),
-                                   Mock(status_code=200, json=lambda: {'attributes': {'email': 'user@example.com'}})]
+            api.get.return_value = Mock(status_code=200, json=lambda: {'data': [server]})
             threads = Mock()
             self.ns.update(safe_requests=api, threading=threads, webhook_log=Mock(),
-                           get_credits=lambda _: 100, convert_to_product=lambda _: {'price': 720},
-                           check_if_user_suspended=lambda _: 0,
+                           convert_to_product=lambda _: {'price': 720}, job_failures=RetryThrottle(),
                            get_server_suspension=lambda _: record)
             load_functions('managers/credit_manager.py', self.ns, {'check_to_unsuspend'})
             self.ns['check_to_unsuspend']()
