@@ -190,7 +190,15 @@ def admin_delete_server(server_id):
     Args:
         server_id: Server ID to delete
     """
-    delete_server(server_id)
+    server_info = get_server_information(server_id)
+    if not server_info:
+        flash("Server not found")
+        return redirect(url_for('admin.admin_servers'))
+
+    if delete_server(server_id):
+        webhook_log(f"Admin {session.get('email', 'Unknown')} deleted server {server_info['attributes']['name']} (ID: {server_id})", database_log=True)
+    else:
+        flash("Failed to delete server. Its node may be unreachable.")
     return redirect(url_for('admin.admin_servers'))
 
 
