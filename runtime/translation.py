@@ -4,6 +4,7 @@ Translation comes from Google Translate's public web endpoints, which need no ke
 account. They are free but unofficial, so every caller treats "no answer" as normal.
 """
 
+import logging
 import re
 import unicodedata
 from collections import deque, namedtuple
@@ -11,6 +12,7 @@ from time import monotonic
 
 import requests
 
+log = logging.getLogger('bot_logger')
 Reading = namedtuple('Reading', 'language english')
 Reply = namedtuple('Reply', 'text label')
 
@@ -189,12 +191,16 @@ def _post(url, params, data):
         response = requests.post(url, params=params, data=data, headers={'User-Agent': 'Mozilla/5.0'}, timeout=(3, 8))
         if response.status_code == 200:
             return response.json()
+        problem = f'HTTP {response.status_code}'
         if response.status_code in (403, 429):
             # Too many requests from this address: leave the endpoint alone for a while.
             pause = 900
-    except (requests.RequestException, ValueError):
-        pass
+    except (requests.RequestException, ValueError) as error:
+        problem = type(error).__name__
     _paused_until[url] = monotonic() + pause
+    # Said once per pause, so a missing translation can be traced to its cause in the bot's log.
+    log.warning('Translation endpoint %s is not answering (%s); not asking it again for %s seconds',
+                url.split('/')[2], problem, pause)
     return None
 
 
