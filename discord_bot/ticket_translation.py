@@ -30,6 +30,7 @@ DISCORD_GUILD_ID = getattr(config, 'DISCORD_GUILD_ID', None)
 # Categories whose channels are Discord tickets even without "ticket" in a name.
 DISCORD_TICKET_CATEGORY_IDS = _category_ids(getattr(config, 'DISCORD_TICKET_CATEGORY_IDS', None))
 
+TRANSLATION_WAIT = 10  # seconds
 _MENTION = re.compile(r'<@!?(\d+)>')
 _openers = {}
 
@@ -67,33 +68,46 @@ async def show_english(channel, ticket_key, text, reply_to=None):
         logger.exception('Ticket translation failed for %s', ticket_key)
 
 
-async def translate_staff_message(channel, ticket_key, text, reply_to=None, web=False):
-    """Staff wrote `text`: show it in the opener's language.
+async def translate_for_opener(ticket_key, text):
+    """What staff wrote, in the opener's language.
 
-    Returns the translated line to add to a web ticket, or None when the opener has not
-    written in another language or there is nothing to translate.
+    Returns (Reply, language), or None when the opener has not written in another language,
+    there is nothing to translate, or no translation arrives in time.
     """
     if not ENABLED:
         return None
     try:
         language = await asyncio.to_thread(get_ticket_language, ticket_key)
-        reply = await asyncio.to_thread(translate_reply, text, language) if language else None
-        if reply is None:
+        if not language:
             return None
+        # A web ticket waits for this before it stores the reply, so the wait is kept short.
+        reply = await asyncio.wait_for(asyncio.to_thread(translate_reply, text, language), TRANSLATION_WAIT)
+    except asyncio.TimeoutError:
+        logger.warning('Ticket %s: the translation took too long; the reply stays in English', ticket_key)
+        return None
     except Exception:
         logger.exception('Ticket translation failed for %s', ticket_key)
         return None
+    return (reply, language) if reply else None
+
+
+def web_reply(reply):
+    """How a translated staff reply reads on the website."""
+    return f'[{reply.label}] {reply.text}'
+
+
+async def show_translation(channel, reply, language, reply_to=None, web=False):
+    """Post the translation of a staff reply in the ticket's Discord channel."""
     embed = discord.Embed(description=reply.text[:4096], color=discord.Color.blurple())
     if web:
-        # Only staff see a web ticket's channel; the opener reads this on the website.
-        embed.set_author(name=f'Added to the web ticket in {language_name(language)}')
+        # Only staff see a web ticket's channel; this is what the opener reads on the website.
+        embed.set_author(name=f'Sent to the web ticket in {language_name(language)}')
     else:
         embed.set_footer(text=reply.label)
     try:
         await _post(channel, embed, reply_to)
     except Exception:
-        logger.exception('Could not post the translation for %s', ticket_key)
-    return f'[{reply.label}] {reply.text}'
+        logger.exception('Could not post a translation in channel %s', getattr(channel, 'id', None))
 
 
 def is_discord_ticket(channel):
@@ -155,6 +169,8 @@ async def translate_discord_ticket_message(message):
         logger.exception('Ticket translation failed in channel %s', channel.id)
         return
     if staff:
-        await translate_staff_message(channel, str(channel.id), text, reply_to=message)
+        translated = await translate_for_opener(str(channel.id), text)
+        if translated:
+            await show_translation(channel, *translated, reply_to=message)
     else:
         await show_english(channel, str(channel.id), text, reply_to=message)

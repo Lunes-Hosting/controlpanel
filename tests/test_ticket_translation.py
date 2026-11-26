@@ -3,7 +3,7 @@ are shown to the opener in their language once they have written in it."""
 
 import asyncio
 import re
-from time import perf_counter
+from time import perf_counter, sleep
 from types import SimpleNamespace
 import unittest
 from unittest.mock import AsyncMock, Mock, patch
@@ -265,7 +265,9 @@ class ServiceTests(unittest.TestCase):
         self.requests = []
         self.answers = {}
         self.now = 1000.0
-        for target, name, fake in ((translation.requests, 'post', self.post), (translation, 'monotonic', lambda: self.now)):
+        self.warning = Mock()
+        for target, name, fake in ((translation.requests, 'post', self.post), (translation, 'monotonic', lambda: self.now),
+                                   (translation.log, 'warning', self.warning)):
             patcher = patch.object(target, name, fake)
             patcher.start()
             self.addCleanup(patcher.stop)
@@ -300,6 +302,9 @@ class ServiceTests(unittest.TestCase):
         for _ in range(3):
             self.assertEqual(translation.translate_batch(['hola'], 'en'), [('Hello', 'es')])
         self.assertEqual([url for url, _, _ in self.requests], [first, second, second, second])
+        # The bot's log says why, once, so a missing translation can be traced.
+        self.warning.assert_called_once()
+        self.assertEqual(self.warning.call_args.args[1:], ('translate.googleapis.com', 'HTTP 429', 900))
 
     def test_nothing_is_returned_when_every_endpoint_fails_or_answers_nonsense(self):
         for answers in ([(500, None), (200, {'unexpected': True}), (200, [['only one']])],
@@ -352,7 +357,7 @@ class DiscordCase(unittest.IsolatedAsyncioTestCase):
         self.interpret = Mock(return_value=None)
         self.translate_reply = Mock(return_value=None)
         self.ns = load_code('discord_bot/ticket_translation.py', dict(
-            asyncio=asyncio, discord=discord, logger=Mock(), ENABLED=True, DISCORD_GUILD_ID=1,
+            asyncio=asyncio, discord=discord, logger=Mock(), ENABLED=True, DISCORD_GUILD_ID=1, TRANSLATION_WAIT=10,
             DISCORD_TICKET_CATEGORY_IDS={77}, _MENTION=re.compile(r'<@!?(\d+)>'), _openers={},
             get_ticket_id=Mock(return_value=None), get_ticket_language=self.languages.get,
             set_ticket_language=self.languages.__setitem__, interpret=self.interpret,
@@ -400,41 +405,56 @@ class TranslationMessageTests(DiscordCase):
         self.assertEqual(self.channel.send.await_args.kwargs['embed'].description, 'help please')
         self.assertEqual(self.languages, {'500': 'es'})
 
+    REPLY = Reply('cual es el problema', 'Traducción automática')
+
     async def test_staff_are_not_translated_until_the_opener_writes_in_another_language(self):
-        self.assertIsNone(await self.ns['translate_staff_message'](self.channel, 'ticket-1', 'what is the issue'))
+        self.assertIsNone(await self.ns['translate_for_opener']('ticket-1', 'what is the issue'))
         self.translate_reply.assert_not_called()
-        self.channel.send.assert_not_awaited()
 
-    async def test_a_staff_reply_is_posted_in_the_opener_s_language(self):
+    async def test_a_staff_reply_is_translated_into_the_opener_s_language(self):
         self.languages['500'] = 'es'
-        self.translate_reply.return_value = Reply('cual es el problema', 'Traducción automática')
-        line = await self.ns['translate_staff_message'](self.channel, '500', 'what is the issue')
-        embed = self.channel.send.await_args.kwargs['embed']
-        self.assertEqual((embed.description, embed.footer.text), ('cual es el problema', 'Traducción automática'))
-        self.assertEqual(line, '[Traducción automática] cual es el problema')
+        self.translate_reply.return_value = self.REPLY
+        self.assertEqual(await self.ns['translate_for_opener']('500', 'what is the issue'), (self.REPLY, 'es'))
         self.translate_reply.assert_called_once_with('what is the issue', 'es')
+        self.translate_reply.return_value = None  # nothing to translate, such as "?"
+        self.assertIsNone(await self.ns['translate_for_opener']('500', '?'))
 
-    async def test_a_web_ticket_reply_is_returned_even_if_discord_refuses_the_copy(self):
-        self.languages['ticket-1'] = 'es'
-        self.translate_reply.return_value = Reply('cual es el problema', 'Traducción automática')
+    async def test_in_a_discord_ticket_the_translation_is_posted_with_a_label_in_that_language(self):
+        message = SimpleNamespace(reply=AsyncMock())
+        await self.ns['show_translation'](self.channel, self.REPLY, 'es', reply_to=message)
+        embed = message.reply.await_args.kwargs['embed']
+        self.assertEqual((embed.description, embed.footer.text), ('cual es el problema', 'Traducción automática'))
+
+    async def test_in_a_web_ticket_s_channel_staff_are_told_what_the_website_shows(self):
+        await self.ns['show_translation'](self.channel, self.REPLY, 'es', web=True)
+        embed = self.channel.send.await_args.kwargs['embed']
+        self.assertEqual((embed.author.name, embed.description), ('Sent to the web ticket in Spanish', 'cual es el problema'))
+        self.assertEqual(self.ns['web_reply'](self.REPLY), '[Traducción automática] cual es el problema')
+        # Discord refusing the copy must not undo what the website already shows.
         self.channel.send.side_effect = RuntimeError('missing permissions')
-        line = await self.ns['translate_staff_message'](self.channel, 'ticket-1', 'what is the issue', web=True)
-        self.assertEqual(line, '[Traducción automática] cual es el problema')
-        self.assertEqual(self.channel.send.await_args.kwargs['embed'].author.name, 'Added to the web ticket in Spanish')
+        await self.ns['show_translation'](self.channel, self.REPLY, 'es', web=True)
+
+    async def test_a_reply_is_not_held_up_by_a_slow_translation(self):
+        self.languages['ticket-1'] = 'es'
+        self.ns['TRANSLATION_WAIT'] = 0.05
+        self.translate_reply.side_effect = lambda text, language: sleep(0.4) or self.REPLY
+        started = perf_counter()
+        self.assertIsNone(await self.ns['translate_for_opener']('ticket-1', 'what is the issue'))
+        self.assertLess(perf_counter() - started, 0.3)
 
     async def test_a_failure_never_reaches_the_ticket_flow(self):
         self.interpret.side_effect = RuntimeError('boom')
         self.translate_reply.side_effect = RuntimeError('boom')
         self.languages['ticket-1'] = 'es'
         await self.ns['show_english'](self.channel, 'ticket-1', 'hola')
-        self.assertIsNone(await self.ns['translate_staff_message'](self.channel, 'ticket-1', 'hi'))
+        self.assertIsNone(await self.ns['translate_for_opener']('ticket-1', 'hi'))
         self.channel.send.assert_not_awaited()
 
     async def test_switched_off_does_nothing(self):
         self.ns['ENABLED'] = False
         self.languages['ticket-1'] = 'es'
         await self.ns['show_english'](self.channel, 'ticket-1', 'hola')
-        self.assertIsNone(await self.ns['translate_staff_message'](self.channel, 'ticket-1', 'hi'))
+        self.assertIsNone(await self.ns['translate_for_opener']('ticket-1', 'hi'))
         await self.ns['translate_discord_ticket_message'](self.message('hola'))
         self.interpret.assert_not_called()
         self.translate_reply.assert_not_called()
@@ -451,7 +471,8 @@ class DiscordTicketTests(DiscordCase):
     def setUp(self):
         super().setUp()
         self.ns['show_english'] = AsyncMock()
-        self.ns['translate_staff_message'] = AsyncMock()
+        self.ns['translate_for_opener'] = AsyncMock(return_value=(TranslationMessageTests.REPLY, 'es'))
+        self.ns['show_translation'] = AsyncMock()
         self.first_message = SimpleNamespace(author=SimpleNamespace(bot=True), content='<@9> Welcome', embeds=[])
         self.channel.history = Mock(side_effect=lambda **options: self.history())
         self.channel.guild.get_member = Mock(side_effect=lambda user_id: SimpleNamespace(id=user_id, bot=user_id == 3))
@@ -501,12 +522,17 @@ class DiscordTicketTests(DiscordCase):
         message = await self.send('hola, mi servidor no funciona')
         self.ns['show_english'].assert_awaited_once_with(self.channel, '500', 'hola, mi servidor no funciona', reply_to=message)
         reply = await self.send('what is the issue', roles=[self.STAFF], author_id=20)
-        self.ns['translate_staff_message'].assert_awaited_once_with(self.channel, '500', 'what is the issue', reply_to=reply)
+        self.ns['translate_for_opener'].assert_awaited_once_with('500', 'what is the issue')
+        self.ns['show_translation'].assert_awaited_once_with(self.channel, TranslationMessageTests.REPLY, 'es', reply_to=reply)
+        # Nothing is posted for a reply with nothing to translate, or while the ticket is in English.
+        self.ns['translate_for_opener'].return_value = None
+        await self.send('?', roles=[self.STAFF], author_id=20)
+        self.ns['show_translation'].assert_awaited_once()
 
     async def test_a_staff_member_who_opened_the_ticket_is_treated_as_its_opener(self):
         await self.send('hola, mi servidor no funciona', roles=[self.STAFF], author_id=9)
         self.ns['show_english'].assert_awaited_once()
-        self.ns['translate_staff_message'].assert_not_awaited()
+        self.ns['translate_for_opener'].assert_not_awaited()
         # The opening message is looked up once per channel, not on every message.
         await self.send('gracias', roles=[self.STAFF], author_id=9)
         self.assertEqual(self.channel.history.call_count, 1)
@@ -515,17 +541,17 @@ class DiscordTicketTests(DiscordCase):
         for first in (None, SimpleNamespace(author=SimpleNamespace(bot=False), content='<@20> hi', embeds=[]),
                       SimpleNamespace(author=SimpleNamespace(bot=True), content='<@3> <@&5> Welcome', embeds=[])):
             self.ns['_openers'].clear()
-            self.ns['translate_staff_message'].reset_mock()
+            self.ns['translate_for_opener'].reset_mock()
             self.first_message = first
             await self.send('what is the issue', roles=[self.STAFF], author_id=20)
-            self.ns['translate_staff_message'].assert_awaited_once()
+            self.ns['translate_for_opener'].assert_awaited_once()
 
     async def test_staff_are_staff_when_the_bot_may_not_read_the_channel_history(self):
         refused = discord.Forbidden(SimpleNamespace(status=403, reason='Forbidden'), 'Missing Access')
         self.channel.history = Mock(side_effect=refused)
         for _ in range(2):
             await self.send('what is the issue', roles=[self.STAFF], author_id=9)
-        self.assertEqual(self.ns['translate_staff_message'].await_count, 2)
+        self.assertEqual(self.ns['translate_for_opener'].await_count, 2)
         self.assertEqual(self.channel.history.call_count, 1)
 
     def test_a_mistyped_category_setting_is_ignored(self):
@@ -552,69 +578,127 @@ class DiscordTicketTests(DiscordCase):
         self.channel.permissions_for.return_value = SimpleNamespace(view_channel=True)
         await self.send('hola, mi servidor no funciona')
         self.ns['show_english'].assert_not_awaited()
-        self.ns['translate_staff_message'].assert_not_awaited()
+        self.ns['translate_for_opener'].assert_not_awaited()
 
 
 class WebTicketTests(unittest.IsolatedAsyncioTestCase):
+    """The web ticket shows the owner staff replies in their own language only."""
+
+    REPLY = Reply('cual es el problema', 'Traducción automática')
+
     def setUp(self):
         self.queries = []
+        self.stored_reply = 41
+        self.events = []
         self.show_english = AsyncMock()
-        self.translate_staff_message = AsyncMock(return_value=None)
+        self.translate_for_opener = AsyncMock(return_value=None)
+        self.show_translation = AsyncMock(side_effect=lambda *args, **options: self.events.append('translation shown'))
+        self.emails = []
         self.ns = load_code('discord_bot/ticket_sync.py', dict(
-            discord=discord, logger=Mock(), datetime=__import__('datetime'),
-            DatabaseManager=SimpleNamespace(execute_query=self.query), show_english=self.show_english,
-            translate_staff_message=self.translate_staff_message,
+            discord=discord, logger=Mock(), datetime=__import__('datetime'), DISCORD_GUILD_ID=1,
+            TICKET_DISCORD_CATEGORY_ID=2, DatabaseManager=SimpleNamespace(execute_query=self.query),
+            show_english=self.show_english, translate_for_opener=self.translate_for_opener,
+            show_translation=self.show_translation, web_reply=lambda reply: f'[{reply.label}] {reply.text}',
+            get_ticket_id=lambda channel_id: 'ticket-1', _lookup_staff_user=lambda discord_id: (12, 'staff@example.com'),
             _get_ticket_owner_email=lambda ticket_id: 'Owner@example.com',
-        ), {'_translate_web_message', '_add_translated_comment'})
+            _apply_ticket_channel_status=AsyncMock(side_effect=lambda *args: self.events.append('channel renamed')),
+            _get_smtp_config=lambda: {'MAIL_SERVER': 'smtp.example.com'},
+            send_email_without_app_context=lambda *args: self.emails.append(args),
+        ), {'_translate_web_message', 'process_discord_message', '_discord_ids_configured'})
+        self.channel = Mock(spec=discord.TextChannel)
+        self.channel.id, self.channel.category_id = 500, 2
 
     def query(self, sql, values=()):
-        self.queries.append((sql, values))
-        return (7,) if sql.startswith('SELECT id FROM users') else None
+        self.queries.append((' '.join(sql.split()), values))
+        self.events.append(sql.split()[0] + ' ' + ('tickets' if 'tickets SET' in sql else 'comment'))
+        return (self.stored_reply,) if sql.startswith('SELECT MAX') else None
 
-    def comments(self):
-        return [values for sql, values in self.queries if sql.startswith('INSERT INTO ticket_comments')]
+    def written(self, statement):
+        return [values for sql, values in self.queries if sql.startswith(statement)]
+
+    def message(self, content, attachments=()):
+        return SimpleNamespace(id=900, content=content, channel=self.channel, guild=SimpleNamespace(id=1),
+                               author=SimpleNamespace(id=9002, bot=False, display_name='Sam'),
+                               attachments=[SimpleNamespace(url=url) for url in attachments], add_reaction=AsyncMock())
 
     async def test_what_the_owner_wrote_is_shown_in_english_in_discord_only(self):
         await self.ns['_translate_web_message']('channel', 'ticket-1', 'owner@example.com', '我的服务器无法启动', '帮助')
         self.show_english.assert_awaited_once_with('channel', 'ticket-1', '帮助\n我的服务器无法启动')
         await self.ns['_translate_web_message']('channel', 'ticket-1', 'owner@example.com', '谢谢')
         self.assertEqual(self.show_english.await_args.args, ('channel', 'ticket-1', '谢谢'))
-        # Nothing is added to the web ticket for the owner's own messages.
+        # Nothing on the website changes for the owner's own messages.
         self.assertEqual(self.queries, [])
-        self.translate_staff_message.assert_not_awaited()
+        self.translate_for_opener.assert_not_awaited()
 
-    async def test_a_staff_reply_from_the_website_is_added_to_the_ticket_in_the_owner_s_language(self):
-        self.translate_staff_message.return_value = '[自动翻译] 有什么问题'
-        await self.ns['_translate_web_message']('channel', 'ticket-1', 'staff@example.com', 'what is the issue', 'Title')
-        self.translate_staff_message.assert_awaited_once_with('channel', 'ticket-1', 'what is the issue', None, web=True)
-        (ticket_id, user_id, comment, _), = self.comments()
-        self.assertEqual((ticket_id, user_id, comment), ('ticket-1', 7, '[自动翻译] 有什么问题'))
+    async def test_a_staff_reply_from_discord_reaches_the_web_ticket_in_the_owner_s_language_only(self):
+        self.translate_for_opener.return_value = (self.REPLY, 'es')
+        message = self.message('what is the issue')
+        await self.ns['process_discord_message'](Mock(), message)
+        self.translate_for_opener.assert_awaited_once_with('ticket-1', 'what is the issue')
+        (ticket_id, user_id, comment, _), = self.written('INSERT INTO ticket_comments')
+        self.assertEqual((ticket_id, user_id, comment), ('ticket-1', 12, '[Traducción automática] cual es el problema'))
+        # The English stays in Discord: it is in neither the ticket nor the email about it.
+        self.assertNotIn('what is the issue', str(self.queries) + str(self.emails))
+        self.assertIn('[Traducción automática] cual es el problema', self.emails[0][2])
+        self.show_translation.assert_awaited_once_with(self.channel, self.REPLY, 'es', reply_to=message, web=True)
+        message.add_reaction.assert_awaited_once()
+
+    async def test_staff_see_the_translation_without_waiting_for_the_channel_rename(self):
+        self.translate_for_opener.return_value = (self.REPLY, 'es')
+        await self.ns['process_discord_message'](Mock(), self.message('what is the issue'))
+        self.assertEqual(self.events, ['INSERT comment', 'UPDATE tickets', 'translation shown', 'channel renamed'])
+
+    async def test_attachments_are_kept_with_a_translated_reply(self):
+        self.translate_for_opener.return_value = (self.REPLY, 'es')
+        await self.ns['process_discord_message'](Mock(), self.message('what is the issue', ['https://cdn.example.com/a.png']))
+        self.assertEqual(self.written('INSERT INTO ticket_comments')[0][2],
+                         '[Traducción automática] cual es el problema\n\nAttachment: https://cdn.example.com/a.png')
+        self.queries.clear()
+        await self.ns['process_discord_message'](Mock(), self.message('', ['https://cdn.example.com/a.png']))
+        self.assertEqual(self.written('INSERT INTO ticket_comments')[0][2], 'Attachment: https://cdn.example.com/a.png')
+        self.assertEqual(self.translate_for_opener.await_count, 1)
+
+    async def test_a_reply_is_stored_as_written_when_there_is_no_translation(self):
+        # An English ticket, a reply such as "?", or the translation service not answering.
+        message = self.message('what is the issue')
+        await self.ns['process_discord_message'](Mock(), message)
+        self.assertEqual(self.written('INSERT INTO ticket_comments')[0][2], 'what is the issue')
+        self.show_translation.assert_not_awaited()
+        message.add_reaction.assert_awaited_once()
+
+    async def test_a_staff_reply_from_the_website_is_replaced_by_its_translation(self):
+        self.translate_for_opener.return_value = (self.REPLY, 'es')
+        await self.ns['_translate_web_message'](self.channel, 'ticket-1', 'staff@example.com', 'what is the issue', 'Title')
+        self.translate_for_opener.assert_awaited_once_with('ticket-1', 'what is the issue')
+        # The website stored the English reply: that reply is found and rewritten, nothing is added.
+        self.assertEqual(self.written('SELECT MAX(ticket_comments.id)'), [('ticket-1', 'staff@example.com', 'what is the issue')])
+        self.assertEqual(self.written('UPDATE ticket_comments'), [('[Traducción automática] cual es el problema', 41)])
+        self.assertEqual(self.written('INSERT'), [])
+        self.show_translation.assert_awaited_once_with(self.channel, self.REPLY, 'es', web=True)
         self.show_english.assert_not_awaited()
 
-    async def test_a_staff_reply_from_discord_is_added_under_that_staff_member(self):
-        self.translate_staff_message.return_value = '[Traducción automática] cual es el problema'
-        await self.ns['_add_translated_comment']('channel', 'ticket-1', 12, 'what is the issue', reply_to='message')
-        self.translate_staff_message.assert_awaited_once_with('channel', 'ticket-1', 'what is the issue', 'message', web=True)
-        self.assertEqual(self.comments()[0][:3], ('ticket-1', 12, '[Traducción automática] cual es el problema'))
-
-    async def test_nothing_is_added_while_the_ticket_is_in_english(self):
-        await self.ns['_translate_web_message']('channel', 'ticket-1', 'staff@example.com', 'what is the issue')
-        await self.ns['_add_translated_comment']('channel', 'ticket-1', 12, 'what is the issue')
-        self.assertEqual(self.comments(), [])
+    async def test_nothing_on_the_website_changes_without_a_translation_or_a_stored_reply(self):
+        await self.ns['_translate_web_message'](self.channel, 'ticket-1', 'staff@example.com', 'what is the issue')
+        self.assertEqual(self.queries, [])
+        self.translate_for_opener.return_value = (self.REPLY, 'es')
+        self.stored_reply = None
+        await self.ns['_translate_web_message'](self.channel, 'ticket-1', 'staff@example.com', 'what is the issue')
+        self.assertEqual(self.written('UPDATE'), [])
+        self.show_translation.assert_not_awaited()
 
     async def test_a_translation_failure_does_not_break_the_ticket_bridge(self):
         self.show_english.side_effect = RuntimeError('boom')
-        self.translate_staff_message.side_effect = RuntimeError('boom')
-        await self.ns['_translate_web_message']('channel', 'ticket-1', 'owner@example.com', 'hola')
-        await self.ns['_translate_web_message']('channel', 'ticket-1', 'staff@example.com', 'hi')
-        await self.ns['_add_translated_comment']('channel', 'ticket-1', 12, 'hi')
-        self.assertEqual(self.comments(), [])
+        self.translate_for_opener.side_effect = RuntimeError('boom')
+        await self.ns['_translate_web_message'](self.channel, 'ticket-1', 'owner@example.com', 'hola')
+        await self.ns['_translate_web_message'](self.channel, 'ticket-1', 'staff@example.com', 'hi')
+        self.assertEqual(self.queries, [])
 
     def test_the_bridge_and_the_bot_hand_messages_to_translation(self):
         sync = (ROOT / 'discord_bot/ticket_sync.py').read_text(encoding='utf-8')
         self.assertEqual(sync.count('await _translate_web_message(channel, ticket_id, opener_email, initial_message, title)'), 2)
         self.assertIn('await _translate_web_message(channel, ticket_id, author_email, message)', sync)
-        self.assertIn('await _add_translated_comment(channel, ticket_id, staff_id, message.content, reply_to=message)', sync)
+        # Discord can hold a channel rename back for minutes: a translation never waits behind one.
+        self.assertEqual(len(re.findall(r'await _translate_web_message\(.*\)\n\s+await _apply_ticket_channel_status\(', sync)), 3)
         bot = (ROOT / 'discord_bot/bot.py').read_text(encoding='utf-8')
         self.assertIn('await translate_discord_ticket_message(message)', bot)
 
