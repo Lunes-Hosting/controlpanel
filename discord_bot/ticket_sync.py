@@ -33,6 +33,7 @@ from managers.ticket_discord_manager import (
     set_channel,
 )
 from discord_bot.utils.logger import logger
+from discord_bot.ticket_translation import show_english, translate_staff_message
 
 try:
     from config import MAIL_USE_TLS  # type: ignore
@@ -85,6 +86,7 @@ async def create_discord_ticket_channel(
                 ticket_id=ticket_id,
             )
             await _apply_ticket_channel_status(channel, ticket_id)
+            await _translate_web_message(channel, ticket_id, opener_email, initial_message, title)
             return
 
     channel = await guild.create_text_channel(
@@ -103,6 +105,7 @@ async def create_discord_ticket_channel(
         ticket_id=ticket_id,
     )
     await _apply_ticket_channel_status(channel, ticket_id)
+    await _translate_web_message(channel, ticket_id, opener_email, initial_message, title)
 
 
 async def send_ticket_open_message(
@@ -172,6 +175,7 @@ async def send_discord_ticket_message(
     embed.add_field(name="Origin", value=origin, inline=False)
     await channel.send(embed=embed)
     await _apply_ticket_channel_status(channel, ticket_id)
+    await _translate_web_message(channel, ticket_id, author_email, message)
 
 
 async def delete_discord_ticket_channel(bot: discord.Client, ticket_id: str, reason: str) -> None:
@@ -275,6 +279,36 @@ async def process_discord_message(bot: discord.Client, message: discord.Message)
         await message.add_reaction("📬")
     except Exception as exc:
         logger.warning("Discord ticket bridge: failed to add reaction: %s", exc)
+
+    await _add_translated_comment(channel, ticket_id, staff_id, message.content, reply_to=message)
+
+
+async def _translate_web_message(channel, ticket_id, author_email, message, title=None) -> None:
+    """Translate a message written on the website, by the ticket's owner or by staff."""
+    try:
+        owner_email = _get_ticket_owner_email(ticket_id)
+        if owner_email and owner_email.strip().lower() == str(author_email).strip().lower():
+            # The English version stays in Discord: the owner has no use for it on the website.
+            await show_english(channel, ticket_id, f"{title}\n{message}" if title else message)
+            return
+        author = DatabaseManager.execute_query("SELECT id FROM users WHERE email = %s", (author_email,))
+        if author:
+            await _add_translated_comment(channel, ticket_id, author[0], message)
+    except Exception:
+        logger.exception("Discord ticket bridge: could not translate a message for ticket %s", ticket_id)
+
+
+async def _add_translated_comment(channel, ticket_id, staff_id, message, reply_to=None) -> None:
+    """Add a staff reply to the web ticket again in the owner's language, once that is known."""
+    try:
+        translated = await translate_staff_message(channel, ticket_id, message, reply_to, web=True)
+        if translated:
+            DatabaseManager.execute_query(
+                "INSERT INTO ticket_comments (ticket_id, user_id, ticketcomment, created_at) VALUES (%s, %s, %s, %s)",
+                (ticket_id, staff_id, translated, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+            )
+    except Exception:
+        logger.exception("Discord ticket bridge: could not add the translated reply to ticket %s", ticket_id)
 
 
 async def update_ticket_channel_status(bot: discord.Client, ticket_id: str) -> None:

@@ -37,6 +37,11 @@ DEBUG_FRONTEND_MODE =
 DISCORD_GUILD_ID = 
 TICKET_DISCORD_CATEGORY_ID = 
 ACCOUNT_APPROVAL_CHANNEL_ID = "1539336127880896532"
+# The bot translates tickets written in another language. Set False to turn that off.
+TICKET_TRANSLATION_ENABLED = True
+# Tickets opened in Discord are private channels with "ticket" in the channel or
+# category name. List the category IDs here if yours are named differently.
+DISCORD_TICKET_CATEGORY_IDS = []
 AUTODEPLOY_NEST_ID: int = 
 #DISCORD INVITE
 DISCORD_INVITE = ""

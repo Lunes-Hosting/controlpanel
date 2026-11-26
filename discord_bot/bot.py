@@ -9,6 +9,7 @@ from .utils.logger import logger
 from discord_bot.ticket_bridge import set_bot_loop
 from discord_bot.account_approval import set_approval_bot, restore_pending_approval_views
 from discord_bot.ticket_sync import process_discord_message
+from discord_bot.ticket_translation import translate_discord_ticket_message
 from managers.database_manager import DatabaseManager
 from managers.ticket_ids import short_ticket_id
 from managers.ticket_discord_manager import (
@@ -40,6 +41,7 @@ async def on_message(message):
     if message.author == bot.user:
         return
     await process_discord_message(bot, message)
+    await translate_discord_ticket_message(message)
     if hasattr(bot, "process_commands"):
         await bot.process_commands(message)
 

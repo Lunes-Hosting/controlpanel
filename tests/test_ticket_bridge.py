@@ -19,9 +19,11 @@ class TicketReplyTests(unittest.IsolatedAsyncioTestCase):
         self.bot.get_guild.return_value = self.guild
         self.channels = {'ticket-1': 111}
         self.create = AsyncMock()
+        self.translate = AsyncMock()
         self.ns = load_code('discord_bot/ticket_sync.py', dict(
             discord=discord, DISCORD_GUILD_ID=1, TICKET_DISCORD_CATEGORY_ID=2, logger=Mock(),
             get_channel_id=self.channels.get, _apply_ticket_channel_status=AsyncMock(),
+            _translate_web_message=self.translate,
             DatabaseManager=SimpleNamespace(execute_query=lambda query, values: ('Server offline',)),
         ), {'send_discord_ticket_message', '_discord_ids_configured'})
         self.ns['create_discord_ticket_channel'] = self.create
@@ -35,6 +37,7 @@ class TicketReplyTests(unittest.IsolatedAsyncioTestCase):
         self.guild.get_channel.assert_called_once_with(111)
         self.assertEqual(self.channel.send.await_args.kwargs['embed'].description, 'Any update?')
         self.create.assert_not_awaited()
+        self.translate.assert_awaited_once_with(self.channel, 'ticket-1', 'user@example.com', 'Any update?')
 
     async def test_reply_recreates_a_channel_that_was_deleted_in_discord(self):
         self.guild.get_channel.return_value = None
